@@ -76,7 +76,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="intro.html"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded "><a href="Language/index.html"><strong aria-hidden="true">2.</strong> Language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="Language/paths.html"><strong aria-hidden="true">2.1.</strong> Paths</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="intro.html"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded "><a href="Language/index.html"><strong aria-hidden="true">2.</strong> Language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="Language/paths.html"><strong aria-hidden="true">2.1.</strong> Paths</a></li><li class="chapter-item expanded "><a href="Language/choices.html"><strong aria-hidden="true">2.2.</strong> Choices</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -287,6 +287,66 @@ Then they visited the rest of the graveyard. There, they found the unthinkable..
 // or
 -&gt; graveyard.left
 // path names are case insensitive!
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="choices-1"><a class="header" href="#choices-1">Choices</a></h1>
+<p><strong>Choices</strong> are what the reader makes in order to end up in different <strong>paths</strong>:</p>
+<pre><code class="language-md"># Graveyard
+
+James and Alicia arrive at the graveyard. Where should they investigate first?
+
+- Left -&gt; graveyard_left
+- Right -&gt; graveyard_right
+
+## Graveyard Left
+
+James and Alicia decided to investigate the left area of the graveyard first. They found nothing useful.
+
+## Graveyard Right
+
+James and Alicia found an open grave!
+</code></pre>
+<p>The above example uses a <strong>choice group</strong> to ask the reader on what to do. Only one option can be chosen. After a choice has been made, the choice isn't getting saved anywhere - so if another path takes the reader to the same choice, the reader will be given the same options.</p>
+<p>If the reader chooses <code>Left</code>, they'll divert to the <code>Graveyard Left</code> path, and if they choose <code>Right</code>, they'll divert to the <code>Graveyard Right</code> path, and afterwards the story will end. </p>
+<h2 id="inline-responses"><a class="header" href="#inline-responses">Inline responses</a></h2>
+<p>A choice doesn't always have to lead to a new path - in the example above, the two different paths are excessive - we can put the text right below the option:</p>
+<pre><code class="language-md">- Left
+    James and Alicia decided to investigate the left area of the graveyard first. They found nothing useful.
+- Right
+    James and Alicia found an open grave!
+</code></pre>
+<p>The text below can contain anything - even more choices, but <strong>it has to be on a new line and have at least 4 whitespaces at the start of the new line, depending on how nested the choices are</strong>. </p>
+<p>Here's what it would look like with nested choices:</p>
+<pre><code class="language-md">- Left
+    James and Alicia decided to investigate the left area of the graveyard first. They found nothing useful.
+- Right
+    James and Alicia found an open grave!
+    - Take a peek
+        They looked inside the grave, and saw the unthinkable.
+    - Move on
+        Too afraid to look what's inside the grave, they moved on.
+</code></pre>
+<h2 id="option-attributes"><a class="header" href="#option-attributes">Option attributes</a></h2>
+<p><strong>Attributes</strong> can change how an option or an option group behaves.</p>
+<h3 id="once"><a class="header" href="#once">once</a></h3>
+<p>You can prefix a choice with the <code>once</code> attribute, so if the reader ever encounters the same choice group, they can't make the same choice twice:</p>
+<pre><code class="language-md">- #[once] Left
+    You chose the left path. You will now be brought back to the same choice.
+    -&gt; BACK
+- Right
+    You went right!
+    -&gt; END
+</code></pre>
+<p>In the example above, if the reader chooses <code>Left</code>, they will see the text below it, and go back to the choice (because of the special <code>BACK</code> path), except this time they won't have the <code>Left</code> choice anymore, only <code>Right</code>.</p>
+<h3 id="exaust"><a class="header" href="#exaust">exaust</a></h3>
+<p>You can add the <code>exaust</code> attribute to a choice group. After a choice is made, the reader will be brought back to the choice group, until all of the choices are selected, or until one of the choices takes the reader to another path.</p>
+<pre><code class="language-md">#[exaust]
+- Left
+    You went left!
+- Right
+    You went right!
+- Exit graveyard
+    You exited the graveyard.
+    -&gt; END
 </code></pre>
 
                     </main>
