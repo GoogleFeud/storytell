@@ -75,7 +75,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="intro.html" class="active"><strong aria-hidden="true">1.</strong> Intro</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="intro.html" class="active"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded "><a href="Language/index.html"><strong aria-hidden="true">2.</strong> Language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="Language/paths.html"><strong aria-hidden="true">2.1.</strong> Paths</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -135,7 +135,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="storytell"><a class="header" href="#storytell">Storytell</a></h1>
-<p>Storytell is a text editor which allows you to write interactive fiction - from scripts with simple choices to massive stories with many branching storylines and endings. It also allows you to <strong>play</strong> your story as you write it, and view how your stories branch. It's not meant for game creation - only writing scripts for games or movies.</p>
+<p>Storytell is a text editor which allows you to write interactive fiction - from scripts with simple choices to massive stories with many branching storylines and endings. It also allows you to <strong>play</strong> your story as you write it, and view how your stories branch. It's not meant for game creation - only writing scripts for games or other interactive media.</p>
 <h2 id="the-language"><a class="header" href="#the-language">The language</a></h2>
 <p>Storytell allows you to write your scripts in a simple markup language which has full markdown support. Here is a very simple example:</p>
 <pre><code class="language-md"># Chapter 1, Part 2
@@ -221,12 +221,18 @@ You encounter an animal. Kill it?
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
+                            <a rel="next" href="Language/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
                         <div style="clear: both"></div>
                     </nav>
                 </div>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="next" href="Language/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
             </nav>
 
         </div>

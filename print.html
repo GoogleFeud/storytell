@@ -76,7 +76,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="intro.html"><strong aria-hidden="true">1.</strong> Intro</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="intro.html"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded "><a href="Language/index.html"><strong aria-hidden="true">2.</strong> Language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="Language/paths.html"><strong aria-hidden="true">2.1.</strong> Paths</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -136,7 +136,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="storytell"><a class="header" href="#storytell">Storytell</a></h1>
-<p>Storytell is a text editor which allows you to write interactive fiction - from scripts with simple choices to massive stories with many branching storylines and endings. It also allows you to <strong>play</strong> your story as you write it, and view how your stories branch. It's not meant for game creation - only writing scripts for games or movies.</p>
+<p>Storytell is a text editor which allows you to write interactive fiction - from scripts with simple choices to massive stories with many branching storylines and endings. It also allows you to <strong>play</strong> your story as you write it, and view how your stories branch. It's not meant for game creation - only writing scripts for games or other interactive media.</p>
 <h2 id="the-language"><a class="header" href="#the-language">The language</a></h2>
 <p>Storytell allows you to write your scripts in a simple markup language which has full markdown support. Here is a very simple example:</p>
 <pre><code class="language-md"># Chapter 1, Part 2
@@ -216,6 +216,77 @@ You encounter an animal. Kill it?
     { animalsKilled += 1 }
     You killed the animal. You have now killed {animalsKilled} animals.
 - Spare
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="the-language-1"><a class="header" href="#the-language-1">The Language</a></h1>
+<p>Storytell comes with a simple markup language which is very similar to <a href="https://www.markdownguide.org/">markdown</a>. However, some features have been repurposed, and additional syntax has been added. If you're not familiar with markdown, I highly recommend going over the <a href="https://www.markdownguide.org/basic-syntax/">basic sytnax</a>. </p>
+<p>Here are the major differences:</p>
+<table><thead><tr><th>Markdown</th><th>Storytell</th></tr></thead><tbody>
+<tr><td>Headers (<code>#</code> and <code>##</code>)</td><td>Path start</td></tr>
+<tr><td>Lists (<code>- value</code>)</td><td>Choices</td></tr>
+<tr><td>Code blocks</td><td>Javascript code evaluation</td></tr>
+</tbody></table>
+<p>And here is everything storytell adds, you can treat this as a cheatsheet:</p>
+<table><thead><tr><th>Symbol</th><th>Inline</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>-&gt;</code></td><td>yes</td><td>Diverting the reader to another part.</td></tr>
+<tr><td><code>&lt;-&gt;</code></td><td>yes</td><td>Diverting the reader to another part, and returning to the current path after the diverted path is finished.</td></tr>
+<tr><td><code>#[...]</code></td><td>yes</td><td>Attributes - changes the settings of other symbols.</td></tr>
+<tr><td><code>{ ... }</code></td><td>yes</td><td>Inline javascript code, which cannot contain curly brackets.</td></tr>
+<tr><td><code>\</code></td><td>yes</td><td>Ecapes a symbol.</td></tr>
+</tbody></table>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="paths-1"><a class="header" href="#paths-1">Paths</a></h1>
+<p>The main construct of the language are <strong>paths</strong> - they're like different sections of your story which can play out differently, depending on the choices the reader makes. Each story starts at a path and ends at another. Each path can also have <strong>deviations</strong>, which can also be used as sub-paths. Here is an example:</p>
+<pre><code class="language-md"># Chapter 1, Part 2
+
+This text is shown when the reader arrives at this path. You **can** *use*  __markdown__ to style your text.
+
+// This is a comment, the arrow below will divert the reader to the &quot;Diversion 1&quot; path
+-&gt; diversion_1
+
+## Diversion 1
+
+This is a diversion from the main path. The reader can come here from anywhere, inclduding from the main path.
+</code></pre>
+<h2 id="diversions"><a class="header" href="#diversions">Diversions</a></h2>
+<p>Paths can divert you to other paths with the following symbols:</p>
+<ul>
+<li><code>-&gt;</code> - Direct diversion. The path transfers the flow control to another path. The reader never returns to this path unless another path specifically divers the reader to it.</li>
+<li><code>&lt;-&gt;</code> - Temporary diversion. After the path ends, the reader continues from the old path.</li>
+</ul>
+<p>A path is considered to &quot;end&quot; when:</p>
+<ul>
+<li>It diverts to the <code>END</code> path.</li>
+<li>There's no more content to be shown.</li>
+</ul>
+<p>So if the path diverts to another path, the temporary diversion will wait for that path to end, too! Things can get a little confusing with temporary diversion so use it sparingly!</p>
+<pre><code class="language-md"># Graveyard
+
+Zach and Betty finally reached the graveyard. 
+
+&lt;-&gt; Left
+-&gt; Right
+
+This will never be seen...
+
+## Left
+
+Zach and Betty decided to visit the left section of the graveyard first. They didn't find anything interesting.
+
+## Right
+
+Then they visited the rest of the graveyard. There, they found the unthinkable...
+</code></pre>
+<p>This would result in the following:</p>
+<pre><code>Zach and Betty finally reached the graveyard. 
+Zach and Betty decided to visit the left section of the graveyard first. They didn't find anything interesting.
+Then they visited the rest of the graveyard. There, they found the unthinkable...
+</code></pre>
+<h3 id="diverting-to-sub-paths-outside-the-main-path"><a class="header" href="#diverting-to-sub-paths-outside-the-main-path">Diverting to sub-paths outside the main path</a></h3>
+<p>Main paths (Those which are created with the <code>#</code> symbol) have to be unique - there can't be multiple paths with the same name, however, deviations can!</p>
+<p>So, let's say the reader is in another path, not <code>Graveyard</code>, but we want them to see the contents of the <code>Left</code> chapter, which <strong>is</strong> inside Graveyard. We can use a dot <code>.</code> to connect both names so Storytell knows where to find the <code>Left</code> path:</p>
+<pre><code>-&gt; Graveyard.Left
+// or
+-&gt; graveyard.left
+// path names are case insensitive!
 </code></pre>
 
                     </main>
