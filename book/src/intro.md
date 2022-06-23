@@ -1,7 +1,7 @@
 
 # Storytell
 
-Storytell is a text editor which allows you to write interactive fiction - from scripts with simple choices to massive stories with many branching storylines and endings. It also allows you to **play** your story as you write it, and view how your stories branch. It's not meant for game creation - only writing scripts for games or movies.
+Storytell is a text editor which allows you to write interactive fiction - from scripts with simple choices to massive stories with many branching storylines and endings. It also allows you to **play** your story as you write it, and view how your stories branch. It's not meant for game creation - only writing scripts for games or other interactive media.
 
 ## The language
 
