@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Storybook guide</title>
+        <title>Storytell guide</title>
         <meta name="robots" content="noindex" />
         <!-- Custom HTML head -->
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
@@ -76,7 +76,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="intro.html"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded "><a href="Language/index.html"><strong aria-hidden="true">2.</strong> Language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="Language/paths.html"><strong aria-hidden="true">2.1.</strong> Paths</a></li><li class="chapter-item expanded "><a href="Language/choices.html"><strong aria-hidden="true">2.2.</strong> Choices</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="intro.html"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded "><a href="Language/index.html"><strong aria-hidden="true">2.</strong> Language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="Language/paths.html"><strong aria-hidden="true">2.1.</strong> Paths</a></li><li class="chapter-item expanded "><a href="Language/choices.html"><strong aria-hidden="true">2.2.</strong> Choices</a></li><li class="chapter-item expanded "><a href="Language/State/index.html"><strong aria-hidden="true">2.3.</strong> State</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="Language/State/variables.html"><strong aria-hidden="true">2.3.1.</strong> Variables</a></li><li class="chapter-item expanded "><a href="Language/State/conditions.html"><strong aria-hidden="true">2.3.2.</strong> Conditions</a></li></ol></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -105,7 +105,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Storybook guide</h1>
+                    <h1 class="menu-title">Storytell guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -231,6 +231,7 @@ You encounter an animal. Kill it?
 <tr><td><code>&lt;-&gt;</code></td><td>yes</td><td>Diverting the reader to another part, and returning to the current path after the diverted path is finished.</td></tr>
 <tr><td><code>#[...]</code></td><td>yes</td><td>Attributes - changes the settings of other symbols.</td></tr>
 <tr><td><code>{ ... }</code></td><td>yes</td><td>Inline javascript code, which cannot contain curly brackets.</td></tr>
+<tr><td><code>@{ ... }</code></td><td>no</td><td>Match a value without using javascript</td></tr>
 <tr><td><code>\</code></td><td>yes</td><td>Ecapes a symbol.</td></tr>
 </tbody></table>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="paths-1"><a class="header" href="#paths-1">Paths</a></h1>
@@ -347,6 +348,76 @@ James and Alicia found an open grave!
 - Exit graveyard
     You exited the graveyard.
     -&gt; END
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="state"><a class="header" href="#state">State</a></h1>
+<p>Some choices don't have consequences which change the entire course of the story - they could just change dialogue options, interactions between characters, or possibly what happens in a certain path. We can use <strong>state</strong> for this with <strong>javascript</strong>. <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript">Javascript</a> is a scripting language originally meant for the web, but these days it's used everywhere! 
+Don't worry, you don't need to know javascript to add state to your story.</p>
+<p>Javascript can be used inline, placed between curly brackets <code>{}</code>, or as a block with 3 backticks:</p>
+<pre><code>{&quot;This is inline javascript&quot;}
+
+```
+&quot;This is block javascript&quot;
+```
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="variables"><a class="header" href="#variables">Variables</a></h1>
+<p>Your state will usually be saved in <strong>variables</strong>, which are persistent across paths. You can save pretty much anything.</p>
+<pre><code class="language-md">- Choose Ashley
+    {chosen = &quot;Ashley&quot;}
+- Choose Nick
+    {chosen = &quot;Nick&quot;}
+
+{chosen}: Thank you for choosing me.
+</code></pre>
+<p>After the user makes their choice, the <code>chosen</code> variable gets updated to either <code>Ashley</code> or <code>Nick</code>, and the character you chose says &quot;Thank you for choosing me&quot;.</p>
+<p>Here's a cheatsheet:</p>
+<table><thead><tr><th>Code</th><th>What it does</th></tr></thead><tbody>
+<tr><td><code>variable = value</code></td><td>Sets the variable to <code>value</code>.</td></tr>
+<tr><td><code>variable++</code></td><td>Increments the variable. So if it's currently <code>1</code>, after the code is ran it will become 2.</td></tr>
+<tr><td><code>variable--</code></td><td>Decrements the variable.</td></tr>
+<tr><td><code>variable += n</code></td><td>Adds <code>n</code> to the variable.</td></tr>
+<tr><td><code>variable -= n</code></td><td>Subtracts <code>n</code> from the variable.</td></tr>
+<tr><td><code>variable.push(value)</code></td><td>Adds a new value to the <code>variable</code> list.</td></tr>
+<tr><td><code>variable.set(key, value)</code></td><td>Adds a new key-value pair to the <code>variable</code> table</td></tr>
+</tbody></table>
+<p>Here's an example of using a list:</p>
+<pre><code>- Kill Ashley
+    {killed.push(&quot;Ashley&quot;)}
+    You killed Ashley.
+- Kill Nick
+    {killed.push(&quot;Nick&quot;)}
+    You killed Nick.
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="conditions"><a class="header" href="#conditions">Conditions</a></h1>
+<p>You can show text conditionally in two ways:</p>
+<h2 id="javascript"><a class="header" href="#javascript">Javascript</a></h2>
+<p>You can use javascript's <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Conditional_Operator">ternary operator</a>:</p>
+<pre><code>{variable === 42 ? &quot;You have found the answer!&quot; : &quot;Wrong answer!&quot;}
+{!killed.includes(&quot;Nick&quot;) &amp;&amp; &quot;Nick: Wow, this place is a shithole&quot;}
+</code></pre>
+<p>This is okay for simple text like the one above, but if you want to go to a different path or let the reader make a choice, this won't do.</p>
+<h2 id="match-syntax"><a class="header" href="#match-syntax">Match syntax</a></h2>
+<p>Storytell includes a simple syntax which allows you to compare variables and do different things depening on the value:</p>
+<pre><code>@{variable}
+- {42}
+    You have found the answer!
+- {}
+    Wrong answer!
+
+@{killed.includes(&quot;Nick&quot;)}
+- {true}
+    Nick: Wow, this place is a shithole. What are we going to do here?
+    - We need to find the treasure...
+        Nick: I don't think such a treasure could be hidden in a such a hideous place...
+    - Shut up Nick.
+        ...
+</code></pre>
+<h3 id="if-and-not"><a class="header" href="#if-and-not">:if and :not</a></h3>
+<p>The second example with the match syntax takes too much space for something so simple... checking if a value is true or false. We can shorten it with <code>:not</code> inside the curly brackets:</p>
+<pre><code>@{:not killed.includes(&quot;Nick&quot;)}
+    Nick: Wow, this place is a shithole. What are we going to do here?
+    - We need to find the treasure...
+        Nick: I don't think such a treasure could be hidden in a such a hideous place...
+    - Shut up Nick.
 </code></pre>
 
                     </main>
