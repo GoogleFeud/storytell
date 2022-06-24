@@ -135,87 +135,13 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="storytell"><a class="header" href="#storytell">Storytell</a></h1>
-<p>Storytell is a text editor which allows you to write interactive fiction - from scripts with simple choices to massive stories with many branching storylines and endings. It also allows you to <strong>play</strong> your story as you write it, and view how your stories branch. It's not meant for game creation - only writing scripts for games or other interactive media.</p>
-<h2 id="the-language"><a class="header" href="#the-language">The language</a></h2>
-<p>Storytell allows you to write your scripts in a simple markup language which has full markdown support. Here is a very simple example:</p>
-<pre><code class="language-md"># Chapter 1, Part 2
-
-This text is always shown when the reader arrives at this path. You can use **plain** __markdown__ to style your text.
-
-// This is a comment, the arrow below will divert the reader to the &quot;Diversion 1&quot; path
--&gt; diversion_1
-
-## Diversion 1
-
-This is a diversion from the main path. The reader can come here from anywhere, inclduding from the main path.
-</code></pre>
-<h3 id="paths"><a class="header" href="#paths">Paths</a></h3>
-<p>In the above example, we have two <strong>paths</strong>. Paths are the main structure of the language - the reader starts at a path and ends at another path. Paths can be nested. Paths can divert you to other paths with the <code>-&gt;</code> symbol. There are a few types of diversion:</p>
+<p>Storytell is a text editor which allows you to write interactive fiction - from scripts with simple choices to massive stories with many branching storylines and endings. It also allows you to <strong>play</strong> your story as you write it, and view how your stories branches. Create scripts for games and other interactive media with ease!</p>
+<p>This app takes huge inspiration from the <a href="https://www.inklestudios.com/ink/">inky</a> language and editor. It tries to make the writing process a lot simpler and easier, with less special characters to remember, while still providing all the power inky has.</p>
+<p>It also provides you with useful tools which inky is missing, such as:</p>
 <ul>
-<li><code>-&gt;</code> - Direct diversion. The path transfers the flow control to another path. The reader never returns to this path unless another path specifically directs them at the same path.</li>
-<li><code>&lt;-&gt;</code> - Temporary diversion. After the path ends, the reader continues from the old path.</li>
+<li>A branch viewer which allows you to view where each path leads you.</li>
+<li>Useful statistics such as permutations, dead ends, most common paths, etc.</li>
 </ul>
-<p>A path is considered to &quot;end&quot; when:</p>
-<ul>
-<li>It diverts to the <code>EXIT</code> path.</li>
-<li>There's no more content to be shown.</li>
-</ul>
-<p>So if the path diverts to another path, the temporary diversion will wait for that path to end, too! Things can get a little confusing with temporary diversion so use it sparingly!</p>
-<h3 id="choices"><a class="header" href="#choices">Choices</a></h3>
-<p><strong>Choices</strong> is what the reader makes in order to end up in different <strong>paths</strong>:</p>
-<pre><code class="language-md"># Graveyard
-
-James and Alicia arrive at the graveyard. Where should they investigate first?
-
-- Left -&gt; graveyard_left
-- Right -&gt; graveyard_right
-
-## Graveyard Left
-
-James and Alicia decided to investigate the left area of the graveyard first. They found nothing useful.
-
-## Graveyard Right
-
-James and Alicia found an open grave!
-</code></pre>
-<p>The above example uses a <strong>choice group</strong> to ask the reader on what to do. Only one option can be chosen. The choice group ends after a new empty line.</p>
-<p>If the reader chooses <code>Left</code>, they'll divert to the <code>Graveyard Left</code> path, and if they choose <code>Right</code>, they'll divert to the <code>Graveyard Right</code> path, and afterwards the story will end. </p>
-<p>But what if we wanted to make it so the reader returns to the start after they explore one of the paths, so they can explore both the <code>Left</code> and <code>Right</code> path? We use temporary diversion!</p>
-<pre><code class="language-md">- Left &lt;-&gt; graveyard_left
-- Right &lt;-&gt; graveyard_right
-</code></pre>
-<p>But this still isn't quite right, because the reader is stuck - they'll always end up in the middle, choosing between left and right. We can make each option be selectable only once with <strong>option attributes</strong>:</p>
-<pre><code class="language-md">- #[once] Left &lt;-&gt; graveyard_left
-- #[once] Right &lt;-&gt; graveyard_right
-
-You investigated both paths.
-</code></pre>
-<p>Now, after the player visits both paths, they'll see the &quot;You investigated both paths&quot; and the game will end! Cool! But what if we made it so it's optional to visit both paths? We will create a third option called &quot;Leave graveyard&quot; which ends the chapter:</p>
-<pre><code class="language-md">- #[once] Left &lt;-&gt; graveyard_left
-- #[once] Right &lt;-&gt; graveyard_right
-- Leave Graveyard -&gt; END
-</code></pre>
-<h4 id="choice-children"><a class="header" href="#choice-children">Choice children</a></h4>
-<p>The last example with the graveyard was excessive - we do not really need two separate paths just do display different text. We can put the text directly below the option:</p>
-<pre><code class="language-md">#[exaust]
-- Left
-    James and Alicia decided to investigate the left area of the graveyard first. They found nothing useful.
-- Right
-    James and Alicia found an open grave!
-- Leave Graveyard -&gt; END
-</code></pre>
-<p>We can also use the <code>exaust</code> attribute, which lets the reader choose until all of the options have been checked out. This is <strong>better</strong> than temporary diversion because the reader won't return to this option if one of the inner options change the path.</p>
-<h3 id="embedded-javascript"><a class="header" href="#embedded-javascript">Embedded Javascript</a></h3>
-<p>You can also use <strong>javascript</strong> inside your paths, to save values into variables, or run any arbitrary code!</p>
-<pre><code class="language-md">## Animal Encounter
-
-You encounter an animal. Kill it?
-
-- Kill
-    { animalsKilled += 1 }
-    You killed the animal. You have now killed {animalsKilled} animals.
-- Spare
-</code></pre>
 
                     </main>
 

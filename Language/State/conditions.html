@@ -143,7 +143,7 @@
 </code></pre>
 <p>This is okay for simple text like the one above, but if you want to go to a different path or let the reader make a choice, this won't do.</p>
 <h2 id="match-syntax"><a class="header" href="#match-syntax">Match syntax</a></h2>
-<p>Storytell includes a simple syntax which allows you to compare variables and do different things depening on the value:</p>
+<p>Storytell includes simple syntax which allows you to compare variables and do different things depening on the value:</p>
 <pre><code>@{variable}
 - {42}
     You have found the answer!
@@ -152,16 +152,16 @@
 
 @{killed.includes(&quot;Nick&quot;)}
 - {true}
-    Nick: Wow, this place is a shithole. What are we going to do here?
+    Nick: Wow, this place is a mess. What are we going to do here?
     - We need to find the treasure...
         Nick: I don't think such a treasure could be hidden in a such a hideous place...
     - Shut up Nick.
         ...
 </code></pre>
 <h3 id="if-and-not"><a class="header" href="#if-and-not">:if and :not</a></h3>
-<p>The second example with the match syntax takes too much space for something so simple... checking if a value is true or false. We can shorten it with <code>:not</code> inside the curly brackets:</p>
+<p>The second example with the match syntax takes too much space for something so simple. We can shorten it with <code>:not</code> inside the curly brackets:</p>
 <pre><code>@{:not killed.includes(&quot;Nick&quot;)}
-    Nick: Wow, this place is a shithole. What are we going to do here?
+    Nick: Wow, this place is a mess. What are we going to do here?
     - We need to find the treasure...
         Nick: I don't think such a treasure could be hidden in a such a hideous place...
     - Shut up Nick.
