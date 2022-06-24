@@ -3,7 +3,7 @@ authors = ["GoogleFeud"]
 language = "en"
 multilingual = true
 src = "src"
-title = "Storybook guide"
+title = "Storytell guide"
 
 [build]
 build-dir = "../docs"
