@@ -1,7 +1,9 @@
 
 # Paths
 
-The main construct of the language are **paths** - they're like different sections of your story which can play out differently, depending on the choices the reader makes. Each story starts at a path and ends at another. Each path can also have **deviations**, which can also be used as sub-paths. Here is an example:
+The main construct of the language are **paths** - they're like different sections of your story which can play out differently, depending on the choices the reader makes. Each story starts at a path and ends at another. Each path can also have **deviations**, which can also be used as sub-paths. 
+
+Here is an example:
 
 ```md
 # Chapter 1, Part 2
@@ -20,7 +22,7 @@ This is a diversion from the main path. The reader can come here from anywhere, 
 
 Paths can divert you to other paths with the following symbols:
 
-- `->` - Direct diversion. The path transfers the flow control to another path. The reader never returns to this path unless another path specifically divers the reader to it.
+- `->` - Direct diversion. The path transfers the control flow to another path. The reader never returns to this path unless another path specifically divers the reader to it.
 - `<->` - Temporary diversion. After the path ends, the reader continues from the old path.
 
 A path is considered to "end" when:

@@ -11,7 +11,7 @@ Here are the major differences:
 | Lists (`- value`)         | Choices    |
 | Code blocks               | Javascript code evaluation |
 
-And here is everything storytell adds, you can treat this as a cheatsheet:
+And here is everything storytell adds:
 
 | Symbol  | Inline | Purpose |
 |---------|--------|---------|
