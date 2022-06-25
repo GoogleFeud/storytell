@@ -83,6 +83,7 @@ impl<'a, P: ParsingContext> InputConsumer<'a, P> {
             for character in pattern.chars() {
                 if (self.data[self.pos] as char) != character {
                     matches = false;
+                    self.pos += 1;
                     break;
                 }
                 self.pos += 1;
@@ -106,4 +107,51 @@ impl<'a, P: ParsingContext> InputConsumer<'a, P> {
     pub fn is_eof(&self) -> bool {
         self.pos >= self.data.len()
     }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    pub struct Context {}
+
+    impl ParsingContext for Context {
+        fn line_endings(&self) -> usize {
+            1
+        }
+    }
+
+    #[test]
+    fn text_input_peek() {
+        let mut input = InputConsumer::new("Hello", Context {});
+        assert_eq!(input.next(), Some('H'));
+        assert_eq!(input.next(), Some('e'));
+        assert_eq!(input.pos, 2);
+        assert_eq!(input.next(), Some('l'));
+        assert_eq!(input.next(), Some('l'));
+        assert_eq!(input.next(), Some('o'));
+        assert_eq!(input.next(), None);
+        assert_eq!(input.is_eof(), true);
+    }
+
+    #[test]
+    fn test_consume_until() {
+        let mut input = InputConsumer::new("This is a test", Context {});
+        assert_eq!(input.consume_until(" "), Some("This"));
+        assert_eq!(input.consume_until("a t"), Some("is "));
+        assert_eq!(input.pos, 11);
+        assert_eq!(input.next(), Some('e'));
+    }
+
+    #[test]
+    fn test_consume_until_end_of_line() {
+        let mut input = InputConsumer::new("This is a test\nLine 2\nLine 3\nLine 4", Context {});
+        assert_eq!(input.consume_until("\n"), Some("This is a test"));
+        input.next();
+        assert_eq!(input.consume_until_end_of_line(), "ine 2");
+        assert_eq!(input.consume_until_end_of_line(), "Line 3");
+        assert_eq!(input.next(), Some('L'));
+    }
+
 }
