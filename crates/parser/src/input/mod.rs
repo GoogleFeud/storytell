@@ -1,7 +1,11 @@
-use storytell_diagnostics::location::*;
+use storytell_diagnostics::{
+    location::*,
+    diagnostic::Diagnostic
+};
 
 pub trait ParsingContext {
     fn line_endings(&self) -> usize;
+    fn add_diagnostic(&mut self, diagnostic: Diagnostic);
 }
 
 pub struct InputConsumer<'a, P: ParsingContext> {
@@ -21,6 +25,10 @@ impl<'a, P: ParsingContext> InputConsumer<'a, P> {
 
     pub fn skip(&mut self) {
         self.pos += 1;
+    }
+
+    pub fn skip_n(&mut self, n: usize) {
+        self.pos += n;
     }
 
     pub fn force_next(&mut self) -> char {
@@ -97,6 +105,19 @@ impl<'a, P: ParsingContext> InputConsumer<'a, P> {
         None
     }
 
+    pub fn count_while(&mut self, character: char) -> usize {
+        let mut count = 0;
+        while !self.is_eof() {
+            if (self.data[self.pos] as char) == character {
+                count += 1;
+                self.pos += 1;
+            } else {
+                break;
+            }
+        }
+        count
+    }
+
     pub fn range_here(&self, start: usize) -> Range<usize> {
         Range {
             start,
@@ -119,6 +140,10 @@ mod tests {
     impl ParsingContext for Context {
         fn line_endings(&self) -> usize {
             1
+        }
+
+        fn add_diagnostic(&mut self, _diagnostic: Diagnostic) {
+            unimplemented!("Not necessary")
         }
     }
 

@@ -93,7 +93,7 @@ create_nodes!(
 
     ASTHeader {
         title: String,
-        depth: i8
+        depth: u8
     }
 
 );
