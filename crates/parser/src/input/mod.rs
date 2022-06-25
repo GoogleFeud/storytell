@@ -1,89 +1,109 @@
-
 use storytell_diagnostics::location::*;
 
-pub struct LineConsumer<'a> {
-    pub data: Vec<&'a str>,
-    pub line: usize,
-    pub col: usize
+pub trait ParsingContext {
+    fn line_endings(&self) -> usize;
 }
 
-impl<'a> LineConsumer<'a> {
+pub struct InputConsumer<'a, P: ParsingContext> {
+    pub data: &'a [u8],
+    pub ctx: P,
+    pub pos: usize,
+}
 
-    pub fn new(content: &'a str) -> Self {
+impl<'a, P: ParsingContext> InputConsumer<'a, P> {
+    pub fn new(content: &'a str, ctx: P) -> Self {
         Self {
-            line: 0,
-            col: 0,
-            data: content.lines().collect()
+            pos: 0,
+            ctx,
+            data: content.as_bytes(),
         }
     }
 
-    pub fn consume_line(&mut self) -> Option<&'a str> {
-        if self.line > self.data.len() {
+    pub fn skip(&mut self) {
+        self.pos += 1;
+    }
+
+    pub fn force_next(&mut self) -> char {
+        let item = self.data[self.pos] as char;
+        self.pos += 1;
+        item
+    }
+
+    pub fn peek(&self) -> Option<char> {
+        if self.pos >= self.data.len() {
             None
         } else {
-            self.line += 1;
-            Some(self.data[self.line])
+            Some(self.data[self.pos] as char)
         }
     }
 
-    pub fn consume_char(&mut self) -> Option<char> {
-        if self.col > self.data[self.line].len() {
+    pub fn peek_n(&self, n: usize) -> Option<char> {
+        let f = self.pos + n;
+        if f >= self.data.len() {
             None
         } else {
-            self.col += 1;
-            Some(self.data[self.line].as_bytes()[self.col] as char)
+            Some(self.data[f] as char)
         }
     }
 
-    pub fn skip_line(&mut self) {
-        self.line += 1;
+    pub fn skip_chars(&mut self, n: usize) {
+        self.pos += n;
     }
 
-    pub fn skip_char(&mut self) {
-        self.col += 1;
-    }
-
-    pub fn skip_until(&mut self, thing: &str) {
-        for ind in self.line..self.data.len() {
-            if let Some(index) = self.data[ind].find(thing) {
-                self.col = index;
-                break;
-            }
-            self.line += 1;
-        }
-    }
-
-    // Only goes to the end of the line
-    pub fn consume_until_inline(&mut self, thing: &str) -> Option<&str> {
-        if let Some(index) = self.data[self.line].find(thing) {
-            let captured = &self.data[self.line][self.col..index];
-            self.col = index;
-            Some(captured)
-        } else {
+    pub fn next(&mut self) -> Option<char> {
+        if self.pos >= self.data.len() {
             None
+        } else {
+            let item = self.data[self.pos] as char;
+            self.pos += 1;
+            Some(item)
         }
     }
 
-    // Checks many lines, but skips line once it finds the thing.
-    pub fn consume_until_block(&mut self, thing: &str) -> String {
-        let mut result = String::new();
-        for ind in self.line..self.data.len() {
-            if let Some(index) = self.data[ind].find(thing) {
-                result += &self.data[ind][0..index];
-                self.col = 0;
-                self.line = ind + 1;
+    pub fn consume_until_end_of_line(&mut self) -> &str {
+        let start = self.pos;
+        while !self.is_eof() {
+            match self.ctx.line_endings() {
+                2 if (self.data[self.pos] as char) == '\r' && (self.data[self.pos + 1] as char) == '\n' => break,
+                _ if (self.data[self.pos] as char) == '\n' => break,
+                _ => self.pos += 1
             }
         }
-        result
+        let string = unsafe {
+            std::str::from_utf8_unchecked(&self.data[start..self.pos])
+        };
+        self.pos += self.ctx.line_endings();
+        string
     }
 
-    pub fn loc(&self) -> Location {
-        Location { col: self.col, line: self.line }
+    pub fn consume_until(&mut self, pattern: &str) -> Option<&str> {
+        let start = self.pos;
+        while !self.is_eof() {
+            let mut matches = true;
+            for character in pattern.chars() {
+                if (self.data[self.pos] as char) != character {
+                    matches = false;
+                    break;
+                }
+                self.pos += 1;
+            }
+            if matches {
+                return Some(unsafe {
+                    std::str::from_utf8_unchecked(&self.data[start..(self.pos - pattern.len())])
+                });
+            }
+        }
+        None
     }
 
-    pub fn range_here(&self, start: Location) -> Range {
-        Range { start, end: self.loc() }
+    pub fn range_here(&self, start: usize) -> Range<usize> {
+        Range {
+            start,
+            end: self.pos
+        }
     }
-    
-    
+
+    pub fn is_eof(&self) -> bool {
+        self.pos >= self.data.len()
+    }
 }

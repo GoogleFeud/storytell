@@ -29,7 +29,7 @@ pub enum DiagnosticVariants {
 }
 
 pub struct Diagnostic {
-    pub range: Range,
+    pub range: Range<usize>,
     pub msg: String,
     pub variant: DiagnosticVariants
 }

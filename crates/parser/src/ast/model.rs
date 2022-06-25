@@ -9,7 +9,7 @@ macro_rules! create_nodes {
             pub struct $name {
                 $(pub $field_name: $field_type,)*
                 pub attributes: Vec<ASTAttribute>,
-                pub range: Range
+                pub range: Range<usize>
             }
 
             impl fmt::Debug for $name {
@@ -91,6 +91,11 @@ create_nodes!(
         children: Vec<(String, ASTBlock)>
     }
 
+    ASTHeader {
+        title: String,
+        depth: i8
+    }
+
 );
 
 #[derive(Clone, Debug)]
@@ -98,5 +103,6 @@ pub enum ASTBlock {
     Paragraph(ASTParagraph),
     CodeBlock(ASTCodeBlock),
     ChoiceGroup(ASTChoiceGroup),
-    Match(ASTMatch)
+    Match(ASTMatch),
+    Header(ASTHeader)
 }
