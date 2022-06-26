@@ -79,6 +79,20 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                             attributes: vec![]
                         }});
                         result.clear()
+                    },
+                    '*' => {
+                        let start = self.input.pos - 1;
+                        if let Some(text) = self.parse_text("*") {
+                            parts.push(TextPart { before: result.clone(), text: ASTInline {
+                                kind: ASTInlineKind::Italics,
+                                text,
+                                range: self.input.range_here(start),
+                                attributes: vec![]
+                            }});
+                            result.clear()
+                        } else {
+                            result.push('*');
+                        }
                     }
                     other => result.push(other)
                 }
@@ -145,6 +159,19 @@ mod tests {
         if let Some(text) = paragraph {
             println!("TESSST: {:?}", text);
             assert_eq!("This is a paragraph, pretty cool... really cool! Same paragraph...", text.to_raw());
+        }
+    }
+
+    #[test]
+    fn parse_inline_italics() {
+        let mut input = Parser::new("# This is some header!!!...\n**really** interesting *word*...\nAlright", Context {});
+        input.parse_block(); // Header
+        let paragraph = input.parse_paragraph();
+        assert!(matches!(paragraph, Some(_)));
+        if let Some(text) = paragraph {
+            println!("TESSST: {:?}", text);
+            assert_eq!("really interesting word...", text.to_raw());
+            assert_eq!(ASTInlineKind::Italics, text.parts[1].text.kind);
         }
     }
 

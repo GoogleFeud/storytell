@@ -23,7 +23,7 @@ macro_rules! create_nodes {
     };
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ASTInlineKind {
     // **...**
     Bold,
