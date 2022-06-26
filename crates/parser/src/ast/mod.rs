@@ -25,11 +25,8 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
             '#' => {
                 self.input.skip();
                 let depth = (1 + self.input.count_while('#')) as u8;
-                if self.input.peek()? == ' ' {
-                    self.input.skip();
-                }
                 Some(ASTBlock::Header(ASTHeader {
-                    title: self.input.consume_until_end_of_line().to_string(),
+                    title: self.input.consume_until_end_of_line().trim().to_string(),
                     depth,
                     attributes: vec![],
                     range: self.input.range_here(start)
@@ -141,13 +138,13 @@ mod tests {
 
     #[test]
     fn parse_inline_bold() {
-        let mut input = Parser::new("# This is some header!!!...\nThis is a paragraph, pretty cool... **really** cool!", Context {});
+        let mut input = Parser::new("# This is some header!!!...\nThis is a paragraph, pretty cool... **really** cool! Same paragraph...\nAlright this is a different one!!## Another heading", Context {});
         input.parse_block(); // Header
         let paragraph = input.parse_paragraph();
         assert!(matches!(paragraph, Some(_)));
         if let Some(text) = paragraph {
             println!("TESSST: {:?}", text);
-            assert_eq!("This is a paragraph, pretty cool... really cool!", text.to_raw());
+            assert_eq!("This is a paragraph, pretty cool... really cool! Same paragraph...", text.to_raw());
         }
     }
 
