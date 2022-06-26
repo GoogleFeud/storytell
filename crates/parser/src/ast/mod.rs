@@ -66,9 +66,17 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
         while !self.input.is_eof() {
             if self.input.slice(until.len()) == until {
                 self.input.skip_n(until.len());
-                break;
+                return Some(ASTText {
+                    parts,
+                    tail: result,
+                    range: self.input.range_here(start),
+                    attributes: vec![]
+                });
             } else {
                 match self.input.force_next() {
+                    '\\' => {
+                        result.push(self.input.force_next());
+                    },
                     '*' if self.input.peek()? == '*' => {
                         let start = self.input.pos - 1;
                         self.input.skip();
@@ -98,12 +106,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                 }
             }
         }
-        Some(ASTText {
-            parts,
-            tail: result,
-            range: self.input.range_here(start),
-            attributes: vec![]
-        })
+        None
     }
 
 }
@@ -157,7 +160,6 @@ mod tests {
         let paragraph = input.parse_paragraph();
         assert!(matches!(paragraph, Some(_)));
         if let Some(text) = paragraph {
-            println!("TESSST: {:?}", text);
             assert_eq!("This is a paragraph, pretty cool... really cool! Same paragraph...", text.to_raw());
         }
     }
@@ -170,6 +172,19 @@ mod tests {
         assert!(matches!(paragraph, Some(_)));
         if let Some(text) = paragraph {
             println!("TESSST: {:?}", text);
+            assert_eq!("really interesting word...", text.to_raw());
+            assert_eq!(ASTInlineKind::Italics, text.parts[1].text.kind);
+        }
+    }
+
+    #[test]
+    fn parse_inline_no_italics() {
+        let mut input = Parser::new("# This is some header!!!...\n**really** interesting *word...\nAlright", Context {});
+        input.parse_block(); // Header
+        let paragraph = input.parse_paragraph();
+        assert!(matches!(paragraph, Some(_)));
+        if let Some(text) = paragraph {
+            println!("{:?}", text);
             assert_eq!("really interesting word...", text.to_raw());
             assert_eq!(ASTInlineKind::Italics, text.parts[1].text.kind);
         }
