@@ -1,7 +1,4 @@
-use storytell_diagnostics::{
-    location::*,
-    diagnostic::Diagnostic
-};
+use storytell_diagnostics::{diagnostic::Diagnostic, location::*};
 
 pub trait ParsingContext {
     fn line_endings(&self) -> usize;
@@ -20,6 +17,19 @@ impl<'a, P: ParsingContext> InputConsumer<'a, P> {
             pos: 0,
             ctx,
             data: content.as_bytes(),
+        }
+    }
+
+    pub fn slice(&self, len: usize) -> &str {
+        if (self.pos + len) > self.data.len() {
+
+        }
+        unsafe { 
+            std::str::from_utf8_unchecked(&self.data[if (self.pos + len) > self.data.len() {
+                self.pos..self.data.len()
+            } else {
+                self.pos..(self.pos + len)
+            }]) 
         }
     }
 
@@ -72,16 +82,34 @@ impl<'a, P: ParsingContext> InputConsumer<'a, P> {
         let start = self.pos;
         while !self.is_eof() {
             match self.ctx.line_endings() {
-                2 if (self.data[self.pos] as char) == '\r' && (self.data[self.pos + 1] as char) == '\n' => break,
+                2 if (self.data[self.pos] as char) == '\r'
+                    && (self.data[self.pos + 1] as char) == '\n' =>
+                {
+                    break
+                }
                 _ if (self.data[self.pos] as char) == '\n' => break,
-                _ => self.pos += 1
+                _ => self.pos += 1,
             }
         }
-        let string = unsafe {
-            std::str::from_utf8_unchecked(&self.data[start..self.pos])
-        };
+        let string = unsafe { std::str::from_utf8_unchecked(&self.data[start..self.pos]) };
         self.pos += self.ctx.line_endings();
         string
+    }
+
+    pub fn skip_until_end_of_line(&mut self) {
+        while !self.is_eof() {
+            match self.ctx.line_endings() {
+                2 if (self.data[self.pos] as char) == '\r'
+                    && (self.data[self.pos + 1] as char) == '\n' =>
+                {
+                    break
+                }
+                _ if (self.data[self.pos] as char) == '\n' => break,
+                _ => self.pos += 1,
+            }
+            self.pos += 1;
+        }
+        self.pos += self.ctx.line_endings();
     }
 
     pub fn consume_until(&mut self, pattern: &str) -> Option<&str> {
@@ -121,15 +149,23 @@ impl<'a, P: ParsingContext> InputConsumer<'a, P> {
     pub fn range_here(&self, start: usize) -> Range<usize> {
         Range {
             start,
-            end: self.pos
+            end: self.pos,
         }
     }
 
     pub fn is_eof(&self) -> bool {
         self.pos >= self.data.len()
     }
-}
 
+    pub fn is_eol(&self, ahead: usize) -> bool {
+        let pos = self.pos + ahead;
+        match self.ctx.line_endings() {
+            2 if (self.data[pos] as char) == '\r' && (self.data[pos + 1] as char) == '\n' => true,
+            _ if (self.data[pos] as char) == '\n' => true,
+            _ => false,
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -178,5 +214,4 @@ mod tests {
         assert_eq!(input.consume_until_end_of_line(), "Line 3");
         assert_eq!(input.next(), Some('L'));
     }
-
 }

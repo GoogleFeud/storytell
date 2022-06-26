@@ -54,15 +54,21 @@ pub enum ASTAttributeKind {
     Exaust
 }
 
+#[derive(Clone, Debug)]
+pub struct TextPart {
+    pub before: String,
+    pub text: ASTInline
+}
+
 create_nodes!(
     ASTInline {
         kind: ASTInlineKind,
-        text: String
+        text: ASTText
     }
 
-    ASTParagraph {
-        text: String,
-        inline_points: Vec<(usize, ASTInline)>
+    ASTText {
+        parts: Vec<TextPart>,
+        tail: String
     }
 
     ASTAttribute {
@@ -100,9 +106,32 @@ create_nodes!(
 
 #[derive(Clone, Debug)]
 pub enum ASTBlock {
-    Paragraph(ASTParagraph),
+    Paragraph(ASTText),
     CodeBlock(ASTCodeBlock),
     ChoiceGroup(ASTChoiceGroup),
     Match(ASTMatch),
     Header(ASTHeader)
+}
+
+impl ASTText {
+
+    pub fn to_raw(&self) -> String {
+        if self.parts.is_empty() {
+            return self.tail.clone()
+        }
+        let mut result = String::new();
+        for part in &self.parts {
+            result.push_str(&part.before);
+            result.push_str(&part.text.to_raw())
+        }
+        result.push_str(&self.tail);
+        result
+    }
+}
+
+impl ASTInline {
+
+    pub fn to_raw(&self) -> String {
+        self.text.to_raw()
+    }
 }
