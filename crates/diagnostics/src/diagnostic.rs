@@ -22,25 +22,18 @@ pub fn format_diagnostic(diagnostic: &DiagnosticMessage, vars: Vec<&str>) -> Str
     new_str
 }
 
+#[derive(Clone, Debug, PartialEq)]
 pub enum DiagnosticVariants {
     Suggestion,
     Warning,
     Error
 }
 
+#[derive(Clone, Debug, PartialEq)]
 pub struct Diagnostic {
     pub range: Range<usize>,
     pub msg: String,
     pub variant: DiagnosticVariants
-}
-
-impl Debug for Diagnostic {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        f.debug_struct("Error")
-         .field("msg", &self.msg.to_string())
-         .field("range", &self.range.to_string())
-         .finish()
-    }
 }
 
 impl Display for Diagnostic {
@@ -78,4 +71,29 @@ macro_rules! make_diagnostics {
             )+
         }
     };
+}
+
+#[macro_export]
+macro_rules! dia {
+    ($diagnostic: ident, $range: expr) => {
+        Diagnostic {
+            msg: format_diagnostic(&Diagnostics::$diagnostic, vec![]),
+            range: $label_range,
+            variant: DiagnosticVariants::Error
+        }
+    };
+    ($diagnostic: ident, $range: expr, $($vars: expr),*) => {
+        Diagnostic {
+            msg: format_diagnostic(&Diagnostics::$diagnostic, vec![$($vars),*]),
+            range: $range,
+            variant: DiagnosticVariants::Error
+        }
+    };
+    ($diagnostic: ident, $range: expr, $variant: ident, $($vars: expr),*) => {
+        Diagnostic {
+            msg: format_diagnostic(&Diagnostics::$diagnostic, vec![$($vars),*]),
+            range: $label_range,
+            variant: DiagnosticVariants::$variant
+        }
+    }
 }

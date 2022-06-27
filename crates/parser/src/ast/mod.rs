@@ -3,8 +3,14 @@ pub mod model;
 pub mod utils;
 use crate::input::{InputConsumer, ParsingContext};
 use model::*;
-
+use storytell_diagnostics::{dia, make_diagnostics, diagnostic::*};
 use self::utils::resolve_line_endings;
+
+make_diagnostics!(define [
+    MISSING_CLOSING_SYMBOL,
+    1001,
+    "Missing closing symbol `$`"
+]);
 
 pub struct Parser<'a, P: ParsingContext> {
     input: InputConsumer<'a, P>
@@ -56,10 +62,10 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
     }
 
     pub fn parse_paragraph(&mut self) -> Option<ASTText> {
-        self.parse_text(resolve_line_endings(self.input.ctx.line_endings()))
+        self.parse_text(resolve_line_endings(self.input.ctx.line_endings()), false)
     }
 
-    pub fn parse_text(&mut self, until: &str) -> Option<ASTText> {
+    pub fn parse_text(&mut self, until: &str, emit_err: bool) -> Option<ASTText> {
         let mut parts: Vec<TextPart> = vec![];
         let mut result = String::new();
         let start = self.input.pos;
@@ -82,7 +88,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                         self.input.skip();
                         parts.push(TextPart { before: result.clone(), text: ASTInline {
                             kind: ASTInlineKind::Bold,
-                            text: self.parse_text("**")?,
+                            text: self.parse_text("**", true)?,
                             range: self.input.range_here(start),
                             attributes: vec![]
                         }});
@@ -90,7 +96,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                     },
                     '*' => {
                         let start = self.input.pos - 1;
-                        if let Some(text) = self.parse_text("*") {
+                        if let Some(text) = self.parse_text("*", true) {
                             parts.push(TextPart { before: result.clone(), text: ASTInline {
                                 kind: ASTInlineKind::Italics,
                                 text,
@@ -106,6 +112,9 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                 }
             }
         }
+        if emit_err {
+            self.input.ctx.add_diagnostic(dia!(MISSING_CLOSING_SYMBOL, self.input.range_here(start), &until.to_string()));
+        }
         None
     }
 
@@ -118,21 +127,29 @@ mod tests {
 
     use super::*;
 
-    pub struct Context {}
+    pub struct Context {
+        pub errors: Vec<Diagnostic>
+    }
 
     impl ParsingContext for Context {
         fn line_endings(&self) -> usize {
             1
         }
 
-        fn add_diagnostic(&mut self, _diagnostic: Diagnostic) {
-            unimplemented!("Not necessary")
+        fn add_diagnostic(&mut self, diagnostic: Diagnostic) {
+            self.errors.push(diagnostic);
+        }
+    }
+
+    impl Context {
+        pub fn new() -> Self {
+            Self { errors: vec![] }
         }
     }
 
     #[test]
     fn parse_header() {
-        let mut input = Parser::new("# This is some header!!!...\n", Context {});
+        let mut input = Parser::new("# This is some header!!!...\n", Context::new());
         let header = input.parse_block();
         assert!(matches!(header, Some(ASTBlock::Header(_)),));
         if let Some(ASTBlock::Header(block)) = header {
@@ -143,7 +160,7 @@ mod tests {
 
     #[test]
     fn parse_codeblock() {
-        let mut input = Parser::new("# This is some header!!!...\n```js\nThis is a code\nblock...\nyeah...```", Context {});
+        let mut input = Parser::new("# This is some header!!!...\n```js\nThis is a code\nblock...\nyeah...```", Context::new());
         input.parse_block();
         let code_block = input.parse_block();
         assert!(matches!(code_block, Some(ASTBlock::CodeBlock(_))));
@@ -155,7 +172,7 @@ mod tests {
 
     #[test]
     fn parse_inline_bold() {
-        let mut input = Parser::new("# This is some header!!!...\nThis is a paragraph, pretty cool... **really** cool! Same paragraph...\nAlright this is a different one!!## Another heading", Context {});
+        let mut input = Parser::new("# This is some header!!!...\nThis is a paragraph, pretty cool... **really** cool! Same paragraph...\nAlright this is a different one!!## Another heading", Context::new());
         input.parse_block(); // Header
         let paragraph = input.parse_paragraph();
         assert!(matches!(paragraph, Some(_)));
@@ -166,7 +183,7 @@ mod tests {
 
     #[test]
     fn parse_inline_italics() {
-        let mut input = Parser::new("# This is some header!!!...\n**really** interesting *word*...\nAlright", Context {});
+        let mut input = Parser::new("# This is some header!!!...\n**really** interesting *word*...\nAlright", Context::new());
         input.parse_block(); // Header
         let paragraph = input.parse_paragraph();
         assert!(matches!(paragraph, Some(_)));
@@ -178,16 +195,13 @@ mod tests {
     }
 
     #[test]
-    fn parse_inline_no_italics() {
-        let mut input = Parser::new("# This is some header!!!...\n**really** interesting *word...\nAlright", Context {});
+    fn parse_inline_no_italics_error() {
+        let mut input = Parser::new("# This is some header!!!...\n**really** interesting *word...\nAlright", Context::new());
         input.parse_block(); // Header
-        let paragraph = input.parse_paragraph();
-        assert!(matches!(paragraph, Some(_)));
-        if let Some(text) = paragraph {
-            println!("{:?}", text);
-            assert_eq!("really interesting word...", text.to_raw());
-            assert_eq!(ASTInlineKind::Italics, text.parts[1].text.kind);
-        }
+        input.parse_paragraph();
+        println!("{:?}", input.input.ctx.errors);
+        assert_eq!(input.input.ctx.errors.len(), 1);
+        assert_eq!(input.input.ctx.errors[0].msg, "Missing closing symbol `*`")
     }
 
 }
