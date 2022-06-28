@@ -3,14 +3,28 @@ pub mod model;
 pub mod utils;
 use crate::input::{InputConsumer, ParsingContext};
 use model::*;
-use storytell_diagnostics::{dia, make_diagnostics, diagnostic::*};
-use self::utils::resolve_line_endings;
+use storytell_diagnostics::{make_diagnostics, diagnostic::*};
+use self::utils::*;
 
 make_diagnostics!(define [
     MISSING_CLOSING_SYMBOL,
     1001,
     "Missing closing symbol `$`"
 ]);
+
+pub enum InlineTextParseResult {
+    FoundClosing(ASTText),
+    NotFound(ASTText)
+}
+
+impl InlineTextParseResult {
+    pub fn get_text(self) -> ASTText {
+        match self {
+            Self::FoundClosing(text) => text,
+            Self::NotFound(text) => text
+        }
+    }
+}
 
 pub struct Parser<'a, P: ParsingContext> {
     input: InputConsumer<'a, P>
@@ -38,7 +52,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                     range: self.input.range_here(start)
                 }))
             },
-            '`' if self.input.peek_n(1)? == '`' && self.input.peek_n(2)? == '`' => {
+            '`' if self.input.peek_n(1).is('`') && self.input.peek_n(2).is('`') => {
                 self.input.skip_n(3);
                 Some(ASTBlock::CodeBlock(ASTCodeBlock {
                     language: self.input.consume_until_end_of_line().to_string(),
@@ -61,18 +75,18 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
         unimplemented!("Not implemented")
     }
 
-    pub fn parse_paragraph(&mut self) -> Option<ASTText> {
-        self.parse_text(resolve_line_endings(self.input.ctx.line_endings()), false)
+    pub fn parse_paragraph(&mut self) -> ASTText {
+        self.parse_text(resolve_line_endings(self.input.ctx.line_endings())).get_text()
     }
 
-    pub fn parse_text(&mut self, until: &str, emit_err: bool) -> Option<ASTText> {
+    pub fn parse_text(&mut self, until: &str) -> InlineTextParseResult {
         let mut parts: Vec<TextPart> = vec![];
         let mut result = String::new();
         let start = self.input.pos;
         while !self.input.is_eof() {
             if self.input.slice(until.len()) == until {
                 self.input.skip_n(until.len());
-                return Some(ASTText {
+                return InlineTextParseResult::FoundClosing(ASTText {
                     parts,
                     tail: result,
                     range: self.input.range_here(start),
@@ -83,39 +97,55 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                     '\\' => {
                         result.push(self.input.force_next());
                     },
-                    '*' if self.input.peek()? == '*' => {
+                    '*' if self.input.peek().is('*') && !self.input.peek_n(1).is(' ') => {
                         let start = self.input.pos - 1;
                         self.input.skip();
-                        parts.push(TextPart { before: result.clone(), text: ASTInline {
-                            kind: ASTInlineKind::Bold,
-                            text: self.parse_text("**", true)?,
-                            range: self.input.range_here(start),
-                            attributes: vec![]
-                        }});
-                        result.clear()
+                        match self.parse_text("**") {
+                            InlineTextParseResult::FoundClosing(text) => {
+                                parts.push(TextPart { before: result.clone(), text: ASTInline {
+                                    kind: ASTInlineKind::Bold,
+                                    text,
+                                    range: self.input.range_here(start),
+                                    attributes: vec![]
+                                }});
+                                result.clear()
+                            },
+                            InlineTextParseResult::NotFound(mut text) => {
+                                result.push_str("**");
+                                result.push_str(&text.tail);
+                                parts.append(&mut text.parts)
+                            }
+                        }
                     },
                     '*' => {
                         let start = self.input.pos - 1;
-                        if let Some(text) = self.parse_text("*", true) {
-                            parts.push(TextPart { before: result.clone(), text: ASTInline {
-                                kind: ASTInlineKind::Italics,
-                                text,
-                                range: self.input.range_here(start),
-                                attributes: vec![]
-                            }});
-                            result.clear()
-                        } else {
-                            result.push('*');
+                        match self.parse_text("*") {
+                            InlineTextParseResult::FoundClosing(text) => {
+                                parts.push(TextPart { before: result.clone(), text: ASTInline {
+                                    kind: ASTInlineKind::Italics,
+                                    text,
+                                    range: self.input.range_here(start),
+                                    attributes: vec![]
+                                }});
+                                result.clear()
+                            },
+                            InlineTextParseResult::NotFound(mut text) => {
+                                result.push('*');
+                                result.push_str(&text.tail);
+                                parts.append(&mut text.parts)
+                            }
                         }
                     }
                     other => result.push(other)
                 }
             }
         }
-        if emit_err {
-            self.input.ctx.add_diagnostic(dia!(MISSING_CLOSING_SYMBOL, self.input.range_here(start), &until.to_string()));
-        }
-        None
+        InlineTextParseResult::NotFound(ASTText {
+            parts,
+            tail: result,
+            range: self.input.range_here(start),
+            attributes: vec![]
+        })
     }
 
 }
@@ -175,10 +205,7 @@ mod tests {
         let mut input = Parser::new("# This is some header!!!...\nThis is a paragraph, pretty cool... **really** cool! Same paragraph...\nAlright this is a different one!!## Another heading", Context::new());
         input.parse_block(); // Header
         let paragraph = input.parse_paragraph();
-        assert!(matches!(paragraph, Some(_)));
-        if let Some(text) = paragraph {
-            assert_eq!("This is a paragraph, pretty cool... really cool! Same paragraph...", text.to_raw());
-        }
+        assert_eq!("This is a paragraph, pretty cool... really cool! Same paragraph...", paragraph.to_raw());
     }
 
     #[test]
@@ -186,22 +213,17 @@ mod tests {
         let mut input = Parser::new("# This is some header!!!...\n**really** interesting *word*...\nAlright", Context::new());
         input.parse_block(); // Header
         let paragraph = input.parse_paragraph();
-        assert!(matches!(paragraph, Some(_)));
-        if let Some(text) = paragraph {
-            println!("TESSST: {:?}", text);
-            assert_eq!("really interesting word...", text.to_raw());
-            assert_eq!(ASTInlineKind::Italics, text.parts[1].text.kind);
-        }
+        println!("TESSST: {:?}", paragraph);
+        assert_eq!("really interesting word...", paragraph.to_raw());
+        assert_eq!(ASTInlineKind::Italics, paragraph.parts[1].text.kind);
     }
 
     #[test]
     fn parse_inline_no_italics_error() {
         let mut input = Parser::new("# This is some header!!!...\n**really** interesting *word...\nAlright", Context::new());
         input.parse_block(); // Header
-        input.parse_paragraph();
-        println!("{:?}", input.input.ctx.errors);
-        assert_eq!(input.input.ctx.errors.len(), 1);
-        assert_eq!(input.input.ctx.errors[0].msg, "Missing closing symbol `*`")
+        let para = input.parse_paragraph();
+        println!("{:?}", para);
     }
 
 }
