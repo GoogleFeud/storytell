@@ -133,6 +133,20 @@ impl<'a, P: ParsingContext> InputConsumer<'a, P> {
         None
     }
 
+    pub fn get_pos_of(&mut self, pattern: &str) -> Option<usize> {
+        let mut pos = self.pos;
+        while !self.is_eof() && (pos + pattern.len() < self.data.len()) {
+            if unsafe {
+                std::str::from_utf8_unchecked(&self.data[pos..(pattern.len() + pos)])
+            } == pattern {
+                return Some(pos);
+            } else {
+                pos += 1;
+            }
+        }
+        None
+    }
+
     pub fn count_while(&mut self, character: char) -> usize {
         let mut count = 0;
         while !self.is_eof() {

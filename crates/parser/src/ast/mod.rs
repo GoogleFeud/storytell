@@ -14,16 +14,8 @@ make_diagnostics!(define [
 
 pub enum InlineTextParseResult {
     FoundClosing(ASTText),
-    NotFound(ASTText)
-}
-
-impl InlineTextParseResult {
-    pub fn get_text(self) -> ASTText {
-        match self {
-            Self::FoundClosing(text) => text,
-            Self::NotFound(text) => text
-        }
-    }
+    NotFoundOptional(ASTText),
+    NotFound
 }
 
 pub struct Parser<'a, P: ParsingContext> {
@@ -75,81 +67,107 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
         unimplemented!("Not implemented")
     }
 
-    pub fn parse_paragraph(&mut self) -> ASTText {
-        self.parse_text(resolve_line_endings(self.input.ctx.line_endings())).get_text()
+    pub fn parse_paragraph(&mut self) -> Option<ASTText> {
+        match self.parse_text(resolve_line_endings(self.input.ctx.line_endings()), true) {
+            InlineTextParseResult::FoundClosing(text) | InlineTextParseResult::NotFoundOptional(text) => {
+                self.input.skip_n(self.input.ctx.line_endings());
+                Some(text)
+            },
+            InlineTextParseResult::NotFound => None
+        }
     }
 
-    pub fn parse_text(&mut self, until: &str) -> InlineTextParseResult {
+    pub fn parse_path_access(&mut self) -> Vec<String> {
+        let mut paths: Vec<String> = vec![];
+        let mut current_path = String::new();
+        while !self.input.is_eof() {
+            match self.input.force_next() {
+                ch @ '0'..='9' | ch @ 'a'..='z' | ch @ 'A'..='Z' | ch @ '_' => current_path.push(ch),
+                '.' => {
+                    paths.push(current_path.clone());
+                    current_path.clear()
+                }
+                _ => break
+            }
+        }
+        if !current_path.is_empty() {
+            paths.push(current_path);
+        }
+        paths
+    }
+
+    pub fn parse_text(&mut self, until: &str, optional: bool) -> InlineTextParseResult {
         let mut parts: Vec<TextPart> = vec![];
         let mut result = String::new();
         let start = self.input.pos;
-        while !self.input.is_eof() {
-            if self.input.slice(until.len()) == until {
-                self.input.skip_n(until.len());
-                return InlineTextParseResult::FoundClosing(ASTText {
-                    parts,
-                    tail: result,
-                    range: self.input.range_here(start),
-                    attributes: vec![]
-                });
-            } else {
+        let pos_end = self.input.get_pos_of(until).unwrap_or_else(|| if optional { self.input.data.len() } else { 0 });
+        if pos_end == 0 {
+            InlineTextParseResult::NotFound
+        } else {
+            while self.input.pos < pos_end {
                 match self.input.force_next() {
+                    // Escape
                     '\\' => {
                         result.push(self.input.force_next());
                     },
-                    '*' if self.input.peek().is('*') && !self.input.peek_n(1).is(' ') => {
+                    // Bold
+                    '*' if self.input.peek().is('*') => {
                         let start = self.input.pos - 1;
                         self.input.skip();
-                        match self.parse_text("**") {
-                            InlineTextParseResult::FoundClosing(text) => {
-                                parts.push(TextPart { before: result.clone(), text: ASTInline {
-                                    kind: ASTInlineKind::Bold,
-                                    text,
-                                    range: self.input.range_here(start),
-                                    attributes: vec![]
-                                }});
-                                result.clear()
-                            },
-                            InlineTextParseResult::NotFound(mut text) => {
-                                result.push_str("**");
-                                result.push_str(&text.tail);
-                                parts.append(&mut text.parts)
-                            }
+                        if let InlineTextParseResult::FoundClosing(text) =  self.parse_text("**", false) {
+                            self.input.skip_n(2);
+                            parts.push(TextPart { before: result.clone(), text: ASTInline {
+                                kind: ASTInlineKind::Bold(text),
+                                range: self.input.range_here(start),
+                                attributes: vec![]
+                            }});
+                            result.clear()
+                        } else {
+                            result.push_str("**");
                         }
                     },
+                    // Italics
                     '*' => {
                         let start = self.input.pos - 1;
-                        match self.parse_text("*") {
-                            InlineTextParseResult::FoundClosing(text) => {
-                                parts.push(TextPart { before: result.clone(), text: ASTInline {
-                                    kind: ASTInlineKind::Italics,
-                                    text,
-                                    range: self.input.range_here(start),
-                                    attributes: vec![]
-                                }});
-                                result.clear()
-                            },
-                            InlineTextParseResult::NotFound(mut text) => {
-                                result.push('*');
-                                result.push_str(&text.tail);
-                                parts.append(&mut text.parts)
-                            }
+                        if let InlineTextParseResult::FoundClosing(text) =  self.parse_text("*", false) {
+                            self.input.skip();
+                            parts.push(TextPart { before: result.clone(), text: ASTInline {
+                                kind: ASTInlineKind::Italics(text),
+                                range: self.input.range_here(start),
+                                attributes: vec![]
+                            }});
+                            result.clear()
+                        } else {
+                            result.push('*');
                         }
+                    },
+                    // Divert
+                    '-' if self.input.peek().is('>') => {
+                        self.input.skip();
+                        if self.input.peek().is(' ') { self.input.skip() }
+                        let text = self.parse_path_access();
+                        parts.push(TextPart { 
+                            before: result.clone(), 
+                            text: ASTInline { 
+                                kind: ASTInlineKind::Divert(text),
+                                attributes: vec![], 
+                                range: self.input.range_here(start)
+                            }
+                        });
+                        result.clear()
                     }
                     other => result.push(other)
                 }
             }
+            InlineTextParseResult::FoundClosing(ASTText {
+                parts,
+                tail: result,
+                attributes: vec![],
+                range: self.input.range_here(start)
+            })
         }
-        InlineTextParseResult::NotFound(ASTText {
-            parts,
-            tail: result,
-            range: self.input.range_here(start),
-            attributes: vec![]
-        })
     }
-
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -197,14 +215,16 @@ mod tests {
         if let Some(ASTBlock::CodeBlock(block)) = code_block {
             assert_eq!(block.text, "This is a code\nblock...\nyeah...");
             assert_eq!(block.language, "js");
+        } else {
+            panic!("Code block")
         }
     }
 
     #[test]
     fn parse_inline_bold() {
-        let mut input = Parser::new("# This is some header!!!...\nThis is a paragraph, pretty cool... **really** cool! Same paragraph...\nAlright this is a different one!!## Another heading", Context::new());
+        let mut input = Parser::new("# This is some header!!!...\nThis is **a** paragraph, pretty cool... **really** cool! Same paragraph...\nAlright this is a different one!!## Another heading", Context::new());
         input.parse_block(); // Header
-        let paragraph = input.parse_paragraph();
+        let paragraph = input.parse_paragraph().unwrap();
         assert_eq!("This is a paragraph, pretty cool... really cool! Same paragraph...", paragraph.to_raw());
     }
 
@@ -212,18 +232,22 @@ mod tests {
     fn parse_inline_italics() {
         let mut input = Parser::new("# This is some header!!!...\n**really** interesting *word*...\nAlright", Context::new());
         input.parse_block(); // Header
-        let paragraph = input.parse_paragraph();
-        println!("TESSST: {:?}", paragraph);
+        let paragraph = input.parse_paragraph().unwrap();
         assert_eq!("really interesting word...", paragraph.to_raw());
-        assert_eq!(ASTInlineKind::Italics, paragraph.parts[1].text.kind);
+        assert!(matches!(paragraph.parts[1].text.kind, ASTInlineKind::Italics(_)));
     }
 
     #[test]
-    fn parse_inline_no_italics_error() {
-        let mut input = Parser::new("# This is some header!!!...\n**really** interesting *word...\nAlright", Context::new());
+    fn parse_inline_divert() {
+        let mut input = Parser::new("# This is some header!!!...\n**really** interesting *word...\nAlright, second paragraph -> second_chapter", Context::new());
         input.parse_block(); // Header
-        let para = input.parse_paragraph();
-        println!("{:?}", para);
+        input.parse_paragraph();
+        let second_para = input.parse_paragraph().unwrap();
+        if let ASTInlineKind::Divert(arrow) = &second_para.parts[0].text.kind {
+            assert_eq!(arrow[0], "second_chapter")
+        } else {
+            panic!("Divert")
+        }
     }
 
 }

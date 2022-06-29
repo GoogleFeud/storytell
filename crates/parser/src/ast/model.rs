@@ -23,22 +23,22 @@ macro_rules! create_nodes {
     };
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum ASTInlineKind {
     // **...**
-    Bold,
+    Bold(ASTText),
     // { ... }
-    Javascript,
+    Javascript(ASTText),
     // *...*
-    Italics,
+    Italics(ASTText),
     // __...__
-    Underline,
+    Underline(ASTText),
     // `...`
-    Code,
+    Code(ASTText),
     // ->
-    Divert,
+    Divert(Vec<String>),
     // <->
-    TempDivert
+    TempDivert(Vec<String>)
 }
 
 #[derive(Clone, Debug)]
@@ -62,8 +62,7 @@ pub struct TextPart {
 
 create_nodes!(
     ASTInline {
-        kind: ASTInlineKind,
-        text: ASTText
+        kind: ASTInlineKind
     }
 
     ASTText {
@@ -127,11 +126,26 @@ impl ASTText {
         result.push_str(&self.tail);
         result
     }
+
 }
 
 impl ASTInline {
 
     pub fn to_raw(&self) -> String {
-        self.text.to_raw()
+        self.kind.to_raw()
+    }
+}
+
+impl ASTInlineKind {
+    pub fn to_raw(&self) -> String {
+        match self {
+            Self::Bold(text) => text.to_raw(),
+            Self::Code(text) => text.to_raw(),
+            Self::Italics(text) => text.to_raw(),
+            Self::Javascript(text) => text.to_raw(),
+            Self::Underline(text) => text.to_raw(),
+            Self::Divert(paths) => paths.join("."),
+            Self::TempDivert(paths) => paths.join(".")
+        } 
     }
 }
