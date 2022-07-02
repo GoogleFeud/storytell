@@ -3,12 +3,12 @@ pub mod utils;
 use self::utils::*;
 use crate::input::*;
 use model::*;
-use storytell_diagnostics::{diagnostic::*, make_diagnostics};
+use storytell_diagnostics::{diagnostic::*, make_diagnostics, dia};
 
 make_diagnostics!(define [
-    MISSING_CLOSING_SYMBOL,
+    REQUIRED_JS,
     1001,
-    "Missing closing symbol `$`"
+    "Match condition must be a javascript inline expression."
 ]);
 
 pub enum InlineTextParseResult {
@@ -64,7 +64,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                     choices: {
                         // Make sure the choice is not on the same line
                         self.input.skip_until_end_of_line();
-                        self.parse_choice_list(depth)?.choices
+                        self.parse_choice_list(depth, true)?.choices
                     },
                     kind: MatchKind::Default,
                 }))
@@ -84,7 +84,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
         }
     }
 
-    pub fn parse_choice_list(&mut self, current_depth: u8) -> Option<ASTChoiceGroup> {
+    pub fn parse_choice_list(&mut self, current_depth: u8, require_js: bool) -> Option<ASTChoiceGroup> {
         let mut choices: Vec<ASTChoice> = vec![];
         let start = self.input.pos;
         while !self.input.is_eof() {
@@ -98,7 +98,19 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                     self.input.skip();
                     let start = self.input.pos;
                     choices.push(ASTChoice {
-                        text: self.input.consume_until_end_of_line().trim().to_string(),
+                        text: {
+                            let text = self.input.consume_until_end_of_line().trim().to_string();
+                            if require_js {
+                                if !text.starts_with('{') && !text.ends_with('}') {
+                                    self.input.ctx.add_diagnostic(dia!(REQUIRED_JS, self.input.range_here(start)));
+                                    continue;
+                                } else {
+                                    text[1..(text.len() - 1)].to_string()
+                                }
+                            } else {
+                                text
+                            }
+                        },
                         children: self.parse_children(current_depth + 1),
                         attributes: vec![],
                         range: self.input.range_here(start),
@@ -253,14 +265,14 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
         }
     }
 
-    pub fn parse(&mut self) -> Vec<ASTBlock> {
+    pub fn parse(mut self) -> (Vec<ASTBlock>, P) {
         let mut res = vec![];
         while !self.input.is_eof() {
             if let Some(block) = self.parse_block(0) {
                 res.push(block);
             }
         }
-        res
+        (res, self.input.ctx)
     }
 }
 
@@ -359,7 +371,7 @@ mod tests {
 
     #[test]
     fn parse_choice_list() {
-        let input = Parser::new(
+        let (input, ctx) = Parser::new(
             "
 # This is a chapter
 
@@ -389,17 +401,18 @@ This is a **paragraph**...
             Context::new(),
         )
         .parse();
+        assert_eq!(ctx.errors.len(), 1);
         println!("{:?}", input);
         if let ASTBlock::Match(matcher) = &input[2] {
             assert_eq!(matcher.matched, "match_condition");
-            assert_eq!(matcher.choices.len(), 3);
-            assert_eq!(matcher.choices[0].text, "{true}");
-            assert_eq!(matcher.choices[1].text, "{false}");
-            assert_eq!(matcher.choices[2].text, "Third option...");
+            // 2 because "Third option..." doesn't get included because JS is required
+            assert_eq!(matcher.choices.len(), 2);
+            assert_eq!(matcher.choices[0].text, "true");
+            assert_eq!(matcher.choices[1].text, "false");
             if let ASTBlock::Match(nested_match) = &matcher.choices[0].children[3] {
                 assert_eq!(nested_match.choices.len(), 2);
-                assert_eq!(nested_match.choices[0].text, "{a == 1}");
-                assert_eq!(nested_match.choices[1].text, "{}");
+                assert_eq!(nested_match.choices[0].text, "a == 1");
+                assert_eq!(nested_match.choices[1].text, "");
                 if let ASTBlock::Match(triple_nested) = &nested_match.choices[1].children[1] {
                     assert_eq!(triple_nested.choices.len(), 3);
                 } else {

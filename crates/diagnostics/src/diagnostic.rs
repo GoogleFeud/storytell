@@ -78,7 +78,7 @@ macro_rules! dia {
     ($diagnostic: ident, $range: expr) => {
         Diagnostic {
             msg: format_diagnostic(&Diagnostics::$diagnostic, vec![]),
-            range: $label_range,
+            range: $range,
             variant: DiagnosticVariants::Error
         }
     };
@@ -92,7 +92,7 @@ macro_rules! dia {
     ($diagnostic: ident, $range: expr, $variant: ident, $($vars: expr),*) => {
         Diagnostic {
             msg: format_diagnostic(&Diagnostics::$diagnostic, vec![$($vars),*]),
-            range: $label_range,
+            range: $range,
             variant: DiagnosticVariants::$variant
         }
     }
