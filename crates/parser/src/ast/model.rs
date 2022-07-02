@@ -91,7 +91,7 @@ create_nodes!(
     ASTMatch {
         matched: String,
         kind: MatchKind,
-        children: ASTChoiceGroup
+        choices: Vec<ASTChoice>
     }
 
     ASTHeader {

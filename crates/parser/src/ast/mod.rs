@@ -1,7 +1,7 @@
 pub mod model;
 pub mod utils;
 use self::utils::*;
-use crate::{lexer::{ParsingContext, Lexer, TokenKind}};
+use crate::input::*;
 use model::*;
 use storytell_diagnostics::{diagnostic::*, make_diagnostics};
 
@@ -18,30 +18,31 @@ pub enum InlineTextParseResult {
 }
 
 pub struct Parser<'a, P: ParsingContext> {
-    input: Lexer<'a, P>,
+    input: InputConsumer<'a, P>,
 }
 
 impl<'a, P: ParsingContext> Parser<'a, P> {
     pub fn new(text: &'a str, ctx: P) -> Self {
         Self {
-            input: Lexer::new(text, ctx),
+            input: InputConsumer::new(text, ctx),
         }
     }
 
-    pub fn parse_block(&mut self, depth: usize) -> Option<ASTBlock> {
-        let start = self.input.pos();
-        match self.input.peek() {
-            TokenKind::Character('#') => {
+    pub fn parse_block(&mut self, depth: u8) -> Option<ASTBlock> {
+        let token = self.input.peek()?;
+        let start = self.input.pos;
+        match token {
+            '#' => {
                 self.input.skip();
-                let depth = (1 + self.input.input.count_while('#')) as u8;
+                let depth = (1 + self.input.count_while('#')) as u8;
                 Some(ASTBlock::Header(ASTHeader {
                     title: self.input.consume_until_end_of_line().trim().to_string(),
                     depth,
                     attributes: vec![],
-                    range: self.input.input.range_here(start),
+                    range: self.input.range_here(start),
                 }))
             }
-            TokenKind::Character('`') if self.input.input.peek_n(1).is('`') && self.input.input.peek_n(2).is('`') => {
+            '`' if self.input.peek_n(1).is('`') && self.input.peek_n(2).is('`') => {
                 self.input.skip_n(3);
                 Some(ASTBlock::CodeBlock(ASTCodeBlock {
                     language: self.input.consume_until_end_of_line().to_string(),
@@ -51,25 +52,26 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                         code
                     },
                     attributes: vec![],
-                    range: self.input.input.range_here(start),
+                    range: self.input.range_here(start),
                 }))
             }
-            TokenKind::Character('@') if self.input.input.peek_n(1).is('{') => {
+            '@' if self.input.peek_n(1)? == '{' => {
                 self.input.skip_n(2);
                 Some(ASTBlock::Match(ASTMatch {
                     matched: self.input.consume_until("}")?.to_string(),
                     attributes: vec![],
-                    range: self.input.input.range_here(start),
-                    children: {
+                    range: self.input.range_here(start),
+                    choices: {
+                        // Make sure the choice is not on the same line
                         self.input.skip_until_end_of_line();
-                        self.parse_choice_list(depth)?
+                        self.parse_choice_list(depth)?.choices
                     },
                     kind: MatchKind::Default,
                 }))
             }
-            TokenKind::EndOfLine => {
+            ' ' | '\n' => {
                 self.input.skip();
-                self.parse_block(0)
+                self.parse_block(depth)
             }
             _ => {
                 let paragraph = self.parse_paragraph()?;
@@ -82,19 +84,25 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
         }
     }
 
-    pub fn parse_choice_list(&mut self, current_depth: usize) -> Option<ASTChoiceGroup> {
+    pub fn parse_choice_list(&mut self, current_depth: u8) -> Option<ASTChoiceGroup> {
         let mut choices: Vec<ASTChoice> = vec![];
-        let start = self.input.pos();
-        while !self.input.input.is_eof() {
-            match self.input.peek() {
-                TokenKind::Character('-') => {
+        let start = self.input.pos;
+        while !self.input.is_eof() {
+            println!("{}", self.input.is_on_new_line());
+            let ident = self.input.skip_identation();
+            println!("{} --- {} --- {:?}", current_depth, ident, self.input.slice(10));
+            if current_depth != ident {
+                break;
+            }
+            match self.input.peek()? {
+                '-' => {
                     self.input.skip();
-                    let start = self.input.pos();
+                    let start = self.input.pos;
                     choices.push(ASTChoice {
                         text: self.input.consume_until_end_of_line().trim().to_string(),
                         children: self.parse_children(current_depth + 1),
                         attributes: vec![],
-                        range: self.input.input.range_here(start),
+                        range: self.input.range_here(start),
                     })
                 }
                 _ => break,
@@ -102,18 +110,17 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
         }
         Some(ASTChoiceGroup {
             choices,
-            range: self.input.input.range_here(start),
+            range: self.input.range_here(start),
             attributes: vec![],
         })
     }
 
-    pub fn parse_children(&mut self, depth: usize) -> Vec<ASTBlock> {
+    pub fn parse_children(&mut self, depth: u8) -> Vec<ASTBlock> {
         let mut res = vec![];
-        while !self.input.input.is_eof() {
-            if self.input.input.slice(depth) != " ".repeat(depth) {
+        while !self.input.is_eof() {
+            if depth != self.input.skip_identation() {
                 break;
             }
-            self.input.skip_n(depth);
             if let Some(block) = self.parse_block(depth) {
                 res.push(block);
             } else {
@@ -137,8 +144,8 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
     pub fn parse_path_access(&mut self) -> Vec<String> {
         let mut paths: Vec<String> = vec![];
         let mut current_path = String::new();
-        while !self.input.input.is_eof() {
-            match self.input.input.force_next() {
+        while !self.input.is_eof() {
+            match self.input.force_next() {
                 ch @ '0'..='9' | ch @ 'a'..='z' | ch @ 'A'..='Z' | ch @ '_' => {
                     current_path.push(ch)
                 }
@@ -158,10 +165,10 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
     pub fn parse_text(&mut self, until: &str, optional: bool) -> InlineTextParseResult {
         let mut parts: Vec<TextPart> = vec![];
         let mut result = String::new();
-        let start = self.input.pos();
-        let pos_end = self.input.input.get_pos_of(until).unwrap_or_else(|| {
+        let start = self.input.pos;
+        let pos_end = self.input.get_pos_of(until).unwrap_or_else(|| {
             if optional {
-                self.input.input.data.len()
+                self.input.data.len()
             } else {
                 0
             }
@@ -169,15 +176,15 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
         if pos_end == 0 {
             InlineTextParseResult::NotFound
         } else {
-            while self.input.pos() < pos_end {
-                match self.input.next() {
+            while self.input.pos < pos_end {
+                match self.input.force_next() {
                     // Escape
-                    TokenKind::Character('\\') => {
-                        result.push(self.input.next().as_char());
+                    '\\' => {
+                        result.push(self.input.force_next());
                     }
                     // Bold
-                    TokenKind::Character('*') if self.input.input.peek().is('*') => {
-                        let start = self.input.pos() - 1;
+                    '*' if self.input.peek().is('*') => {
+                        let start = self.input.pos - 1;
                         self.input.skip();
                         if let InlineTextParseResult::FoundClosing(text) =
                             self.parse_text("**", false)
@@ -187,7 +194,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                                 before: result.clone(),
                                 text: ASTInline {
                                     kind: ASTInlineKind::Bold(text),
-                                    range: self.input.input.range_here(start),
+                                    range: self.input.range_here(start),
                                     attributes: vec![],
                                 },
                             });
@@ -197,8 +204,8 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                         }
                     }
                     // Italics
-                    TokenKind::Character('*') => {
-                        let start = self.input.pos() - 1;
+                    '*' => {
+                        let start = self.input.pos - 1;
                         if let InlineTextParseResult::FoundClosing(text) =
                             self.parse_text("*", false)
                         {
@@ -207,7 +214,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                                 before: result.clone(),
                                 text: ASTInline {
                                     kind: ASTInlineKind::Italics(text),
-                                    range: self.input.input.range_here(start),
+                                    range: self.input.range_here(start),
                                     attributes: vec![],
                                 },
                             });
@@ -217,9 +224,9 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                         }
                     }
                     // Divert
-                    TokenKind::Character('-') if self.input.input.peek().is('>') => {
+                    '-' if self.input.peek().is('>') => {
                         self.input.skip();
-                        if self.input.input.peek().is(' ') {
+                        if self.input.peek().is(' ') {
                             self.input.skip()
                         }
                         let text = self.parse_path_access();
@@ -228,26 +235,26 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                             text: ASTInline {
                                 kind: ASTInlineKind::Divert(text),
                                 attributes: vec![],
-                                range: self.input.input.range_here(start),
+                                range: self.input.range_here(start),
                             },
                         });
                         result.clear()
                     }
-                    other => result.push(other.as_char()),
+                    other => result.push(other),
                 }
             }
             InlineTextParseResult::FoundClosing(ASTText {
                 parts,
                 tail: result,
                 attributes: vec![],
-                range: self.input.input.range_here(start),
+                range: self.input.range_here(start),
             })
         }
     }
 
     pub fn parse(&mut self) -> Vec<ASTBlock> {
         let mut res = vec![];
-        while !self.input.input.is_eof() {
+        while !self.input.is_eof() {
             if let Some(block) = self.parse_block(0) {
                 res.push(block);
             }
@@ -366,10 +373,7 @@ This is a **paragraph**...
     Wohoooo!
     @{nested_match}
     - {a == 1}
-        This is nested! Very nested!
     - {}
-        This is also **nested!**
-        ## Header?
 - {false}
     The option is false!
 - Third option...
@@ -377,10 +381,18 @@ This is a **paragraph**...
             Context::new(),
         )
         .parse();
-        println!("{:?}", input);
+        //println!("{:?}", input);
         if let ASTBlock::Match(matcher) = &input[2] {
             assert_eq!(matcher.matched, "match_condition");
-            assert_eq!(matcher.children.choices.len(), 2);
+            assert_eq!(matcher.choices.len(), 3);
+            println!("{:?}", matcher.choices);
+            /*
+            if let ASTBlock::Match(nested_match) = &matcher.choices[0].children[3] {
+                assert_eq!(nested_match.choices.len(), 2);
+            } else {
+                panic!("Nested match")
+            }
+            */
         } else {
             panic!("Match")
         }
