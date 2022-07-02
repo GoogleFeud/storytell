@@ -1,35 +1,27 @@
-use storytell_diagnostics::{diagnostic::Diagnostic, location::*};
+use storytell_diagnostics::{location::*};
 
-pub trait ParsingContext {
-    fn line_endings(&self) -> usize;
-    fn add_diagnostic(&mut self, diagnostic: Diagnostic);
-}
-
-pub struct InputConsumer<'a, P: ParsingContext> {
+pub struct InputConsumer<'a> {
     pub data: &'a [u8],
-    pub ctx: P,
     pub pos: usize,
 }
 
-impl<'a, P: ParsingContext> InputConsumer<'a, P> {
-    pub fn new(content: &'a str, ctx: P) -> Self {
+impl<'a> InputConsumer<'a> {
+    pub fn new(content: &'a str) -> Self {
         Self {
             pos: 0,
-            ctx,
             data: content.as_bytes(),
         }
     }
 
     pub fn slice(&self, len: usize) -> &str {
-        if (self.pos + len) > self.data.len() {
-
-        }
-        unsafe { 
-            std::str::from_utf8_unchecked(&self.data[if (self.pos + len) > self.data.len() {
-                self.pos..self.data.len()
-            } else {
-                self.pos..(self.pos + len)
-            }]) 
+        unsafe {
+            std::str::from_utf8_unchecked(
+                &self.data[if (self.pos + len) > self.data.len() {
+                    self.pos..self.data.len()
+                } else {
+                    self.pos..(self.pos + len)
+                }],
+            )
         }
     }
 
@@ -78,40 +70,6 @@ impl<'a, P: ParsingContext> InputConsumer<'a, P> {
         }
     }
 
-    pub fn consume_until_end_of_line(&mut self) -> &str {
-        let start = self.pos;
-        while !self.is_eof() {
-            match self.ctx.line_endings() {
-                2 if (self.data[self.pos] as char) == '\r'
-                    && (self.data[self.pos + 1] as char) == '\n' =>
-                {
-                    break
-                }
-                _ if (self.data[self.pos] as char) == '\n' => break,
-                _ => self.pos += 1,
-            }
-        }
-        let string = unsafe { std::str::from_utf8_unchecked(&self.data[start..self.pos]) };
-        self.pos += self.ctx.line_endings();
-        string
-    }
-
-    pub fn skip_until_end_of_line(&mut self) {
-        while !self.is_eof() {
-            match self.ctx.line_endings() {
-                2 if (self.data[self.pos] as char) == '\r'
-                    && (self.data[self.pos + 1] as char) == '\n' =>
-                {
-                    break
-                }
-                _ if (self.data[self.pos] as char) == '\n' => break,
-                _ => self.pos += 1,
-            }
-            self.pos += 1;
-        }
-        self.pos += self.ctx.line_endings();
-    }
-
     pub fn consume_until(&mut self, pattern: &str) -> Option<&str> {
         let start = self.pos;
         while !self.is_eof() {
@@ -136,9 +94,9 @@ impl<'a, P: ParsingContext> InputConsumer<'a, P> {
     pub fn get_pos_of(&mut self, pattern: &str) -> Option<usize> {
         let mut pos = self.pos;
         while !self.is_eof() && (pos + pattern.len() < self.data.len()) {
-            if unsafe {
-                std::str::from_utf8_unchecked(&self.data[pos..(pattern.len() + pos)])
-            } == pattern {
+            if unsafe { std::str::from_utf8_unchecked(&self.data[pos..(pattern.len() + pos)]) }
+                == pattern
+            {
                 return Some(pos);
             } else {
                 pos += 1;
@@ -171,35 +129,15 @@ impl<'a, P: ParsingContext> InputConsumer<'a, P> {
         self.pos >= self.data.len()
     }
 
-    pub fn is_eol(&self, ahead: usize) -> bool {
-        let pos = self.pos + ahead;
-        match self.ctx.line_endings() {
-            2 if (self.data[pos] as char) == '\r' && (self.data[pos + 1] as char) == '\n' => true,
-            _ if (self.data[pos] as char) == '\n' => true,
-            _ => false,
-        }
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    pub struct Context {}
-
-    impl ParsingContext for Context {
-        fn line_endings(&self) -> usize {
-            1
-        }
-
-        fn add_diagnostic(&mut self, _diagnostic: Diagnostic) {
-            unimplemented!("Not necessary")
-        }
-    }
-
     #[test]
     fn text_input_peek() {
-        let mut input = InputConsumer::new("Hello", Context {});
+        let mut input = InputConsumer::new("Hello");
         assert_eq!(input.next(), Some('H'));
         assert_eq!(input.next(), Some('e'));
         assert_eq!(input.pos, 2);
@@ -212,20 +150,11 @@ mod tests {
 
     #[test]
     fn test_consume_until() {
-        let mut input = InputConsumer::new("This is a test", Context {});
+        let mut input = InputConsumer::new("This is a test");
         assert_eq!(input.consume_until(" "), Some("This"));
         assert_eq!(input.consume_until("a t"), Some("is "));
         assert_eq!(input.pos, 11);
         assert_eq!(input.next(), Some('e'));
     }
 
-    #[test]
-    fn test_consume_until_end_of_line() {
-        let mut input = InputConsumer::new("This is a test\nLine 2\nLine 3\nLine 4", Context {});
-        assert_eq!(input.consume_until("\n"), Some("This is a test"));
-        input.next();
-        assert_eq!(input.consume_until_end_of_line(), "ine 2");
-        assert_eq!(input.consume_until_end_of_line(), "Line 3");
-        assert_eq!(input.next(), Some('L'));
-    }
 }

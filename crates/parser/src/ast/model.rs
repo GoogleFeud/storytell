@@ -81,9 +81,7 @@ create_nodes!(
 
     ASTChoice {
         text: String,
-        divert: Option<String>,
-        children: Option<ASTBlock>,
-        is_temp: bool
+        children: Vec<ASTBlock>
     }
 
     ASTChoiceGroup {
@@ -93,7 +91,7 @@ create_nodes!(
     ASTMatch {
         matched: String,
         kind: MatchKind,
-        children: Vec<(String, ASTBlock)>
+        children: ASTChoiceGroup
     }
 
     ASTHeader {
