@@ -51,7 +51,8 @@ pub enum MatchKind {
 #[derive(Clone, Debug)]
 pub enum ASTAttributeKind {
     Once,
-    Exaust
+    Exaust,
+    Name(String)
 }
 
 #[derive(Clone, Debug)]
