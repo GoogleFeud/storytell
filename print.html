@@ -146,13 +146,14 @@
 <div style="break-before: page; page-break-before: always;"></div><h1 id="the-language"><a class="header" href="#the-language">The Language</a></h1>
 <p>Storytell comes with a simple markup language which is very similar to <a href="https://www.markdownguide.org/">markdown</a>. However, some features have been repurposed, and additional syntax has been added. If you're not familiar with markdown, I highly recommend going over the <a href="https://www.markdownguide.org/basic-syntax/">basic sytnax</a>. </p>
 <p>Here are the major differences:</p>
-<table><thead><tr><th>Markdown</th><th>Storytell</th></tr></thead><tbody>
+<div class="table-wrapper"><table><thead><tr><th>Markdown</th><th>Storytell</th></tr></thead><tbody>
 <tr><td>Headers (<code>#</code> and <code>##</code>)</td><td>Path start</td></tr>
 <tr><td>Lists (<code>- value</code>)</td><td>Choices</td></tr>
 <tr><td>Code blocks</td><td>Javascript code evaluation</td></tr>
 </tbody></table>
+</div>
 <p>And here is everything storytell adds:</p>
-<table><thead><tr><th>Symbol</th><th>Inline</th><th>Purpose</th></tr></thead><tbody>
+<div class="table-wrapper"><table><thead><tr><th>Symbol</th><th>Inline</th><th>Purpose</th></tr></thead><tbody>
 <tr><td><code>-&gt;</code></td><td>yes</td><td>Diverting the reader to another part.</td></tr>
 <tr><td><code>&lt;-&gt;</code></td><td>yes</td><td>Diverting the reader to another part, and returning to the current path after the diverted path is finished.</td></tr>
 <tr><td><code>#[...]</code></td><td>yes</td><td>Attributes - changes the settings of other symbols.</td></tr>
@@ -160,7 +161,7 @@
 <tr><td><code>@{ ... }</code></td><td>no</td><td>Match a value without using javascript</td></tr>
 <tr><td><code>\</code></td><td>yes</td><td>Ecapes a symbol.</td></tr>
 </tbody></table>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="paths"><a class="header" href="#paths">Paths</a></h1>
+</div><div style="break-before: page; page-break-before: always;"></div><h1 id="paths"><a class="header" href="#paths">Paths</a></h1>
 <p>The main construct of the language are <strong>paths</strong> - they're like different sections of your story which can play out differently, depending on the choices the reader makes. Each story starts at a path and ends at another. Each path can also have <strong>deviations</strong>, which can also be used as sub-paths. </p>
 <p>Here is an example:</p>
 <pre><code class="language-md"># Chapter 1, Part 2
@@ -297,7 +298,7 @@ Don't worry, you don't need to know javascript to add state to your story.</p>
 </code></pre>
 <p>After the user makes their choice, the <code>chosen</code> variable gets updated to either <code>Ashley</code> or <code>Nick</code>, and the character you chose says &quot;Thank you for choosing me&quot;.</p>
 <p>Here's a cheatsheet:</p>
-<table><thead><tr><th>Code</th><th>What it does</th></tr></thead><tbody>
+<div class="table-wrapper"><table><thead><tr><th>Code</th><th>What it does</th></tr></thead><tbody>
 <tr><td><code>variable = value</code></td><td>Sets the variable to <code>value</code>.</td></tr>
 <tr><td><code>variable++</code></td><td>Increments the variable. So if it's currently <code>1</code>, after the code is ran it will become 2.</td></tr>
 <tr><td><code>variable--</code></td><td>Decrements the variable.</td></tr>
@@ -306,6 +307,7 @@ Don't worry, you don't need to know javascript to add state to your story.</p>
 <tr><td><code>variable.push(value)</code></td><td>Adds a new value to the <code>variable</code> list.</td></tr>
 <tr><td><code>variable.set(key, value)</code></td><td>Adds a new key-value pair to the <code>variable</code> table.</td></tr>
 </tbody></table>
+</div>
 <p>Here's an example of using a list:</p>
 <pre><code>- Kill Ashley
     {killed.push(&quot;Ashley&quot;)}
