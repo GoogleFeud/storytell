@@ -57,6 +57,14 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
             }
             '@' if self.input.peek_n(1)? == '{' => {
                 self.input.skip_n(2);
+                let kind = if self.input.peek().is(':') {
+                    self.input.skip();
+                    match self.input.consume_until(" ") {
+                        Some("if") => MatchKind::If,
+                        Some("not") => MatchKind::Not,
+                        _ => MatchKind::Default
+                    }
+                } else { MatchKind::Default };
                 Some(ASTBlock::Match(ASTMatch {
                     matched: self.input.consume_until("}")?.to_string(),
                     attributes: vec![],
@@ -66,7 +74,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                         self.input.skip_until_end_of_line();
                         self.parse_choice_list(depth, true)?.choices
                     },
-                    kind: MatchKind::Default,
+                    kind
                 }))
             }
             ' ' | '\n' => {
@@ -377,7 +385,7 @@ mod tests {
 
 This is a **paragraph**...
 
-@{match_condition}
+@{:if match_condition}
 - {true}
     ```js
     This is a language!
@@ -404,6 +412,7 @@ This is a **paragraph**...
         assert_eq!(ctx.errors.len(), 1);
         println!("{:?}", input);
         if let ASTBlock::Match(matcher) = &input[2] {
+            assert!(matches!(matcher.kind, MatchKind::If));
             assert_eq!(matcher.matched, "match_condition");
             // 2 because "Third option..." doesn't get included because JS is required
             assert_eq!(matcher.choices.len(), 2);
