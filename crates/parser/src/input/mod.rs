@@ -39,6 +39,10 @@ impl<'a, P: ParsingContext> InputConsumer<'a, P> {
         self.pos += 1;
     }
 
+    pub fn set_pos(&mut self, pos: usize) {
+        self.pos = pos;
+    }
+
     pub fn skip_n(&mut self, n: usize) {
         self.pos += n;
     }
@@ -140,21 +144,22 @@ impl<'a, P: ParsingContext> InputConsumer<'a, P> {
     pub fn is_on_new_line(&self) -> bool {
         match self.data[self.pos - 1] {
             b'\n' if self.ctx.line_endings() == 1 => true,
-            b'\r' if self.ctx.line_endings() == 2 && self.data[self.pos - 1] == b'\n' => true,
+            b'\r' if self.ctx.line_endings() == 2 && self.data[self.pos - 2] == b'\n' => true,
             _ => false
         }
     }
 
-    pub fn skip_identation(&mut self) -> u8 {
+    pub fn get_identation(&self) -> (u8, usize) {
         let mut depth = 0;
+        let mut pos = self.pos;
         while !self.is_eof() {
-            match self.data[self.pos] {
+            match self.data[pos] {
                 b' ' => depth += 1,
                 _ => break
             }
-            self.pos += 1;
+            pos += 1;
         }
-        depth / 4
+        (depth / 4, pos)
     }
 
     pub fn count_while(&mut self, character: char) -> usize {

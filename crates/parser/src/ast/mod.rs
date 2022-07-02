@@ -88,12 +88,11 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
         let mut choices: Vec<ASTChoice> = vec![];
         let start = self.input.pos;
         while !self.input.is_eof() {
-            println!("{}", self.input.is_on_new_line());
-            let ident = self.input.skip_identation();
-            println!("{} --- {} --- {:?}", current_depth, ident, self.input.slice(10));
-            if current_depth != ident {
+            let ident = self.input.get_identation();
+            if current_depth != ident.0 {
                 break;
             }
+            self.input.set_pos(ident.1);
             match self.input.peek()? {
                 '-' => {
                     self.input.skip();
@@ -118,9 +117,11 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
     pub fn parse_children(&mut self, depth: u8) -> Vec<ASTBlock> {
         let mut res = vec![];
         while !self.input.is_eof() {
-            if depth != self.input.skip_identation() {
+            let ident = self.input.get_identation();
+            if depth != ident.0 {
                 break;
             }
+            self.input.set_pos(ident.1);
             if let Some(block) = self.parse_block(depth) {
                 res.push(block);
             } else {
@@ -373,7 +374,14 @@ This is a **paragraph**...
     Wohoooo!
     @{nested_match}
     - {a == 1}
+        This is a child!
     - {}
+        Another match...
+        @{double_nested_match}
+        - {REALLY_NESTED!!}
+            Wow!!!
+        - {Really nestes 2!!}
+        - {Really nested 3!!!}
 - {false}
     The option is false!
 - Third option...
@@ -381,18 +389,25 @@ This is a **paragraph**...
             Context::new(),
         )
         .parse();
-        //println!("{:?}", input);
+        println!("{:?}", input);
         if let ASTBlock::Match(matcher) = &input[2] {
             assert_eq!(matcher.matched, "match_condition");
             assert_eq!(matcher.choices.len(), 3);
-            println!("{:?}", matcher.choices);
-            /*
+            assert_eq!(matcher.choices[0].text, "{true}");
+            assert_eq!(matcher.choices[1].text, "{false}");
+            assert_eq!(matcher.choices[2].text, "Third option...");
             if let ASTBlock::Match(nested_match) = &matcher.choices[0].children[3] {
                 assert_eq!(nested_match.choices.len(), 2);
+                assert_eq!(nested_match.choices[0].text, "{a == 1}");
+                assert_eq!(nested_match.choices[1].text, "{}");
+                if let ASTBlock::Match(triple_nested) = &nested_match.choices[1].children[1] {
+                    assert_eq!(triple_nested.choices.len(), 3);
+                } else {
+                    panic!("Triple nested")
+                }
             } else {
                 panic!("Nested match")
             }
-            */
         } else {
             panic!("Match")
         }
