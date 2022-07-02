@@ -70,7 +70,7 @@ impl<'a, P: ParsingContext> InputConsumer<'a, P> {
         }
     }
 
-    pub fn next(&mut self) -> Option<char> {
+    pub fn consume(&mut self) -> Option<char> {
         if self.pos >= self.data.len() {
             None
         } else {
@@ -207,13 +207,13 @@ mod tests {
     #[test]
     fn text_input_peek() {
         let mut input = InputConsumer::new("Hello", Context {});
-        assert_eq!(input.next(), Some('H'));
-        assert_eq!(input.next(), Some('e'));
+        assert_eq!(input.consume(), Some('H'));
+        assert_eq!(input.consume(), Some('e'));
         assert_eq!(input.pos, 2);
-        assert_eq!(input.next(), Some('l'));
-        assert_eq!(input.next(), Some('l'));
-        assert_eq!(input.next(), Some('o'));
-        assert_eq!(input.next(), None);
+        assert_eq!(input.consume(), Some('l'));
+        assert_eq!(input.consume(), Some('l'));
+        assert_eq!(input.consume(), Some('o'));
+        assert_eq!(input.consume(), None);
         assert_eq!(input.is_eof(), true);
     }
 
@@ -223,16 +223,16 @@ mod tests {
         assert_eq!(input.consume_until(" "), Some("This"));
         assert_eq!(input.consume_until("a t"), Some("is "));
         assert_eq!(input.pos, 11);
-        assert_eq!(input.next(), Some('e'));
+        assert_eq!(input.consume(), Some('e'));
     }
 
     #[test]
     fn test_consume_until_end_of_line() {
         let mut input = InputConsumer::new("This is a test\nLine 2\nLine 3\nLine 4", Context {});
         assert_eq!(input.consume_until("\n"), Some("This is a test"));
-        input.next();
+        input.consume();
         assert_eq!(input.consume_until_end_of_line(), "ine 2");
         assert_eq!(input.consume_until_end_of_line(), "Line 3");
-        assert_eq!(input.next(), Some('L'));
+        assert_eq!(input.consume(), Some('L'));
     }
 }
