@@ -209,7 +209,7 @@ mod tests {
         let mut input = Lexer::new("
 This is the second line...
         This is the third line with 2 levels of identation - so 8 spaces.
-    4 levels
+    4 levels    
 ", Context::new());
        assert_eq!(input.consume_until_end_of_line(), "");
        assert_eq!(input.skip_identation(), 0);
@@ -217,7 +217,7 @@ This is the second line...
        assert_eq!(input.skip_identation(), 2);
        assert_eq!(input.consume_until_end_of_line(), "This is the third line with 2 levels of identation - so 8 spaces.");
        assert_eq!(input.skip_identation(), 1);
-       assert_eq!(input.consume_until_end_of_line(), "4 levels")
+       assert_eq!(input.consume_until_end_of_line(), "4 levels    ")
     }
 
 }

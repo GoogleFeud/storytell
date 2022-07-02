@@ -179,9 +179,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                     TokenKind::Character('*') if self.input.input.peek().is('*') => {
                         let start = self.input.pos() - 1;
                         self.input.skip();
-                        if let InlineTextParseResult::FoundClosing(text) =
-                            self.parse_text("**", false)
-                        {
+                        if let InlineTextParseResult::FoundClosing(text) = self.parse_text("**", false) {
                             self.input.skip_n(2);
                             parts.push(TextPart {
                                 before: result.clone(),
