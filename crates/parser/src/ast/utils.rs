@@ -31,3 +31,22 @@ impl<T: PartialEq> ExtendedOption<T> for Option<T> {
     }
     
 }
+
+pub struct VecStack<T> {
+    pub data: Vec<Vec<T>>
+}
+
+impl<T> VecStack<T> {
+
+    pub fn new() -> Self {
+        Self { data: vec![] }
+    }
+
+    pub fn push_vec(&mut self, data: Vec<T>) {
+        self.data.push(data);
+    }
+
+    pub fn pop_vec(&mut self) -> Vec<T> {
+        self.data.pop().unwrap_or_else(|| vec![])
+    }
+}

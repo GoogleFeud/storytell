@@ -24,14 +24,14 @@ pub enum InlineTextParseResult {
 
 pub struct Parser<'a, P: ParsingContext> {
     input: InputConsumer<'a, P>,
-    collected_attributes: Vec<ASTAttribute>
+    collected_attributes: VecStack<ASTAttribute>
 }
 
 impl<'a, P: ParsingContext> Parser<'a, P> {
     pub fn new(text: &'a str, ctx: P) -> Self {
         Self {
             input: InputConsumer::new(text, ctx),
-            collected_attributes: vec![]
+            collected_attributes: VecStack::new()
         }
     }
 
@@ -43,15 +43,15 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                 self.input.skip();
                 if self.input.peek().is('[') {
                     self.input.skip();
-                    let mut attrs = self.parse_attributes();
-                    self.collected_attributes.append(&mut attrs);
+                    let attrs = self.parse_attributes();
+                    self.collected_attributes.push_vec(attrs);
                     return self.parse_block(depth);
                 }
                 let depth = (1 + self.input.count_while('#')) as u8;
                 Some(ASTBlock::Header(ASTHeader {
                     title: self.input.consume_until_end_of_line().trim().to_string(),
                     depth,
-                    attributes: self.collected_attributes.clone_and_empty(),
+                    attributes: self.collected_attributes.pop_vec(),
                     range: self.input.range_here(start),
                 }))
             }
@@ -64,7 +64,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                         self.input.skip_until_end_of_line();
                         code
                     },
-                    attributes: self.collected_attributes.clone_and_empty(),
+                    attributes: self.collected_attributes.pop_vec(),
                     range: self.input.range_here(start),
                 }))
             }
@@ -80,7 +80,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                 } else { MatchKind::Default };
                 Some(ASTBlock::Match(ASTMatch {
                     matched: self.input.consume_until("}")?.to_string(),
-                    attributes: self.collected_attributes.clone_and_empty(),
+                    attributes: self.collected_attributes.pop_vec(),
                     range: self.input.range_here(start),
                     choices: {
                         // Make sure the choice is not on the same line
@@ -112,6 +112,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
     /// this is because in some cases the identation may already be skipped
     pub fn parse_choice_list(&mut self, current_depth: u8, require_js: bool, skip_depth_check: bool) -> Option<ASTChoiceGroup> {
         let mut choices: Vec<ASTChoice> = vec![];
+        let attributes = self.collected_attributes.pop_vec();
         let start = self.input.pos;
         while !self.input.is_eof() {
             if !skip_depth_check || !choices.is_empty() {
@@ -154,7 +155,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
         Some(ASTChoiceGroup {
             choices,
             range: self.input.range_here(start),
-            attributes: self.collected_attributes.clone_and_empty(),
+            attributes,
         })
     }
 
@@ -362,7 +363,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
             InlineTextParseResult::FoundClosing(ASTText {
                 parts,
                 tail: result,
-                attributes: self.collected_attributes.clone_and_empty(),
+                attributes: self.collected_attributes.pop_vec(),
                 range: self.input.range_here(start),
             })
         }
@@ -572,8 +573,9 @@ It's time to choose...
     -#[SomeAttribute] Option D
         You chose option D
         ", Context::new()).parse();
+        println!("{:?}", input);
         if let ASTBlock::ChoiceGroup(para) = &input[2] {
-            //assert_eq!(para.attributes[0].name, "ChoiceGroupAttribute");
+            assert_eq!(para.attributes[0].name, "ChoiceGroupAttribute");
             assert_eq!(para.choices[0].text, "Option A, ooor..");
             assert_eq!(para.choices[1].text, "Option B...");
             assert_eq!(para.choices[1].children.len(), 2);
