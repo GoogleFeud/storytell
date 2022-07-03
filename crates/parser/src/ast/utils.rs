@@ -7,10 +7,17 @@ pub fn resolve_line_endings<'a>(len: usize) -> &'a str {
     }
 }
 
-pub fn clone_and_empty_vector<T: Clone>(vec: &mut Vec<T>) -> Vec<T> {
-    let cloned = vec.clone();
-    vec.clear();
-    cloned
+pub trait MoveVector<T: Clone> {
+    fn clone_and_empty(&mut self) -> Vec<T>;
+}
+
+impl<T: Clone> MoveVector<T> for Vec<T> {
+
+    fn clone_and_empty(&mut self) -> Vec<T> {
+        let cloned = self.clone();
+        self.clear();
+        cloned
+    }
 }
 
 pub trait ExtendedOption<T: PartialEq> {

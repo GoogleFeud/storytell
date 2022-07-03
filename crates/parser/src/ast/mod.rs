@@ -10,6 +10,10 @@ make_diagnostics!(define [
     REQUIRED_JS,
     1001,
     "Match condition must be a javascript inline expression."
+], [
+    MISSING_CLOSING,
+    1002,
+    "Missing closing character '$'."
 ]);
 
 pub enum InlineTextParseResult {
@@ -47,7 +51,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                 Some(ASTBlock::Header(ASTHeader {
                     title: self.input.consume_until_end_of_line().trim().to_string(),
                     depth,
-                    attributes: clone_and_empty_vector(&mut self.collected_attributes),
+                    attributes: self.collected_attributes.clone_and_empty(),
                     range: self.input.range_here(start),
                 }))
             }
@@ -60,7 +64,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                         self.input.skip_until_end_of_line();
                         code
                     },
-                    attributes: clone_and_empty_vector(&mut self.collected_attributes),
+                    attributes: self.collected_attributes.clone_and_empty(),
                     range: self.input.range_here(start),
                 }))
             }
@@ -76,7 +80,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                 } else { MatchKind::Default };
                 Some(ASTBlock::Match(ASTMatch {
                     matched: self.input.consume_until("}")?.to_string(),
-                    attributes: clone_and_empty_vector(&mut self.collected_attributes),
+                    attributes: self.collected_attributes.clone_and_empty(),
                     range: self.input.range_here(start),
                     choices: {
                         // Make sure the choice is not on the same line
@@ -198,10 +202,17 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
         while !self.input.is_eof() {
             match self.input.force_next() {
                 ',' =>  {
+                    if self.input.peek().is(' ') {
+                        self.input.skip();
+                    }
                     result.push(current.clone());
                     current.clear();
                 },
-                other if other == until => break,
+                other if other == until => {
+                    result.push(current.clone());
+                    current.clear();
+                    break;
+                },
                 other => current.push(other)
             }
         }
@@ -211,30 +222,34 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
     pub fn parse_attributes(&mut self) -> Vec<ASTAttribute> {
         let mut current_att = String::new();
         let mut last_start = self.input.pos;
+        let mut parameters = vec![];
         let mut attributes = vec![];
         while !self.input.is_eof() {
             match self.input.force_next() {
-                ']' => break,
-                ',' => {
+                ']' => {
                     attributes.push(ASTAttribute {
                         name: current_att.clone(),
-                        parameters: vec![],
+                        parameters: parameters.clone_and_empty(),
+                        attributes: vec![],
+                        range: self.input.range_here(last_start)
+                    });
+                    current_att.clear();
+                    break;
+                },
+                ',' => {
+                    if self.input.peek().is(' ') {
+                        self.input.skip();
+                    }
+                    attributes.push(ASTAttribute {
+                        name: current_att.clone(),
+                        parameters: parameters.clone_and_empty(),
                         attributes: vec![],
                         range: self.input.range_here(last_start)
                     });
                     current_att.clear();
                     last_start = self.input.pos;
                 },
-                '(' => {
-                    attributes.push(ASTAttribute { 
-                        name: current_att.clone(), 
-                        parameters: self.parse_string_list(')'), 
-                        attributes: vec![], 
-                        range: self.input.range_here(last_start)
-                    });
-                    current_att.clear();
-                    last_start = self.input.pos;
-                }
+                '(' => parameters = self.parse_string_list(')'),
                 other => current_att.push(other)
             }
         }
@@ -325,7 +340,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
             InlineTextParseResult::FoundClosing(ASTText {
                 parts,
                 tail: result,
-                attributes: clone_and_empty_vector(&mut self.collected_attributes),
+                attributes: self.collected_attributes.clone_and_empty(),
                 range: self.input.range_here(start),
             })
         }
@@ -498,12 +513,21 @@ This is a **paragraph**...
         let (input, _) = Parser::new("
 # Hello World!
 
-#[Uppercase(A, Bcccc, C), Important]
+#[Uppercase(A, Bcccc, C), DebugTitle(Some choice...)]
 This is a paragraph with an attribute in it!
+
+#[SomeThing(123]
+Another paragraph...
         ", Context::new()).parse();
         if let ASTBlock::Paragraph(para) = &input[1] {
             println!("{:?}", para.attributes);
             assert_eq!(para.attributes.len(), 2);
+            assert_eq!(para.attributes[0].name, "Uppercase");
+            assert_eq!(para.attributes[0].parameters[0], "A");
+            assert_eq!(para.attributes[0].parameters[1], "Bcccc");
+            assert_eq!(para.attributes[0].parameters[2], "C");
+            assert_eq!(para.attributes[1].name, "DebugTitle");
+            assert_eq!(para.attributes[1].parameters[0], "Some choice...");
         } else {
             panic!("Paragraph")
         }
