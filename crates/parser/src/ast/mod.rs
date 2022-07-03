@@ -93,6 +93,10 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
             '-' => {
                 Some(ASTBlock::ChoiceGroup(self.parse_choice_list(depth, false, true)?))
             },
+            '/' if self.input.peek_n(1).is('/') => {
+                self.input.skip_until_end_of_line();
+                self.parse_block(depth)
+            },
             ' ' | '\n' => {
                 self.input.skip();
                 self.parse_block(depth)
@@ -634,5 +638,16 @@ It's time to choose...
         } else {
             panic!("Choice Group")
         }
+    }
+
+    #[test]
+    fn parse_comment() {
+        let (input, _) = Parser::new("
+# Hello World!
+// A comment
+// # A second comment...
+## A sub-path", Context::new()).parse();
+        assert!(matches!(input[0], ASTBlock::Header(_)));
+        assert!(matches!(input[1], ASTBlock::Header(_)));
     }
 }

@@ -5,7 +5,9 @@ Storytell is a text editor which allows you to write interactive fiction - from 
 
 This app takes huge inspiration from the [inky](https://www.inklestudios.com/ink/) language and editor. It tries to make the writing process a lot simpler and easier, with less special characters to remember, while still providing all the power inky has.
 
-It also provides you with useful tools which inky is missing, such as:
+It also provides you with useful tools and features which inky is missing, such as:
 
 - A branch viewer which allows you to view where each path leads you.
-- Useful statistics such as permutations, dead ends, most common paths, etc.
+- Embeddable javascript to bring your scripts to life.
+- A way to export your games to HTML so other people can read your interactive script.
+- Useful statistics such as permutations, dead ends, most common paths, path diversity,etc.
