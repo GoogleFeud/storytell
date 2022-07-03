@@ -47,6 +47,12 @@ impl<T> VecStack<T> {
     }
 
     pub fn pop_vec(&mut self) -> Vec<T> {
-        self.data.pop().unwrap_or_else(|| vec![])
+        self.data.pop().unwrap_or_else(Vec::new)
+    }
+}
+
+impl<T> Default for VecStack<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
