@@ -163,6 +163,14 @@
     {killed.push(&quot;Nick&quot;)}
     You killed Nick.
 </code></pre>
+<h2 id="variables-under-the-hood"><a class="header" href="#variables-under-the-hood">Variables under the hood</a></h2>
+<p>Variables which are used in inline javascript are sort of magic - you don't need to declare them, storytell can automatically detect what the variable is by how you use it and it automatically intializes it. You can use these magic variables in code blocks too, but <strong>you cannot use variables defined in code blocks in inline javascript</strong>. If you'd like to bypass this, you can attach the variable to the <strong>window</strong> object:</p>
+<pre><code>```js
+window.value = 123;
+```
+
+{window.value}
+</code></pre>
 
                     </main>
 

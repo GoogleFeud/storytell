@@ -290,6 +290,33 @@ Don't worry, you don't need to know javascript to add state to your story.</p>
 &quot;This is block javascript&quot;
 ```
 </code></pre>
+<h2 id="inline-javascript"><a class="header" href="#inline-javascript">Inline javascript</a></h2>
+<p>The inline javascript always evaluates to a value. If this value can be represented as text, it'll be embedded into your story. For example:</p>
+<pre><code>{&quot;This is inline javascript&quot;}
+{[1, 2, 3]}
+{3.14}
+{true}
+{myValue = 1}
+{myValue}
+</code></pre>
+<p>Will show the following to the reader:</p>
+<pre><code>This is inline javascript
+1, 2, 3
+3.14
+true
+1
+</code></pre>
+<p>By default all value assignment (<code>=</code>, <code>+=</code>, <code>-=</code>, etc.) will be hidden, even if it does evaluate to a value that can be represented as text.</p>
+<h2 id="block-javascript"><a class="header" href="#block-javascript">Block javascript</a></h2>
+<p>By default, block javascript will never embed anything into your story, unless you make it so by using the <code>return</code> keyword, or the <code>document</code> API to modify the DOM.</p>
+<pre><code>```js
+const yourName = prompt(&quot;What's your name?&quot;);
+return `Hello, ${yourName}`;
+```
+</code></pre>
+<p>Will embed:</p>
+<pre><code>Hello GoogleFeud!
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="variables"><a class="header" href="#variables">Variables</a></h1>
 <p>Your state will usually be saved in <strong>variables</strong>, which are persistent across paths. You can save pretty much anything.</p>
 <pre><code class="language-md">- Choose Ashley
@@ -318,6 +345,14 @@ Don't worry, you don't need to know javascript to add state to your story.</p>
 - Kill Nick
     {killed.push(&quot;Nick&quot;)}
     You killed Nick.
+</code></pre>
+<h2 id="variables-under-the-hood"><a class="header" href="#variables-under-the-hood">Variables under the hood</a></h2>
+<p>Variables which are used in inline javascript are sort of magic - you don't need to declare them, storytell can automatically detect what the variable is by how you use it and it automatically intializes it. You can use these magic variables in code blocks too, but <strong>you cannot use variables defined in code blocks in inline javascript</strong>. If you'd like to bypass this, you can attach the variable to the <strong>window</strong> object:</p>
+<pre><code>```js
+window.value = 123;
+```
+
+{window.value}
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="conditions"><a class="header" href="#conditions">Conditions</a></h1>
 <p>You can show text conditionally in two ways:</p>

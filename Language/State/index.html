@@ -144,6 +144,33 @@ Don't worry, you don't need to know javascript to add state to your story.</p>
 &quot;This is block javascript&quot;
 ```
 </code></pre>
+<h2 id="inline-javascript"><a class="header" href="#inline-javascript">Inline javascript</a></h2>
+<p>The inline javascript always evaluates to a value. If this value can be represented as text, it'll be embedded into your story. For example:</p>
+<pre><code>{&quot;This is inline javascript&quot;}
+{[1, 2, 3]}
+{3.14}
+{true}
+{myValue = 1}
+{myValue}
+</code></pre>
+<p>Will show the following to the reader:</p>
+<pre><code>This is inline javascript
+1, 2, 3
+3.14
+true
+1
+</code></pre>
+<p>By default all value assignment (<code>=</code>, <code>+=</code>, <code>-=</code>, etc.) will be hidden, even if it does evaluate to a value that can be represented as text.</p>
+<h2 id="block-javascript"><a class="header" href="#block-javascript">Block javascript</a></h2>
+<p>By default, block javascript will never embed anything into your story, unless you make it so by using the <code>return</code> keyword, or the <code>document</code> API to modify the DOM.</p>
+<pre><code>```js
+const yourName = prompt(&quot;What's your name?&quot;);
+return `Hello, ${yourName}`;
+```
+</code></pre>
+<p>Will embed:</p>
+<pre><code>Hello GoogleFeud!
+</code></pre>
 
                     </main>
 
