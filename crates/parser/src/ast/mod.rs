@@ -201,7 +201,10 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                     paths.push(current_path.clone());
                     current_path.clear()
                 }
-                _ => break,
+                _ => {
+                    self.input.back(1);
+                    break;
+                },
             }
         }
         if !current_path.is_empty() {
@@ -370,7 +373,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                         result.clear()
                     },
                     '{' => {
-                        if let Some(text) = self.input.consume_until("}") {
+                        if let Some(text) = self.input.consume_until_of_eol("}") {
                             parts.push(TextPart {
                                 before: result.clone(),
                                 text: ASTInline {
@@ -609,6 +612,24 @@ It's time to choose...
                 assert_eq!(nested.choices[1].text.to_raw(), "Option D");
                 assert_eq!(nested.choices[1].children.len(), 1);
                 assert_eq!(nested.choices[1].attributes[0].name, "SomeAttribute");
+            }
+        } else {
+            panic!("Choice Group")
+        }
+    }
+
+    #[test]
+    fn parse_temp_divert() {
+        let (input, _) = Parser::new("
+# Hello World!
+- Option A -> beach_scene
+- Option B <-> mountain_scene.base", Context::new()).parse();
+        if let ASTBlock::ChoiceGroup(para) = &input[1] {
+            assert!(matches!(para.choices[0].text.parts[0].text.kind, ASTInlineKind::Divert(_)));
+            if let ASTInlineKind::TempDivert(divert) = &para.choices[1].text.parts[0].text.kind {
+                assert_eq!(divert.join("."), "mountain_scene.base");
+            } else {
+                panic!("TempDivert")
             }
         } else {
             panic!("Choice Group")

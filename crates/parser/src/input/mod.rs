@@ -131,6 +131,27 @@ impl<'a, P: ParsingContext> InputConsumer<'a, P> {
         None
     }
 
+    pub fn consume_until_of_eol(&mut self, pattern: &str) -> Option<&str> {
+        let start = self.pos;
+        while !self.is_eol() {
+            let mut matches = true;
+            for character in pattern.chars() {
+                if (self.data[self.pos] as char) != character {
+                    matches = false;
+                    self.pos += 1;
+                    break;
+                }
+                self.pos += 1;
+            }
+            if matches {
+                return Some(unsafe {
+                    std::str::from_utf8_unchecked(&self.data[start..(self.pos - pattern.len())])
+                });
+            }
+        }
+        None
+    }
+
     pub fn get_pos_of(&mut self, pattern: &str) -> Option<usize> {
         let mut pos = self.pos;
         while !self.is_eof() && (pos + pattern.len() < self.data.len()) {
