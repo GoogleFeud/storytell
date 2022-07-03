@@ -156,7 +156,7 @@ impl<'a, P: ParsingContext> InputConsumer<'a, P> {
     pub fn get_identation(&self) -> (u8, usize) {
         let mut depth = 0;
         let mut pos = self.pos;
-        while !self.is_eof() {
+        while pos < self.data.len() {
             match self.data[pos] {
                 b' ' => depth += 1,
                 _ => break

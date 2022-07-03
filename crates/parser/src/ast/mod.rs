@@ -85,10 +85,13 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                     choices: {
                         // Make sure the choice is not on the same line
                         self.input.skip_until_end_of_line();
-                        self.parse_choice_list(depth, true)?.choices
+                        self.parse_choice_list(depth, true, false)?.choices
                     },
                     kind
                 }))
+            },
+            '-' => {
+                Some(ASTBlock::ChoiceGroup(self.parse_choice_list(depth, false, true)?))
             },
             ' ' | '\n' => {
                 self.input.skip();
@@ -105,18 +108,26 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
         }
     }
 
-    pub fn parse_choice_list(&mut self, current_depth: u8, require_js: bool) -> Option<ASTChoiceGroup> {
+    /// "skip_depth_check" will only skip the depth check of the first line it encounters,
+    /// this is because in some cases the identation may already be skipped
+    pub fn parse_choice_list(&mut self, current_depth: u8, require_js: bool, skip_depth_check: bool) -> Option<ASTChoiceGroup> {
         let mut choices: Vec<ASTChoice> = vec![];
         let start = self.input.pos;
         while !self.input.is_eof() {
-            let ident = self.input.get_identation();
-            if current_depth != ident.0 {
-                break;
+            if !skip_depth_check || !choices.is_empty() {
+                let ident = self.input.get_identation();
+                if current_depth != ident.0 {
+                    break;
+                }
+                self.input.set_pos(ident.1);
             }
-            self.input.set_pos(ident.1);
             match self.input.peek()? {
                 '-' => {
                     self.input.skip();
+                    let attributes = if self.input.peek().is('#') && self.input.peek_n(1).is('[') {
+                        self.input.skip_n(2);
+                        self.parse_attributes()
+                    } else { vec![] };
                     let start = self.input.pos;
                     choices.push(ASTChoice {
                         text: {
@@ -133,7 +144,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                             }
                         },
                         children: self.parse_children(current_depth + 1),
-                        attributes: vec![],
+                        attributes,
                         range: self.input.range_here(start),
                     })
                 }
@@ -143,7 +154,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
         Some(ASTChoiceGroup {
             choices,
             range: self.input.range_here(start),
-            attributes: vec![],
+            attributes: self.collected_attributes.clone_and_empty(),
         })
     }
 
@@ -530,7 +541,6 @@ This is a paragraph with an attribute in it!
 #[SomeThing(123]
 Another paragraph...
         ", Context::new()).parse();
-        println!("{:?}", ctx.errors);
         assert_eq!(ctx.errors.len(), 1);
         if let ASTBlock::Paragraph(para) = &input[1] {
             println!("{:?}", para.attributes);
@@ -543,6 +553,39 @@ Another paragraph...
             assert_eq!(para.attributes[1].parameters[0], "Some choice...");
         } else {
             panic!("Paragraph")
+        }
+    }
+
+    #[test]
+    fn parse_choice_group() {
+        let (input, _) = Parser::new("
+# Hello World!
+
+It's time to choose...
+
+#[ChoiceGroupAttribute]
+- Option A, ooor..
+- Option B...
+    So you chose option B, **now* it's time...
+    - Option C
+        You chose option C
+    -#[SomeAttribute] Option D
+        You chose option D
+        ", Context::new()).parse();
+        if let ASTBlock::ChoiceGroup(para) = &input[2] {
+            //assert_eq!(para.attributes[0].name, "ChoiceGroupAttribute");
+            assert_eq!(para.choices[0].text, "Option A, ooor..");
+            assert_eq!(para.choices[1].text, "Option B...");
+            assert_eq!(para.choices[1].children.len(), 2);
+            if let ASTBlock::ChoiceGroup(nested) = &para.choices[1].children[1] {
+                assert_eq!(nested.choices[0].text, "Option C");
+                assert_eq!(nested.choices[0].children.len(), 1);
+                assert_eq!(nested.choices[1].text, "Option D");
+                assert_eq!(nested.choices[1].children.len(), 1);
+                assert_eq!(nested.choices[1].attributes[0].name, "SomeAttribute");
+            }
+        } else {
+            panic!("Choice Group")
         }
     }
 }
