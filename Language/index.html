@@ -135,7 +135,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="the-language"><a class="header" href="#the-language">The Language</a></h1>
-<p>Storytell comes with a simple markup language which is very similar to <a href="https://www.markdownguide.org/">markdown</a>. However, some features have been repurposed, and additional syntax has been added. If you're not familiar with markdown, I highly recommend going over the <a href="https://www.markdownguide.org/basic-syntax/">basic sytnax</a>. </p>
+<p>Storytell comes with a simple markup language which is very similar to <a href="https://www.markdownguide.org/">markdown</a>. However, some features have been repurposed, some have been removed, and additional syntax has been added. If you're not familiar with markdown, I highly recommend going over the <a href="https://www.markdownguide.org/basic-syntax/">basic sytnax</a>. </p>
 <p>Here are the major differences:</p>
 <div class="table-wrapper"><table><thead><tr><th>Markdown</th><th>Storytell</th></tr></thead><tbody>
 <tr><td>Headers (<code>#</code> and <code>##</code>)</td><td>Path start</td></tr>
@@ -150,6 +150,7 @@
 <tr><td><code>#[...]</code></td><td>yes</td><td>Attributes - changes the settings of other symbols.</td></tr>
 <tr><td><code>{ ... }</code></td><td>yes</td><td>Inline javascript code, which cannot contain curly brackets.</td></tr>
 <tr><td><code>@{ ... }</code></td><td>no</td><td>Match a value without using javascript</td></tr>
+<tr><td><code>// ...</code></td><td>no</td><td>A piece of text which is meant for the author(s), it won't be displayed to the reader</td></tr>
 <tr><td><code>\</code></td><td>yes</td><td>Ecapes a symbol.</td></tr>
 </tbody></table>
 </div>

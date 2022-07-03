@@ -138,13 +138,15 @@
                         <h1 id="storytell"><a class="header" href="#storytell">Storytell</a></h1>
 <p>Storytell is a text editor which allows you to write interactive fiction - from scripts with simple choices to massive stories with many branching storylines and endings. It also allows you to <strong>play</strong> your story as you write it, and view how your stories branches. Create scripts for games and other interactive media with ease!</p>
 <p>This app takes huge inspiration from the <a href="https://www.inklestudios.com/ink/">inky</a> language and editor. It tries to make the writing process a lot simpler and easier, with less special characters to remember, while still providing all the power inky has.</p>
-<p>It also provides you with useful tools which inky is missing, such as:</p>
+<p>It also provides you with useful tools and features which inky is missing, such as:</p>
 <ul>
 <li>A branch viewer which allows you to view where each path leads you.</li>
-<li>Useful statistics such as permutations, dead ends, most common paths, etc.</li>
+<li>Embeddable javascript to bring your scripts to life.</li>
+<li>A way to export your games to HTML so other people can read your interactive script.</li>
+<li>Useful statistics such as permutations, dead ends, most common paths, path diversity,etc.</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="the-language"><a class="header" href="#the-language">The Language</a></h1>
-<p>Storytell comes with a simple markup language which is very similar to <a href="https://www.markdownguide.org/">markdown</a>. However, some features have been repurposed, and additional syntax has been added. If you're not familiar with markdown, I highly recommend going over the <a href="https://www.markdownguide.org/basic-syntax/">basic sytnax</a>. </p>
+<p>Storytell comes with a simple markup language which is very similar to <a href="https://www.markdownguide.org/">markdown</a>. However, some features have been repurposed, some have been removed, and additional syntax has been added. If you're not familiar with markdown, I highly recommend going over the <a href="https://www.markdownguide.org/basic-syntax/">basic sytnax</a>. </p>
 <p>Here are the major differences:</p>
 <div class="table-wrapper"><table><thead><tr><th>Markdown</th><th>Storytell</th></tr></thead><tbody>
 <tr><td>Headers (<code>#</code> and <code>##</code>)</td><td>Path start</td></tr>
@@ -159,6 +161,7 @@
 <tr><td><code>#[...]</code></td><td>yes</td><td>Attributes - changes the settings of other symbols.</td></tr>
 <tr><td><code>{ ... }</code></td><td>yes</td><td>Inline javascript code, which cannot contain curly brackets.</td></tr>
 <tr><td><code>@{ ... }</code></td><td>no</td><td>Match a value without using javascript</td></tr>
+<tr><td><code>// ...</code></td><td>no</td><td>A piece of text which is meant for the author(s), it won't be displayed to the reader</td></tr>
 <tr><td><code>\</code></td><td>yes</td><td>Ecapes a symbol.</td></tr>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><h1 id="paths"><a class="header" href="#paths">Paths</a></h1>
