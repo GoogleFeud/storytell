@@ -59,13 +59,6 @@ pub enum ASTInlineKind {
 }
 
 #[derive(Clone, Debug)]
-pub enum MatchKind {
-    If,
-    Not,
-    Default
-}
-
-#[derive(Clone, Debug)]
 pub struct TextPart {
     pub before: String,
     pub text: ASTInline
@@ -112,8 +105,9 @@ create_nodes!(
 
     ASTMatch {
         matched: String,
-        kind: MatchKind,
-        choices: Vec<ASTChoice>
+        kind: Option<String>,
+        choices: Vec<ASTChoice>,
+        direct_children: Vec<ASTBlock>
     }
 
     ASTHeader {

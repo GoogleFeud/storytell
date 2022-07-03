@@ -36,3 +36,14 @@ Here's an example of using a list:
     You killed Nick.
 ```
 
+## Variables under the hood
+
+Variables which are used in inline javascript are sort of magic - you don't need to declare them, storytell can automatically detect what the variable is by how you use it and it automatically intializes it. You can use these magic variables in code blocks too, but **you cannot use variables defined in code blocks in inline javascript**. If you'd like to bypass this, you can attach the variable to the **window** object:
+
+````
+```js
+window.value = 123;
+```
+
+{window.value}
+````

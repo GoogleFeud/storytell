@@ -72,21 +72,20 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                 self.input.skip_n(2);
                 let kind = if self.input.peek().is(':') {
                     self.input.skip();
-                    match self.input.consume_until(" ") {
-                        Some("if") => MatchKind::If,
-                        Some("not") => MatchKind::Not,
-                        _ => MatchKind::Default
-                    }
-                } else { MatchKind::Default };
+                    self.input.consume_until(" ").map(|v| v.to_string())
+                } else { None };
                 Some(ASTBlock::Match(ASTMatch {
                     matched: self.input.consume_until("}")?.to_string(),
                     attributes: self.collected_attributes.pop_vec(),
                     range: self.input.range_here(start),
-                    choices: {
-                        // Make sure the choice is not on the same line
+                    direct_children: if kind.is_some() {
+                        self.input.skip_until_end_of_line();
+                        self.parse_children(depth + 1)
+                    } else { vec![] },
+                    choices: if kind.is_none() {
                         self.input.skip_until_end_of_line();
                         self.parse_choice_list(depth, true, false)?.choices
-                    },
+                    } else { vec![] },
                     kind
                 }))
             },
@@ -513,7 +512,7 @@ mod tests {
 
 This is a **paragraph**...
 
-@{:if match_condition}
+@{match_condition}
 - {true}
     ```js
     This is a language!
@@ -533,18 +532,30 @@ This is a **paragraph**...
 - {false}
     The option is false!
 - Third option...
+- {fourth}
+    @{:not killed}
+        Direct child!
+        Second direct child...
+        - Some choices
+        - Cause why not...
 ",
             Context::new(),
         )
         .parse();
         assert_eq!(ctx.errors.len(), 1);
         if let ASTBlock::Match(matcher) = &input[2] {
-            assert!(matches!(matcher.kind, MatchKind::If));
             assert_eq!(matcher.matched, "match_condition");
-            // 2 because "Third option..." doesn't get included because JS is required
-            assert_eq!(matcher.choices.len(), 2);
+            // 3 because "Third option..." doesn't get included because JS is required
+            assert_eq!(matcher.choices.len(), 3);
             assert_eq!(matcher.choices[0].text.to_raw(), "true");
             assert_eq!(matcher.choices[1].text.to_raw(), "false");
+            if let ASTBlock::Match(not_match) = &matcher.choices[2].children[0] {
+                assert_eq!(not_match.kind, Some("not".to_string()));
+                assert_eq!(not_match.direct_children.len(), 3);
+                assert_eq!(not_match.choices.len(), 0);
+            } else {
+                panic!("Not match")
+            }
             if let ASTBlock::Match(nested_match) = &matcher.choices[0].children[3] {
                 assert_eq!(nested_match.choices.len(), 2);
                 assert_eq!(nested_match.choices[0].text.to_raw(), "a == 1");
