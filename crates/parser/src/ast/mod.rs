@@ -1,5 +1,6 @@
 pub mod model;
 pub mod utils;
+
 use self::utils::*;
 use crate::input::*;
 use model::*;
@@ -19,12 +20,14 @@ pub enum InlineTextParseResult {
 
 pub struct Parser<'a, P: ParsingContext> {
     input: InputConsumer<'a, P>,
+    collected_attributes: Vec<ASTAttribute>
 }
 
 impl<'a, P: ParsingContext> Parser<'a, P> {
     pub fn new(text: &'a str, ctx: P) -> Self {
         Self {
             input: InputConsumer::new(text, ctx),
+            collected_attributes: vec![]
         }
     }
 
@@ -34,11 +37,17 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
         match token {
             '#' => {
                 self.input.skip();
+                if self.input.peek().is('[') {
+                    self.input.skip();
+                    let mut attrs = self.parse_attributes();
+                    self.collected_attributes.append(&mut attrs);
+                    return self.parse_block(depth);
+                }
                 let depth = (1 + self.input.count_while('#')) as u8;
                 Some(ASTBlock::Header(ASTHeader {
                     title: self.input.consume_until_end_of_line().trim().to_string(),
                     depth,
-                    attributes: vec![],
+                    attributes: clone_and_empty_vector(&mut self.collected_attributes),
                     range: self.input.range_here(start),
                 }))
             }
@@ -51,7 +60,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                         self.input.skip_until_end_of_line();
                         code
                     },
-                    attributes: vec![],
+                    attributes: clone_and_empty_vector(&mut self.collected_attributes),
                     range: self.input.range_here(start),
                 }))
             }
@@ -67,7 +76,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                 } else { MatchKind::Default };
                 Some(ASTBlock::Match(ASTMatch {
                     matched: self.input.consume_until("}")?.to_string(),
-                    attributes: vec![],
+                    attributes: clone_and_empty_vector(&mut self.collected_attributes),
                     range: self.input.range_here(start),
                     choices: {
                         // Make sure the choice is not on the same line
@@ -183,6 +192,55 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
         paths
     }
 
+    pub fn parse_string_list(&mut self, until: char) -> Vec<String> {
+        let mut result = vec![];
+        let mut current = String::new();
+        while !self.input.is_eof() {
+            match self.input.force_next() {
+                ',' =>  {
+                    result.push(current.clone());
+                    current.clear();
+                },
+                other if other == until => break,
+                other => current.push(other)
+            }
+        }
+        result
+    }
+
+    pub fn parse_attributes(&mut self) -> Vec<ASTAttribute> {
+        let mut current_att = String::new();
+        let mut last_start = self.input.pos;
+        let mut attributes = vec![];
+        while !self.input.is_eof() {
+            match self.input.force_next() {
+                ']' => break,
+                ',' => {
+                    attributes.push(ASTAttribute {
+                        name: current_att.clone(),
+                        parameters: vec![],
+                        attributes: vec![],
+                        range: self.input.range_here(last_start)
+                    });
+                    current_att.clear();
+                    last_start = self.input.pos;
+                },
+                '(' => {
+                    attributes.push(ASTAttribute { 
+                        name: current_att.clone(), 
+                        parameters: self.parse_string_list(')'), 
+                        attributes: vec![], 
+                        range: self.input.range_here(last_start)
+                    });
+                    current_att.clear();
+                    last_start = self.input.pos;
+                }
+                other => current_att.push(other)
+            }
+        }
+        attributes
+    }
+
     pub fn parse_text(&mut self, until: &str, optional: bool) -> InlineTextParseResult {
         let mut parts: Vec<TextPart> = vec![];
         let mut result = String::new();
@@ -267,7 +325,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
             InlineTextParseResult::FoundClosing(ASTText {
                 parts,
                 tail: result,
-                attributes: vec![],
+                attributes: clone_and_empty_vector(&mut self.collected_attributes),
                 range: self.input.range_here(start),
             })
         }
@@ -432,6 +490,22 @@ This is a **paragraph**...
             }
         } else {
             panic!("Match")
+        }
+    }
+
+    #[test]
+    fn parse_attributes() {
+        let (input, _) = Parser::new("
+# Hello World!
+
+#[Uppercase(A, Bcccc, C), Important]
+This is a paragraph with an attribute in it!
+        ", Context::new()).parse();
+        if let ASTBlock::Paragraph(para) = &input[1] {
+            println!("{:?}", para.attributes);
+            assert_eq!(para.attributes.len(), 2);
+        } else {
+            panic!("Paragraph")
         }
     }
 }

@@ -49,13 +49,6 @@ pub enum MatchKind {
 }
 
 #[derive(Clone, Debug)]
-pub enum ASTAttributeKind {
-    Once,
-    Exaust,
-    Name(String)
-}
-
-#[derive(Clone, Debug)]
 pub struct TextPart {
     pub before: String,
     pub text: ASTInline
@@ -72,7 +65,8 @@ create_nodes!(
     }
 
     ASTAttribute {
-        kind: ASTAttributeKind
+        name: String,
+        parameters: Vec<String>
     }
 
     ASTCodeBlock {
