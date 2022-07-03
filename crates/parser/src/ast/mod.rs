@@ -102,7 +102,12 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                 if paragraph.tail.is_empty() && paragraph.parts.is_empty() {
                     None
                 } else {
-                    Some(ASTBlock::Paragraph(paragraph))
+                    Some(ASTBlock::Paragraph(ASTParagraph {
+                        parts: paragraph.parts,
+                        tail: paragraph.tail,
+                        range: paragraph.range,
+                        attributes: self.collected_attributes.pop_vec()
+                    }))
                 }
             }
         }
@@ -125,24 +130,21 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
             match self.input.peek()? {
                 '-' => {
                     self.input.skip();
+                    if self.input.peek().is(' ') { self.input.skip() };
                     let attributes = if self.input.peek().is('#') && self.input.peek_n(1).is('[') {
                         self.input.skip_n(2);
                         self.parse_attributes()
                     } else { vec![] };
+                    if self.input.peek().is(' ') { self.input.skip() };
                     let start = self.input.pos;
                     choices.push(ASTChoice {
                         text: {
-                            let text = self.input.consume_until_end_of_line().trim().to_string();
-                            if require_js {
-                                if !text.starts_with('{') && !text.ends_with('}') {
-                                    self.input.ctx.add_diagnostic(dia!(REQUIRED_JS, self.input.range_here(start)));
-                                    continue;
-                                } else {
-                                    text[1..(text.len() - 1)].to_string()
-                                }
-                            } else {
-                                text
-                            }
+                            let text = self.parse_paragraph();
+                            let unwrapped = text?;
+                            if require_js && (unwrapped.parts.is_empty() || !matches!(unwrapped.parts[0].text.kind, ASTInlineKind::Javascript(_))) {
+                                self.input.ctx.add_diagnostic(dia!(REQUIRED_JS, self.input.range_here(start)));
+                                continue;
+                            } else { unwrapped }
                         },
                         children: self.parse_children(current_depth + 1),
                         attributes,
@@ -251,7 +253,6 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                     attributes.push(ASTAttribute {
                         name: current_att.clone(),
                         parameters: parameters.clone_and_empty(),
-                        attributes: vec![],
                         range: self.input.range_here(last_start)
                     });
                     current_att.clear();
@@ -264,7 +265,6 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                     attributes.push(ASTAttribute {
                         name: current_att.clone(),
                         parameters: parameters.clone_and_empty(),
-                        attributes: vec![],
                         range: self.input.range_here(last_start)
                     });
                     current_att.clear();
@@ -312,7 +312,6 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                                 text: ASTInline {
                                     kind: ASTInlineKind::Bold(text),
                                     range: self.input.range_here(start),
-                                    attributes: vec![],
                                 },
                             });
                             result.clear()
@@ -332,7 +331,6 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                                 text: ASTInline {
                                     kind: ASTInlineKind::Italics(text),
                                     range: self.input.range_here(start),
-                                    attributes: vec![],
                                 },
                             });
                             result.clear()
@@ -351,19 +349,46 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                             before: result.clone(),
                             text: ASTInline {
                                 kind: ASTInlineKind::Divert(text),
-                                attributes: vec![],
-                                range: self.input.range_here(start),
+                                range: self.input.range_here(start)
                             },
                         });
                         result.clear()
-                    }
+                    },
+                    '<' if self.input.peek().is('-') && self.input.peek_n(1).is('>') => {
+                        self.input.skip_n(2);
+                        if self.input.peek().is(' ') {
+                            self.input.skip()
+                        }
+                        let text = self.parse_path_access();
+                        parts.push(TextPart {
+                            before: result.clone(),
+                            text: ASTInline {
+                                kind: ASTInlineKind::TempDivert(text),
+                                range: self.input.range_here(start)
+                            },
+                        });
+                        result.clear()
+                    },
+                    '{' => {
+                        if let Some(text) = self.input.consume_until("}") {
+                            parts.push(TextPart {
+                                before: result.clone(),
+                                text: ASTInline {
+                                    kind: ASTInlineKind::Javascript(text.to_string()),
+                                    range: self.input.range_here(start)
+                                },
+                            });
+                            result.clear()
+                        } else {
+                            result.push('}')
+                        }
+                    },
                     other => result.push(other),
                 }
             }
             InlineTextParseResult::FoundClosing(ASTText {
                 parts,
                 tail: result,
-                attributes: self.collected_attributes.pop_vec(),
                 range: self.input.range_here(start),
             })
         }
@@ -506,18 +531,17 @@ This is a **paragraph**...
         )
         .parse();
         assert_eq!(ctx.errors.len(), 1);
-        println!("{:?}", input);
         if let ASTBlock::Match(matcher) = &input[2] {
             assert!(matches!(matcher.kind, MatchKind::If));
             assert_eq!(matcher.matched, "match_condition");
             // 2 because "Third option..." doesn't get included because JS is required
             assert_eq!(matcher.choices.len(), 2);
-            assert_eq!(matcher.choices[0].text, "true");
-            assert_eq!(matcher.choices[1].text, "false");
+            assert_eq!(matcher.choices[0].text.to_raw(), "true");
+            assert_eq!(matcher.choices[1].text.to_raw(), "false");
             if let ASTBlock::Match(nested_match) = &matcher.choices[0].children[3] {
                 assert_eq!(nested_match.choices.len(), 2);
-                assert_eq!(nested_match.choices[0].text, "a == 1");
-                assert_eq!(nested_match.choices[1].text, "");
+                assert_eq!(nested_match.choices[0].text.to_raw(), "a == 1");
+                assert_eq!(nested_match.choices[1].text.to_raw(), "");
                 if let ASTBlock::Match(triple_nested) = &nested_match.choices[1].children[1] {
                     assert_eq!(triple_nested.choices.len(), 3);
                 } else {
@@ -570,19 +594,19 @@ It's time to choose...
     So you chose option B, **now* it's time...
     - Option C
         You chose option C
-    -#[SomeAttribute] Option D
+    - #[SomeAttribute] Option D
         You chose option D
         ", Context::new()).parse();
         println!("{:?}", input);
         if let ASTBlock::ChoiceGroup(para) = &input[2] {
             assert_eq!(para.attributes[0].name, "ChoiceGroupAttribute");
-            assert_eq!(para.choices[0].text, "Option A, ooor..");
-            assert_eq!(para.choices[1].text, "Option B...");
+            assert_eq!(para.choices[0].text.to_raw(), "Option A, ooor..");
+            assert_eq!(para.choices[1].text.to_raw(), "Option B...");
             assert_eq!(para.choices[1].children.len(), 2);
             if let ASTBlock::ChoiceGroup(nested) = &para.choices[1].children[1] {
-                assert_eq!(nested.choices[0].text, "Option C");
+                assert_eq!(nested.choices[0].text.to_raw(), "Option C");
                 assert_eq!(nested.choices[0].children.len(), 1);
-                assert_eq!(nested.choices[1].text, "Option D");
+                assert_eq!(nested.choices[1].text.to_raw(), "Option D");
                 assert_eq!(nested.choices[1].children.len(), 1);
                 assert_eq!(nested.choices[1].attributes[0].name, "SomeAttribute");
             }

@@ -21,6 +21,23 @@ macro_rules! create_nodes {
             }
         )+
     };
+    (NoAttribute $($name: ident {$($field_name: ident: $field_type: ty),*})+) => {
+        $(
+            #[derive(Clone)]
+            pub struct $name {
+                $(pub $field_name: $field_type,)*
+                pub range: Range<usize>
+            }
+
+            impl fmt::Debug for $name {
+                fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                    f.debug_struct(stringify!($name))
+                     $(.field(stringify!($field_name), &self.$field_name))*
+                     .finish()
+                }
+            }
+        )+
+    };
 }
 
 #[derive(Clone, Debug)]
@@ -28,7 +45,7 @@ pub enum ASTInlineKind {
     // **...**
     Bold(ASTText),
     // { ... }
-    Javascript(ASTText),
+    Javascript(String),
     // *...*
     Italics(ASTText),
     // __...__
@@ -54,9 +71,15 @@ pub struct TextPart {
     pub text: ASTInline
 }
 
-create_nodes!(
+create_nodes!(NoAttribute
+
     ASTInline {
         kind: ASTInlineKind
+    }
+
+    ASTAttribute {
+        name: String,
+        parameters: Vec<String>
     }
 
     ASTText {
@@ -64,9 +87,13 @@ create_nodes!(
         tail: String
     }
 
-    ASTAttribute {
-        name: String,
-        parameters: Vec<String>
+);
+
+create_nodes!(
+
+    ASTParagraph {
+        parts: Vec<TextPart>,
+        tail: String
     }
 
     ASTCodeBlock {
@@ -75,7 +102,7 @@ create_nodes!(
     }
 
     ASTChoice {
-        text: String,
+        text: ASTText,
         children: Vec<ASTBlock>
     }
 
@@ -98,7 +125,7 @@ create_nodes!(
 
 #[derive(Clone, Debug)]
 pub enum ASTBlock {
-    Paragraph(ASTText),
+    Paragraph(ASTParagraph),
     CodeBlock(ASTCodeBlock),
     ChoiceGroup(ASTChoiceGroup),
     Match(ASTMatch),
@@ -135,7 +162,7 @@ impl ASTInlineKind {
             Self::Bold(text) => text.to_raw(),
             Self::Code(text) => text.to_raw(),
             Self::Italics(text) => text.to_raw(),
-            Self::Javascript(text) => text.to_raw(),
+            Self::Javascript(text) => text.clone(),
             Self::Underline(text) => text.to_raw(),
             Self::Divert(paths) => paths.join("."),
             Self::TempDivert(paths) => paths.join(".")
