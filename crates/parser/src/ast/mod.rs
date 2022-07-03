@@ -68,7 +68,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                     range: self.input.range_here(start),
                 }))
             }
-            '@' if self.input.peek_n(1)? == '{' => {
+            '@' if self.input.peek_n(1).is('{') => {
                 self.input.skip_n(2);
                 let kind = if self.input.peek().is(':') {
                     self.input.skip();
@@ -89,7 +89,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                     },
                     kind
                 }))
-            }
+            },
             ' ' | '\n' => {
                 self.input.skip();
                 self.parse_block(depth)
@@ -199,8 +199,10 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
     pub fn parse_string_list(&mut self, until: char) -> Vec<String> {
         let mut result = vec![];
         let mut current = String::new();
-        while !self.input.is_eof() {
-            match self.input.force_next() {
+        let start = self.input.pos;
+        while !self.input.is_eol() {
+            let character = self.input.force_next();
+            match character {
                 ',' =>  {
                     if self.input.peek().is(' ') {
                         self.input.skip();
@@ -208,14 +210,20 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                     result.push(current.clone());
                     current.clear();
                 },
+                '0'..='9' | 'a'..='z' | 'A'..='Z' | '_' | ' ' | '-' | '>' | '#' | '@' | '$' | '*' | '^' | '.' => current.push(character),
                 other if other == until => {
                     result.push(current.clone());
                     current.clear();
-                    break;
+                    return result;
                 },
-                other => current.push(other)
+                _ => {
+                    self.input.back(1);
+                    break;
+                }
             }
         }
+        // If this is executed it means the method didn't find anything
+        self.input.ctx.add_diagnostic(dia!(MISSING_CLOSING, self.input.range_here(start), &until.to_string()));
         result
     }
 
@@ -224,7 +232,8 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
         let mut last_start = self.input.pos;
         let mut parameters = vec![];
         let mut attributes = vec![];
-        while !self.input.is_eof() {
+        let start = self.input.pos;
+        while !self.input.is_eol() {
             match self.input.force_next() {
                 ']' => {
                     attributes.push(ASTAttribute {
@@ -234,7 +243,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                         range: self.input.range_here(last_start)
                     });
                     current_att.clear();
-                    break;
+                    return attributes;
                 },
                 ',' => {
                     if self.input.peek().is(' ') {
@@ -253,6 +262,8 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                 other => current_att.push(other)
             }
         }
+        // If this is executed it means the method didn't find anything
+        self.input.ctx.add_diagnostic(dia!(MISSING_CLOSING, self.input.range_here(start), "]"));
         attributes
     }
 
@@ -510,7 +521,7 @@ This is a **paragraph**...
 
     #[test]
     fn parse_attributes() {
-        let (input, _) = Parser::new("
+        let (input, ctx) = Parser::new("
 # Hello World!
 
 #[Uppercase(A, Bcccc, C), DebugTitle(Some choice...)]
@@ -519,6 +530,8 @@ This is a paragraph with an attribute in it!
 #[SomeThing(123]
 Another paragraph...
         ", Context::new()).parse();
+        println!("{:?}", ctx.errors);
+        assert_eq!(ctx.errors.len(), 1);
         if let ASTBlock::Paragraph(para) = &input[1] {
             println!("{:?}", para.attributes);
             assert_eq!(para.attributes.len(), 2);
