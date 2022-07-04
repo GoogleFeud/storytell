@@ -2,6 +2,11 @@
 use storytell_diagnostics::location::*;
 use std::fmt;
 
+pub trait WithAttributes {
+    fn has_attribute(&self, attribute: &str) -> bool;
+    fn get_attribute_params(&self, attribute: &str) -> Option<&Vec<String>>;
+}
+
 macro_rules! create_nodes {
     ($($name: ident {$($field_name: ident: $field_type: ty),*})+) => {
         $(
@@ -17,6 +22,26 @@ macro_rules! create_nodes {
                     f.debug_struct(stringify!($name))
                      $(.field(stringify!($field_name), &self.$field_name))*
                      .finish()
+                }
+            }
+
+            impl WithAttributes for $name {
+                fn has_attribute(&self, attribute: &str) -> bool {
+                    for item in &self.attributes {
+                        if item.name == attribute {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+
+                fn get_attribute_params(&self, attribute: &str) -> Option<&Vec<String>> {
+                    for item in &self.attributes {
+                        if item.name == attribute {
+                            return Some(&item.parameters);
+                        }
+                    }
+                    return None;
                 }
             }
         )+

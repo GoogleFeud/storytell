@@ -13,7 +13,7 @@ Your state will usually be saved in **variables**, which are persistent across p
 
 After the user makes their choice, the `chosen` variable gets updated to either `Ashley` or `Nick`, and the character you chose says "Thank you for choosing me".
 
-Here's a cheatsheet:
+Here are some other common uses:
 
 | Code  | What it does |
 |---------|--------|

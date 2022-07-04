@@ -17,8 +17,8 @@ And here is everything storytell adds:
 |---------|--------|---------|
 | `->`    | yes    | Diverting the reader to another part. |
 | `<->`   | yes    | Diverting the reader to another part, and returning to the current path after the diverted path is finished. |
-| `#[...]`| yes    | Attributes - changes the settings of other symbols. |
 | `{ ... }` | yes  | Inline javascript code, which cannot contain curly brackets. | 
+| `\`     | yes    | Ecapes a symbol. |
+| `#[...]`| no    | Attributes - changes the settings of other symbols. |
 | `@{ ... }`| no   | Match a value without using javascript | 
 | `// ...`  | no   | A piece of text which is meant for the author(s), it won't be displayed to the reader |
-| `\`     | yes    | Ecapes a symbol. |
