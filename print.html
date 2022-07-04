@@ -158,11 +158,11 @@
 <div class="table-wrapper"><table><thead><tr><th>Symbol</th><th>Inline</th><th>Purpose</th></tr></thead><tbody>
 <tr><td><code>-&gt;</code></td><td>yes</td><td>Diverting the reader to another part.</td></tr>
 <tr><td><code>&lt;-&gt;</code></td><td>yes</td><td>Diverting the reader to another part, and returning to the current path after the diverted path is finished.</td></tr>
-<tr><td><code>#[...]</code></td><td>yes</td><td>Attributes - changes the settings of other symbols.</td></tr>
 <tr><td><code>{ ... }</code></td><td>yes</td><td>Inline javascript code, which cannot contain curly brackets.</td></tr>
+<tr><td><code>\</code></td><td>yes</td><td>Ecapes a symbol.</td></tr>
+<tr><td><code>#[...]</code></td><td>no</td><td>Attributes - changes the settings of other symbols.</td></tr>
 <tr><td><code>@{ ... }</code></td><td>no</td><td>Match a value without using javascript</td></tr>
 <tr><td><code>// ...</code></td><td>no</td><td>A piece of text which is meant for the author(s), it won't be displayed to the reader</td></tr>
-<tr><td><code>\</code></td><td>yes</td><td>Ecapes a symbol.</td></tr>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><h1 id="paths"><a class="header" href="#paths">Paths</a></h1>
 <p>The main construct of the language are <strong>paths</strong> - they're like different sections of your story which can play out differently, depending on the choices the reader makes. Each story starts at a path and ends at another. Each path can also have <strong>deviations</strong>, which can also be used as sub-paths. </p>
@@ -327,7 +327,7 @@ return `Hello, ${yourName}`;
 {chosen}: Thank you for choosing me.
 </code></pre>
 <p>After the user makes their choice, the <code>chosen</code> variable gets updated to either <code>Ashley</code> or <code>Nick</code>, and the character you chose says &quot;Thank you for choosing me&quot;.</p>
-<p>Here's a cheatsheet:</p>
+<p>Here are some other common uses:</p>
 <div class="table-wrapper"><table><thead><tr><th>Code</th><th>What it does</th></tr></thead><tbody>
 <tr><td><code>variable = value</code></td><td>Sets the variable to <code>value</code>.</td></tr>
 <tr><td><code>variable++</code></td><td>Increments the variable. So if it's currently <code>1</code>, after the code is ran it will become 2.</td></tr>
