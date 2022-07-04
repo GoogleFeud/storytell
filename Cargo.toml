@@ -1,4 +1,6 @@
 [workspace]
 members = [
-    "./crates/parser"
+    "./crates/diagnostics",
+    "./crates/parser",
+    "./crates/compiler"
 ]
