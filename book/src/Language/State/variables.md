@@ -23,7 +23,7 @@ Here are some other common uses:
 | `variable += n` | Adds `n` to the variable. |
 | `variable -= n` | Subtracts `n` from the variable. | 
 | `variable.push(value)` | Adds a new value to the `variable` list. |
-| `variable.set(key, value)` | Adds a new key-value pair to the `variable` table. |
+| `variable[key] = value` | Adds a new key-value pair to the `variable` table. |
 
 Here's an example of using a list:
 
