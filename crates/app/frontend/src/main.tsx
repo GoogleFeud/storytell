@@ -1,5 +1,6 @@
 import './style.css'
 import { render } from 'solid-js/web';
+import { TitleScreen } from './components/TitleScreen';
 
 
-render(() => <div class="text-xl font-bold">Hello World</div>, document.getElementById("root")!);
+render(() => <TitleScreen />, document.getElementById("root")!);
