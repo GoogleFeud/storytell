@@ -10,7 +10,8 @@
 body {
   width: 100%;
   height: 100%;
-  color: #ffeac9;
+  color: black;
+  overflow: hidden;
 }
 
 #root {
