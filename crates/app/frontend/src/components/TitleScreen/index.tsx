@@ -1,7 +1,7 @@
 
 
 export const TitleScreen = () => {
-    return <div class="flex">
+    return <div class="flex min-h-full">
         <div class="p-10 bg-[#E4DCCF] flex flex-col gap-28">
             <div>
                 <img src="./assets/images/book.png" height="164px" width="152px" />
@@ -20,13 +20,10 @@ export const TitleScreen = () => {
                 <div>
                     <p class="text-[20px] p-1 cursor-pointer">Exit</p>
                 </div>
-                <div>
-                    <p class="text-[20px] p-1 cursor-pointer">Exit</p>
-                </div>
             </div>
         </div>
         <div class="w-[100vw] bg-[#F0EBE3]">
-
+            
         </div>
     </div>
 }
