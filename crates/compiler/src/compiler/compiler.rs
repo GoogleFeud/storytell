@@ -1,8 +1,10 @@
 
 use std::collections::HashMap;
+use storytell_diagnostics::diagnostic::{DiagnosticCollector, Diagnostic};
+
 use crate::files::{file_host::FileHost};
 
-pub trait CompilerContext {
+pub trait CompilerContext: DiagnosticCollector {
     fn set_magic_var(&mut self, name: &str, value_kind: MagicVariableType);
     fn get_magic_var(&self, name: &str) -> Option<&MagicVariableType>;
     fn get_all_magic_vars(&self) -> Vec<&String>;
@@ -16,17 +18,15 @@ pub enum MagicVariableType {
     Map
 }
 
-pub struct Project<T: FileHost> {
+pub struct Compiler<T: FileHost> {
     pub cwd: String,
-    pub host: T,
-    pub magic_variables: HashMap<String, MagicVariableType>
+    pub host: T
 }
 
-impl<T: FileHost> Project<T> {
+impl<T: FileHost> Compiler<T> {
 
     pub fn new(cwd: &str, host: T) -> Self {
         Self {
-            magic_variables: HashMap::new(),
             cwd: cwd.to_string(),
             host
         }
@@ -34,7 +34,12 @@ impl<T: FileHost> Project<T> {
 
 }
 
-impl<T: FileHost> CompilerContext for Project<T> {
+pub struct CompilerCtx {
+    pub magic_variables: HashMap<String, MagicVariableType>,
+    pub diagnostics: Vec<Diagnostic>
+}
+
+impl CompilerContext for CompilerCtx {
     fn set_magic_var(&mut self, name: &str, value_kind: MagicVariableType) {
         self.magic_variables.insert(name.to_string(), value_kind);
     }
@@ -45,5 +50,12 @@ impl<T: FileHost> CompilerContext for Project<T> {
 
     fn get_magic_var(&self, name: &str) -> Option<&MagicVariableType> {
         self.magic_variables.get(name)
+    }
+
+}
+
+impl DiagnosticCollector for CompilerCtx {
+    fn add_diagnostic(&mut self, err: Diagnostic) {
+        self.diagnostics.push(err);
     }
 }
