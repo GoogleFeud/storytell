@@ -1,11 +1,17 @@
-use super::file::File;
+
 use std::collections::HashMap;
 use std::fs::{read_to_string, write, read_dir};
+use super::file::File;
+
+pub enum DirResult {
+    File(String),
+    Dir(String, Vec<DirResult>)
+}
 
 pub trait FileHost {
     fn create(&mut self, path: &str, content: String) -> bool;
     fn get(&mut self, path: &str) -> Option<&File>;
-    fn get_files_from_directory(path: &str) -> Vec<String>;
+    fn get_files_from_directory(path: &str) -> Vec<DirResult>;
 }
 
 pub struct VirtualFileHost {
@@ -18,23 +24,21 @@ impl VirtualFileHost {
         Self { files: HashMap::new() }
     }
 
-    pub fn create_virtual_file(&mut self, path: &str, content: &str) {
-        self.files.insert(path.to_string(), File::new(path, content));
-    }
-
 }
 
 impl FileHost for VirtualFileHost {
-    fn create(&mut self, _path: &str, _content: String) -> bool {
-        panic!("Method not allowed for virtual file host")
+    fn create(&mut self, path: &str, content: String) -> bool {
+        let file = File::new(path, &content);
+        self.files.insert(path.to_string(), file);
+        true
     }
 
     fn get(&mut self, path: &str) -> Option<&File> {
         self.files.get(path)
     }
 
-    fn get_files_from_directory(_path: &str) -> Vec<String> {
-        panic!("MEthod now allowed for virtual file host.")
+    fn get_files_from_directory(_path: &str) -> Vec<DirResult> {
+        panic!("Method now allowed for virtual file host.")
     }
 
 }
@@ -47,10 +51,6 @@ impl SysFileHost {
 
     pub fn new() -> Self {
         Self { files: HashMap::new() }
-    }
-
-    pub fn create_virtual_file(&mut self, path: &str, content: &str) {
-        self.files.insert(path.to_string(), File::new(path, content));
     }
 
 }
@@ -74,14 +74,16 @@ impl FileHost for SysFileHost {
         }  
     }
 
-    fn get_files_from_directory(directory: &str) -> Vec<String> {
-        let mut files = vec![];
+    fn get_files_from_directory(directory: &str) -> Vec<DirResult> {
+        let mut files: Vec<DirResult> = vec![];
         for thing in read_dir(directory).unwrap() {
             if let Ok(entry) = thing {
                 if entry.file_type().unwrap().is_dir() {
-                    files.append(&mut Self::get_files_from_directory(entry.path().to_str().unwrap()));
+                    let path = entry.path();
+                    let path_str = path.to_str().unwrap();
+                    files.push(DirResult::Dir(path_str.to_string(), Self::get_files_from_directory(path_str)));
                 } else {
-                    files.push(entry.path().to_str().unwrap().to_string())
+                    files.push(DirResult::File(entry.path().to_str().unwrap().to_string()));
                 }
             }
         }

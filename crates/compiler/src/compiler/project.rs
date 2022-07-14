@@ -11,6 +11,7 @@ pub trait CompilerContext {
 pub enum MagicVariableType {
     String,
     Number,
+    Bool,
     Array,
     Map
 }

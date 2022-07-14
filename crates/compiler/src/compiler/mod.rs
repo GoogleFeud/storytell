@@ -1,3 +1,3 @@
 
-pub mod compile;
 pub mod project;
+pub mod compile;
