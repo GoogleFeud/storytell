@@ -1,34 +1,36 @@
 use super::compiler::CompilerContext;
 use storytell_parser::ast::model::*;
+use storytell_diagnostics::diagnostic::*;
 
-pub trait Compilable<CTX: CompilerContext> {
-    fn compile(&self, ctx: &mut CTX) -> String;
+pub trait Compilable {
+    fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String>;
 }
 
-impl<T: CompilerContext> Compilable<T> for ASTInline {
-    fn compile(&self, ctx: &mut T) -> String {
-        match self.kind {
-            ASTInlineKind::Bold(text) => format!("<b>{}</b>", text.compile(ctx)),
-            ASTInlineKind::Italics(text) => format!("<i>{}</i>", text.compile(ctx)),
-            ASTInlineKind::Underline(text) => format!("<u>{}</u>", text.compile(ctx)),
-            ASTInlineKind::Code(text) => format!("<code>{}</code>", text.compile(ctx)),
-            ASTInlineKind::Javascript(text) => format!("${{{}}}", text),
-            ASTInlineKind::Divert(thing) => format!("${}")
+impl Compilable for ASTInline {
+    fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String> {
+        match &self.kind {
+            ASTInlineKind::Bold(text) => Ok(format!("<b>{}</b>", text.compile(ctx)?)),
+            ASTInlineKind::Italics(text) => Ok(format!("<i>{}</i>", text.compile(ctx)?)),
+            ASTInlineKind::Underline(text) => Ok(format!("<u>{}</u>", text.compile(ctx)?)),
+            ASTInlineKind::Code(text) => Ok(format!("<code>{}</code>", text.compile(ctx)?)),
+            ASTInlineKind::Javascript(text) => Ok(format!("${{{}}}", text)),
+            ASTInlineKind::Divert(thing) => Ok(format!("${{{}}}", format!("{}()", ctx.bootstrap.revert_fn))),
+            _ => Ok("".to_string())
         }
     }
 }
 
-impl<T: CompilerContext> Compilable<T> for ASTText {
-    fn compile(&self, ctx: &mut T) -> String {
+impl Compilable for ASTText {
+    fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String> {
         if self.parts.is_empty() {
-            return self.tail.clone()
+            return Ok(self.tail.clone())
         }
         let mut result = String::new();
         for part in &self.parts {
             result.push_str(&part.before);
-            result.push_str(&part.text.compile(ctx))
+            result.push_str(&part.text.compile(ctx)?)
         }
         result.push_str(&self.tail);
-        result
+        Ok(result)
     }
 }

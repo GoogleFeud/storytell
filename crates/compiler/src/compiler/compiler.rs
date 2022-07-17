@@ -1,13 +1,16 @@
 
-use std::collections::HashMap;
+use std::collections::{HashMap};
 use storytell_diagnostics::diagnostic::{DiagnosticCollector, Diagnostic};
+use crate::files::file_host::FileHost;
 
-use crate::files::{file_host::FileHost};
-
-pub trait CompilerContext: DiagnosticCollector {
-    fn set_magic_var(&mut self, name: &str, value_kind: MagicVariableType);
-    fn get_magic_var(&self, name: &str) -> Option<&MagicVariableType>;
-    fn get_all_magic_vars(&self) -> Vec<&String>;
+/// The compiler just compiles everything to javascript
+/// It doesn't provide a "runtime" which actually keeps
+/// track of the current path, etc.
+/// The compiler also doesn't provide any tools for analyzing
+pub struct JSBootstrapVars {
+    /// Name of a funtion which moves the current path,
+    /// it receives an array of path names
+    pub revert_fn: &'static str
 }
 
 pub enum MagicVariableType {
@@ -32,29 +35,56 @@ impl<T: FileHost> Compiler<T> {
         }
     }
 
+    pub fn compile(&self, ctx: Option<CompilerContext>) -> String {
+        String::new()
+    }
+
 }
 
-pub struct CompilerCtx {
+
+pub struct Path {
+    pub name: String,
+    pub children: HashMap<String, Path>
+}
+
+impl Path {
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            children: HashMap::new()
+        }
+    }
+
+    pub fn create(&mut self, name: &str) {
+        self.children.insert(name.to_string(), Path::new(name));
+    }
+
+
+}
+
+pub struct CompilerContext<'a> {
     pub magic_variables: HashMap<String, MagicVariableType>,
-    pub diagnostics: Vec<Diagnostic>
+    pub diagnostics: Vec<Diagnostic>,
+    pub paths: Path,
+    pub current_path: Option<&'a Path>,
+    pub bootstrap: JSBootstrapVars
 }
 
-impl CompilerContext for CompilerCtx {
-    fn set_magic_var(&mut self, name: &str, value_kind: MagicVariableType) {
-        self.magic_variables.insert(name.to_string(), value_kind);
-    }
+impl<'a> CompilerContext<'a> {
 
-    fn get_all_magic_vars(&self) -> Vec<&String> {
-        self.magic_variables.keys().collect()
-    }
-
-    fn get_magic_var(&self, name: &str) -> Option<&MagicVariableType> {
-        self.magic_variables.get(name)
+    pub fn new(bootstrap: JSBootstrapVars) -> Self {
+        Self { 
+            magic_variables: HashMap::new(), 
+            diagnostics: vec![], 
+            paths: Path::new(""),
+            current_path: None,
+            bootstrap 
+        }
     }
 
 }
 
-impl DiagnosticCollector for CompilerCtx {
+impl<'a> DiagnosticCollector for CompilerContext<'a> {
     fn add_diagnostic(&mut self, err: Diagnostic) {
         self.diagnostics.push(err);
     }
