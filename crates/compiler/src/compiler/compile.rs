@@ -14,8 +14,8 @@ impl Compilable for ASTInline {
             ASTInlineKind::Underline(text) => Ok(format!("<u>{}</u>", text.compile(ctx)?)),
             ASTInlineKind::Code(text) => Ok(format!("<code>{}</code>", text.compile(ctx)?)),
             ASTInlineKind::Javascript(text) => Ok(format!("${{{}}}", text)),
-            ASTInlineKind::Divert(thing) => Ok(format!("${{{}}}", format!("{}()", ctx.bootstrap.revert_fn))),
-            _ => Ok("".to_string())
+            ASTInlineKind::Divert(thing) => Ok(format!("${{{}}}", format!("{}([{}])", ctx.bootstrap.divert_fn, thing.iter().map(|string| format!("\"{}\"", string)).collect::<Vec<String>>().join(", ")))),
+            ASTInlineKind::TempDivert(thing) => Ok(format!("${{{}}}", format!("{}([{}])", ctx.bootstrap.temp_divert_fn, thing.iter().map(|string| format!("\"{}\"", string)).collect::<Vec<String>>().join(", "))))
         }
     }
 }

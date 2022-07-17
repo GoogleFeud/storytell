@@ -197,8 +197,11 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
         let mut current_path = String::new();
         while !self.input.is_eof() {
             match self.input.force_next() {
-                ch @ '0'..='9' | ch @ 'a'..='z' | ch @ 'A'..='Z' | ch @ '_' => {
+                ch @ '0'..='9' | ch @ 'a'..='z' | ch @ '_' => {
                     current_path.push(ch)
+                },
+                ch @ 'A'..='Z' => {
+                    current_path.push(ch.to_lowercase().next().unwrap())
                 }
                 '.' => {
                     paths.push(current_path.clone());
