@@ -1,6 +1,17 @@
 use super::compiler::CompilerContext;
 use storytell_parser::ast::model::*;
 use storytell_diagnostics::diagnostic::*;
+use storytell_diagnostics::{dia, make_diagnostics};
+
+make_diagnostics!(define [
+    UNKNOWN_CHILD_PATH,
+    2001,
+    "\"$\" is not a sub-path of \"$\"."
+], [
+    UNKNOWN_PATH,
+    2002,
+    "\"$\" is not a path."
+]);
 
 pub trait Compilable {
     fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String>;
@@ -14,8 +25,20 @@ impl Compilable for ASTInline {
             ASTInlineKind::Underline(text) => Ok(format!("<u>{}</u>", text.compile(ctx)?)),
             ASTInlineKind::Code(text) => Ok(format!("<code>{}</code>", text.compile(ctx)?)),
             ASTInlineKind::Javascript(text) => Ok(format!("${{{}}}", text)),
-            ASTInlineKind::Divert(thing) => Ok(format!("${{{}}}", format!("{}([{}])", ctx.bootstrap.divert_fn, thing.iter().map(|string| format!("\"{}\"", string)).collect::<Vec<String>>().join(", ")))),
-            ASTInlineKind::TempDivert(thing) => Ok(format!("${{{}}}", format!("{}([{}])", ctx.bootstrap.temp_divert_fn, thing.iter().map(|string| format!("\"{}\"", string)).collect::<Vec<String>>().join(", "))))
+            ASTInlineKind::Divert(thing, is_temp) => {
+                match ctx.paths.try_get_child_by_path(&thing) {
+                    Ok(_) => {
+                        Ok(format!("${{{}}}", format!("{}([{}])", if *is_temp { ctx.bootstrap.temp_divert_fn } else { ctx.bootstrap.divert_fn }, thing.iter().map(|string| format!("\"{}\"", string)).collect::<Vec<String>>().join(", "))))
+                    },
+                    Err(ind) => {
+                        if ind == 0 {
+                            Err(dia!(UNKNOWN_PATH, self.range.clone(), &thing[ind]))
+                        } else {
+                            Err(dia!(UNKNOWN_CHILD_PATH, self.range.clone(), &thing[ind], &thing[ind - 1]))
+                        }
+                    }
+                }
+            }
         }
     }
 }

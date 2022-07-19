@@ -64,10 +64,26 @@ impl Path {
 
     pub fn get_child_by_path(&self, path: &Vec<String>) -> Option<&Path> {
         let mut found_path = self.children.get(&path[0])?;
-        for ind in 1..path.len() {
-            found_path = found_path.children.get(&path[ind])?;
+        for p in path.iter().skip(1) {
+            found_path = found_path.children.get(p)?;
         }
         Some(found_path)
+    }
+
+    pub fn try_get_child_by_path(&self, path: &Vec<String>) -> Result<&Path, usize> {
+        let mut found_path = if let Some(path) = self.children.get(&path[0]) {
+            path
+        } else {
+            return Err(0);
+        };
+        for ind in 1..path.len() {
+            found_path = if let Some(path) = found_path.children.get(&path[ind]) {
+                path
+            } else {
+                return Err(ind);
+            }
+        }
+        Ok(found_path)
     }
 
     /// Path names can only contain lowercase letters, digits and underscores.

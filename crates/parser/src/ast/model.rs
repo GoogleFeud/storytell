@@ -77,10 +77,8 @@ pub enum ASTInlineKind {
     Underline(ASTText),
     // `...`
     Code(ASTText),
-    // ->
-    Divert(Vec<String>),
-    // <->
-    TempDivert(Vec<String>)
+    // -> / <->
+    Divert(Vec<String>, bool)
 }
 
 #[derive(Clone, Debug)]
@@ -183,8 +181,7 @@ impl ASTInlineKind {
             Self::Italics(text) => text.to_raw(),
             Self::Javascript(text) => text.clone(),
             Self::Underline(text) => text.to_raw(),
-            Self::Divert(paths) => paths.join("."),
-            Self::TempDivert(paths) => paths.join(".")
+            Self::Divert(paths, _) => paths.join(".")
         } 
     }
 }

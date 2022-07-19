@@ -292,7 +292,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
         let mut parts: Vec<TextPart> = vec![];
         let mut result = String::new();
         let start = self.input.pos;
-        let pos_end = self.input.get_pos_of(until).unwrap_or_else(|| {
+        let pos_end = self.input.get_pos_of(until).unwrap_or({
             if optional {
                 self.input.data.len()
             } else {
@@ -357,7 +357,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                         parts.push(TextPart {
                             before: result.clone(),
                             text: ASTInline {
-                                kind: ASTInlineKind::Divert(text),
+                                kind: ASTInlineKind::Divert(text, false),
                                 range: self.input.range_here(start)
                             },
                         });
@@ -372,7 +372,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                         parts.push(TextPart {
                             before: result.clone(),
                             text: ASTInline {
-                                kind: ASTInlineKind::TempDivert(text),
+                                kind: ASTInlineKind::Divert(text, true),
                                 range: self.input.range_here(start)
                             },
                         });
@@ -500,7 +500,7 @@ mod tests {
         input.parse_block(0); // Header
         input.parse_paragraph();
         let second_para = input.parse_paragraph().unwrap();
-        if let ASTInlineKind::Divert(arrow) = &second_para.parts[0].text.kind {
+        if let ASTInlineKind::Divert(arrow, _) = &second_para.parts[0].text.kind {
             assert_eq!(arrow[0], "second_chapter")
         } else {
             panic!("Divert")
@@ -643,8 +643,8 @@ It's time to choose...
 - Option A -> beach_scene
 - Option B <-> mountain_scene.base", Context::new()).parse();
         if let ASTBlock::ChoiceGroup(para) = &input[1] {
-            assert!(matches!(para.choices[0].text.parts[0].text.kind, ASTInlineKind::Divert(_)));
-            if let ASTInlineKind::TempDivert(divert) = &para.choices[1].text.parts[0].text.kind {
+            assert!(matches!(para.choices[0].text.parts[0].text.kind, ASTInlineKind::Divert(_, _)));
+            if let ASTInlineKind::Divert(divert, _) = &para.choices[1].text.parts[0].text.kind {
                 assert_eq!(divert.join("."), "mountain_scene.base");
             } else {
                 panic!("TempDivert")
