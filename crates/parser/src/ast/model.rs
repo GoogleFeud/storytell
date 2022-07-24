@@ -135,6 +135,7 @@ create_nodes!(
 
     ASTHeader {
         title: String,
+        children: Vec<ASTBlock>,
         depth: u8
     }
 
@@ -164,6 +165,23 @@ impl ASTText {
         result
     }
 
+}
+
+impl ASTParagraph {
+
+    pub fn to_raw(&self) -> String {
+        if self.parts.is_empty() {
+            return self.tail.clone()
+        }
+        let mut result = String::new();
+        for part in &self.parts {
+            result.push_str(&part.before);
+            result.push_str(&part.text.to_raw())
+        }
+        result.push_str(&self.tail);
+        result
+    }
+    
 }
 
 impl ASTInline {

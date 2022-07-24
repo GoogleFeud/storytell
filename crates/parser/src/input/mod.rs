@@ -200,6 +200,18 @@ impl<'a, P: ParsingContext> InputConsumer<'a, P> {
         count
     }
 
+    pub fn count(&self, character: char) -> usize {
+        let mut counter = self.pos;
+        while !self.is_eof() {
+            if (self.data[counter] as char) == character {
+                counter += 1;
+            } else {
+                break;
+            }
+        }
+        counter - self.pos
+    }
+
     pub fn range_here(&self, start: usize) -> Range<usize> {
         Range {
             start,

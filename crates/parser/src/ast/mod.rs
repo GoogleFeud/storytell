@@ -14,6 +14,10 @@ make_diagnostics!(define [
     MISSING_CLOSING,
     1002,
     "Missing closing character '$'."
+], [
+    NESTED_HEADER,
+    1003,
+    "Path start cannot be inside options."
 ]);
 
 pub enum InlineTextParseResult {
@@ -47,11 +51,31 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                     self.collected_attributes.push_vec(attrs);
                     return self.parse_block(depth);
                 }
-                let depth = (1 + self.input.count_while('#')) as u8;
+                if depth != 0 {
+                    self.input.ctx.add_diagnostic(dia!(NESTED_HEADER, self.input.range_here(start)));
+                }
+                let header_depth = 1 + self.input.count_while('#');
                 Some(ASTBlock::Header(ASTHeader {
                     title: self.input.consume_until_end_of_line().trim().to_string(),
-                    depth,
+                    depth: header_depth as u8,
                     attributes: self.collected_attributes.pop_vec(),
+                    children: {
+                        let mut res = vec![];
+                        loop {
+                            let hash_count = self.input.count('#');
+                            if hash_count > 0 && hash_count <= header_depth {
+                                break;
+                            }
+                            else {
+                                if let Some(block) = self.parse_block(depth) {
+                                    res.push(block);
+                                } else {
+                                    break;
+                                }
+                            }
+                        }
+                        res
+                    },
                     range: self.input.range_here(start),
                 }))
             }
@@ -440,27 +464,59 @@ mod tests {
         }
     }
 
+    fn get_header_children(input: &Vec<ASTBlock>) -> &Vec<ASTBlock> {
+        if let ASTBlock::Header(header) = &input[0] {
+            &header.children
+        } else {
+            panic!("Expected a header.")
+        }
+    }
+
     #[test]
     fn parse_header() {
-        let mut input = Parser::new("# This is some header!!!...\n", Context::new());
+        let mut input = Parser::new("# This is some header!!!...
+This is a paragraph, a child of the header...
+## This is a second header, child of the first header
+Blah Blah Blah
+### This is a third header, child of the second
+Text...
+#### Fourth header
+## This is child of first
+        ", Context::new());
         let header = input.parse_block(0);
-        assert!(matches!(header, Some(ASTBlock::Header(_)),));
         if let Some(ASTBlock::Header(block)) = header {
             assert_eq!(block.title, "This is some header!!!...");
             assert_eq!(block.depth, 1);
+            assert_eq!(block.children.len(), 3);
+            if let ASTBlock::Header(header) = &block.children[1] {
+                assert_eq!(header.children.len(), 2);
+                if let ASTBlock::Header(header) = &header.children[1] {
+                    assert_eq!(header.children.len(), 2);
+                    if let ASTBlock::Header(header) = &header.children[1] {
+                        assert_eq!(header.children.len(), 0);
+                    } else {
+                        panic!("Expected header")
+                    }
+                } else {
+                    panic!("Expected header")
+                }
+            } else {
+                panic!("Expected header")
+            }
+        } else {
+            panic!("Expected header")
         }
     }
 
     #[test]
     fn parse_codeblock() {
-        let mut input = Parser::new(
+        let (input, _) = Parser::new(
             "# This is some header!!!...\n```js\nThis is a code\nblock...\nyeah...```",
             Context::new(),
-        );
-        input.parse_block(0);
-        let code_block = input.parse_block(0);
-        assert!(matches!(code_block, Some(ASTBlock::CodeBlock(_))));
-        if let Some(ASTBlock::CodeBlock(block)) = code_block {
+        ).parse();
+        let header = get_header_children(&input);
+        let code_block = &header[0];
+        if let ASTBlock::CodeBlock(block) = code_block {
             assert_eq!(block.text, "This is a code\nblock...\nyeah...");
             assert_eq!(block.language, "js");
         } else {
@@ -470,40 +526,51 @@ mod tests {
 
     #[test]
     fn parse_inline_bold() {
-        let mut input = Parser::new("# This is some header!!!...\nThis is **a** paragraph, pretty cool... **really** cool! Same paragraph...\nAlright this is a different one!!## Another heading", Context::new());
-        input.parse_block(0); // Header
-        let paragraph = input.parse_paragraph().unwrap();
-        assert_eq!(
-            "This is a paragraph, pretty cool... really cool! Same paragraph...",
-            paragraph.to_raw()
-        );
+        let (input, _) = Parser::new("# This is some header!!!...\nThis is **a** paragraph, pretty cool... **really** cool! Same paragraph...\nAlright this is a different one!!## Another heading", Context::new()).parse();
+        let children = get_header_children(&input);
+        if let ASTBlock::Paragraph(para) = &children[0] {
+            assert_eq!(
+                "This is a paragraph, pretty cool... really cool! Same paragraph...",
+                para.to_raw()
+            );
+        } else {
+            panic!("Expected paragraph")
+        }
     }
 
     #[test]
     fn parse_inline_italics() {
-        let mut input = Parser::new(
+        let (input, _) = Parser::new(
             "# This is some header!!!...\n**really** interesting *word*...\nAlright",
             Context::new(),
-        );
-        input.parse_block(0); // Header
-        let paragraph = input.parse_paragraph().unwrap();
-        assert_eq!("really interesting word...", paragraph.to_raw());
-        assert!(matches!(
-            paragraph.parts[1].text.kind,
-            ASTInlineKind::Italics(_)
-        ));
+        ).parse();
+        let children = get_header_children(&input);
+        if let ASTBlock::Paragraph(para) = &children[0] {
+            assert_eq!(
+                "really interesting word...",
+                para.to_raw()
+            );
+            assert!(matches!(
+                para.parts[1].text.kind,
+                ASTInlineKind::Italics(_)
+            ));
+        } else {
+            panic!("Expected paragraph")
+        }
     }
 
     #[test]
     fn parse_inline_divert() {
-        let mut input = Parser::new("# This is some header!!!...\n**really** interesting *word...\nAlright, second paragraph -> second_chapter", Context::new());
-        input.parse_block(0); // Header
-        input.parse_paragraph();
-        let second_para = input.parse_paragraph().unwrap();
-        if let ASTInlineKind::Divert(arrow, _) = &second_para.parts[0].text.kind {
-            assert_eq!(arrow[0], "second_chapter")
+        let (input, _) = Parser::new("# This is some header!!!...\n**really** interesting *word...\nAlright, second paragraph -> second_chapter", Context::new()).parse();
+        let children = get_header_children(&input);
+        if let ASTBlock::Paragraph(para) = &children[1] {
+            if let ASTInlineKind::Divert(arrow, _) = &para.parts[0].text.kind {
+                assert_eq!(arrow[0], "second_chapter")
+            } else {
+                panic!("Divert")
+            }
         } else {
-            panic!("Divert")
+            panic!("Expected paragraph")
         }
     }
 
@@ -545,8 +612,9 @@ This is a **paragraph**...
             Context::new(),
         )
         .parse();
+        let children = get_header_children(&input);
         assert_eq!(ctx.errors.len(), 1);
-        if let ASTBlock::Match(matcher) = &input[2] {
+        if let ASTBlock::Match(matcher) = &children[1] {
             assert_eq!(matcher.matched, "match_condition");
             // 3 because "Third option..." doesn't get included because JS is required
             assert_eq!(matcher.choices.len(), 3);
@@ -587,8 +655,9 @@ This is a paragraph with an attribute in it!
 #[SomeThing(123]
 Another paragraph...
         ", Context::new()).parse();
+        let children = get_header_children(&input);
         assert_eq!(ctx.errors.len(), 1);
-        if let ASTBlock::Paragraph(para) = &input[1] {
+        if let ASTBlock::Paragraph(para) = &children[0] {
             println!("{:?}", para.attributes);
             assert_eq!(para.attributes.len(), 2);
             assert_eq!(para.attributes[0].name, "Uppercase");
@@ -619,7 +688,8 @@ It's time to choose...
         You chose option D
         ", Context::new()).parse();
         println!("{:?}", input);
-        if let ASTBlock::ChoiceGroup(para) = &input[2] {
+        let children = get_header_children(&input);
+        if let ASTBlock::ChoiceGroup(para) = &children[1] {
             assert_eq!(para.attributes[0].name, "ChoiceGroupAttribute");
             assert_eq!(para.choices[0].text.to_raw(), "Option A, ooor..");
             assert_eq!(para.choices[1].text.to_raw(), "Option B...");
@@ -637,31 +707,14 @@ It's time to choose...
     }
 
     #[test]
-    fn parse_temp_divert() {
-        let (input, _) = Parser::new("
-# Hello World!
-- Option A -> beach_scene
-- Option B <-> mountain_scene.base", Context::new()).parse();
-        if let ASTBlock::ChoiceGroup(para) = &input[1] {
-            assert!(matches!(para.choices[0].text.parts[0].text.kind, ASTInlineKind::Divert(_, _)));
-            if let ASTInlineKind::Divert(divert, _) = &para.choices[1].text.parts[0].text.kind {
-                assert_eq!(divert.join("."), "mountain_scene.base");
-            } else {
-                panic!("TempDivert")
-            }
-        } else {
-            panic!("Choice Group")
-        }
-    }
-
-    #[test]
     fn parse_comment() {
         let (input, _) = Parser::new("
 # Hello World!
 // A comment
 // # A second comment...
 ## A sub-path", Context::new()).parse();
+        let children = get_header_children(&input);
         assert!(matches!(input[0], ASTBlock::Header(_)));
-        assert!(matches!(input[1], ASTBlock::Header(_)));
+        assert!(matches!(children[0], ASTBlock::Header(_)));
     }
 }
