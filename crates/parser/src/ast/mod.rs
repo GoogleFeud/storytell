@@ -18,6 +18,10 @@ make_diagnostics!(define [
     NESTED_HEADER,
     1003,
     "Path start cannot be inside options."
+], [
+    INCORRECT_HEADER_SIZE,
+    1004,
+    "Path should be one ($) level deeper than it's parent."
 ]);
 
 pub enum InlineTextParseResult {
@@ -56,7 +60,10 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                 }
                 let header_depth = 1 + self.input.count_while('#');
                 Some(ASTBlock::Header(ASTHeader {
-                    title: self.input.consume_until_end_of_line().trim().to_string(),
+                    title: ASTPlainText {
+                        text: self.input.consume_until_end_of_line().trim().to_string(),
+                        range: self.input.range_here(start)
+                    },
                     depth: header_depth as u8,
                     attributes: self.collected_attributes.pop_vec(),
                     children: {
@@ -67,6 +74,11 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                                 break;
                             }
                             else if let Some(block) = self.parse_block(depth) {
+                                if let ASTBlock::Header(header) = &block {
+                                    if (header.depth - 1) != (header_depth as u8) {
+                                        self.input.ctx.add_diagnostic(dia!(INCORRECT_HEADER_SIZE, header.title.range.clone(), &(header.depth - 1).to_string()));
+                                    }
+                                }
                                 res.push(block);
                             } else {
                                 break;
@@ -472,7 +484,7 @@ mod tests {
 
     #[test]
     fn parse_header() {
-        let mut input = Parser::new("
+        let (input, ctx) = Parser::new("
 # This is some header!!!...
 This is a paragraph, a child of the header...
 ## This is a second header, child of the first header
@@ -480,11 +492,13 @@ Blah Blah Blah
 ### This is a third header, child of the second
 Text...
 #### Fourth header
+###### Wrong header!!!
 ## This is child of first
-        ", Context::new());
-        let header = input.parse_block(0);
-        if let Some(ASTBlock::Header(block)) = header {
-            assert_eq!(block.title, "This is some header!!!...");
+        ", Context::new()).parse();
+        assert_eq!(ctx.errors[0].msg, "Path should be one (5) level deeper than it's parent.");
+        let header = &input[0];
+        if let ASTBlock::Header(block) = header {
+            assert_eq!(block.title.text, "This is some header!!!...");
             assert_eq!(block.depth, 1);
             assert_eq!(block.children.len(), 3);
             if let ASTBlock::Header(header) = &block.children[1] {
@@ -492,7 +506,7 @@ Text...
                 if let ASTBlock::Header(header) = &header.children[1] {
                     assert_eq!(header.children.len(), 2);
                     if let ASTBlock::Header(header) = &header.children[1] {
-                        assert_eq!(header.children.len(), 0);
+                        assert_eq!(header.children.len(), 1);
                     } else {
                         panic!("Expected header")
                     }

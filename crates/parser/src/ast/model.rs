@@ -93,6 +93,10 @@ create_nodes!(NoAttribute
         kind: ASTInlineKind
     }
 
+    ASTPlainText {
+        text: String
+    }
+
     ASTAttribute {
         name: String,
         parameters: Vec<String>
@@ -134,7 +138,7 @@ create_nodes!(
     }
 
     ASTHeader {
-        title: String,
+        title: ASTPlainText,
         children: Vec<ASTBlock>,
         depth: u8
     }
