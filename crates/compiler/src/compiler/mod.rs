@@ -2,6 +2,7 @@ pub mod compile;
 
 use std::collections::{HashMap};
 use storytell_diagnostics::diagnostic::{DiagnosticCollector, Diagnostic};
+use storytell_parser::ast::model::{ASTHeader, ASTBlock};
 use crate::files::file_host::FileHost;
 
 /// The compiler just compiles everything to javascript
@@ -51,16 +52,18 @@ pub struct Path {
 }
 
 impl Path {
-    pub fn new(name: &str, depth: u8) -> Self {
-        Self {
-            depth,
-            name: name.to_string(),
-            children: HashMap::new()
+    pub fn new(ast: &ASTHeader) -> Self {
+        let mut children: HashMap<String, Path> = HashMap::new();
+        for child in &ast.children {
+            if let ASTBlock::Header(block) = child {
+                children.insert(block.title.text.clone(), Path::new(block));
+            }
         }
-    }
-
-    pub fn create(&mut self, name: &str) {
-        self.children.insert(name.to_string(), Path::new(name, self.depth + 1));
+        Self {
+            depth: ast.depth,
+            name: ast.title.text.clone(),
+            children
+        }
     }
 
     pub fn get_child_by_path(&self, path: &[String]) -> Option<&Path> {
@@ -106,29 +109,27 @@ impl Path {
 
 }
 
-pub struct CompilerContext<'a> {
+pub struct CompilerContext {
     pub magic_variables: HashMap<String, MagicVariableType>,
     pub diagnostics: Vec<Diagnostic>,
-    pub paths: Path,
-    pub current_path: Option<&'a Path>,
+    pub paths: Vec<Path>,
     pub bootstrap: JSBootstrapVars
 }
 
-impl<'a> CompilerContext<'a> {
+impl CompilerContext {
 
     pub fn new(bootstrap: JSBootstrapVars) -> Self {
         Self { 
             magic_variables: HashMap::new(), 
             diagnostics: vec![], 
-            paths: Path::new("", 0),
-            current_path: None,
+            paths: vec![],
             bootstrap 
         }
     }
 
 }
 
-impl<'a> DiagnosticCollector for CompilerContext<'a> {
+impl DiagnosticCollector for CompilerContext {
     fn add_diagnostic(&mut self, err: Diagnostic) {
         self.diagnostics.push(err);
     }
