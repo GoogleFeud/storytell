@@ -11,6 +11,12 @@ impl ParsingCtx {
     }
 }
 
+impl Default for ParsingCtx {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ParsingContext for ParsingCtx {
     fn add_diagnostic(&mut self, diagnostic: Diagnostic) {
         self.diagnostics.push(diagnostic);

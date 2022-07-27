@@ -1,4 +1,4 @@
-use super::compiler::CompilerContext;
+use super::CompilerContext;
 use storytell_parser::ast::model::*;
 use storytell_diagnostics::diagnostic::*;
 use storytell_diagnostics::{dia, make_diagnostics};
@@ -26,7 +26,7 @@ impl Compilable for ASTInline {
             ASTInlineKind::Code(text) => Ok(format!("<code>{}</code>", text.compile(ctx)?)),
             ASTInlineKind::Javascript(text) => Ok(format!("${{{}}}", text)),
             ASTInlineKind::Divert(thing, is_temp) => {
-                match ctx.paths.try_get_child_by_path(&thing) {
+                match ctx.paths.try_get_child_by_path(thing) {
                     Ok(_) => {
                         Ok(format!("${{{}}}", format!("{}([{}])", if *is_temp { ctx.bootstrap.temp_divert_fn } else { ctx.bootstrap.divert_fn }, thing.iter().map(|string| format!("\"{}\"", string)).collect::<Vec<String>>().join(", "))))
                     },

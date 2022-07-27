@@ -66,12 +66,10 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                             if hash_count > 0 && hash_count <= header_depth {
                                 break;
                             }
-                            else {
-                                if let Some(block) = self.parse_block(depth) {
-                                    res.push(block);
-                                } else {
-                                    break;
-                                }
+                            else if let Some(block) = self.parse_block(depth) {
+                                res.push(block);
+                            } else {
+                                break;
                             }
                         }
                         res
@@ -474,7 +472,8 @@ mod tests {
 
     #[test]
     fn parse_header() {
-        let mut input = Parser::new("# This is some header!!!...
+        let mut input = Parser::new("
+# This is some header!!!...
 This is a paragraph, a child of the header...
 ## This is a second header, child of the first header
 Blah Blah Blah

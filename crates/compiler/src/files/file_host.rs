@@ -25,6 +25,12 @@ impl VirtualFileHost {
     }
 }
 
+impl Default for VirtualFileHost {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FileHost for VirtualFileHost {
     fn create(&mut self, path: &str, content: String) -> bool {
         let file = File::new(path, &content);
@@ -50,6 +56,12 @@ impl SysFileHost {
         Self {
             files: HashMap::new(),
         }
+    }
+}
+
+impl Default for SysFileHost {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
