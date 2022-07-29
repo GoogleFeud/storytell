@@ -1,4 +1,4 @@
-use super::CompilerContext;
+use super::{CompilerContext, Path};
 use storytell_parser::ast::model::*;
 use storytell_diagnostics::diagnostic::*;
 use storytell_diagnostics::{dia, make_diagnostics};
@@ -28,7 +28,7 @@ impl Compilable for ASTInline {
             ASTInlineKind::Divert(thing, is_temp) => {
                 match ctx.paths[0].try_get_child_by_path(thing) {
                     Ok(_) => {
-                        Ok(format!("${{{}}}", format!("{}([{}])", if *is_temp { ctx.bootstrap.temp_divert_fn } else { ctx.bootstrap.divert_fn }, thing.iter().map(|string| format!("\"{}\"", string)).collect::<Vec<String>>().join(", "))))
+                        Ok(format!("${{{}([{}])}}", if *is_temp { ctx.bootstrap.temp_divert_fn } else { ctx.bootstrap.divert_fn }, thing.iter().map(|string| format!("\"{}\"", string)).collect::<Vec<String>>().join(", ")))
                     },
                     Err(ind) => {
                         if ind == 0 {
@@ -55,5 +55,29 @@ impl Compilable for ASTText {
         }
         result.push_str(&self.tail);
         Ok(result)
+    }
+}
+
+impl Compilable for ASTHeader {
+    /// Transpiles to an object
+    fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String> {
+        let mut header_children: Vec<&ASTHeader> = vec![];
+        let mut others: Vec<&ASTBlock> = vec![];
+        for child in &self.children {
+            if let ASTBlock::Header(header) = &child {
+                header_children.push(header);
+            } else {
+                others.push(child)
+            }
+        }
+        Ok(format!("{{
+            title: {},
+            canonicalTitle: {},
+            childPaths: [{}]
+        }}", 
+        self.title.text, 
+        Path::canonicalize_name(&self.title.text),
+        header_children.iter().filter_map(|item| item.compile(ctx).ok()).collect::<Vec<String>>().join(",")
+        ))
     }
 }
