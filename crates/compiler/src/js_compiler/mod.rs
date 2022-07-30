@@ -11,9 +11,18 @@ use crate::files::file_host::FileHost;
 /// The compiler itself also doesn't provide any tools for analyzing.
 pub struct JSBootstrapVars {
     /// Name of a funtion which moves the current path,
-    /// it receives an array of path names
+    /// (path: string[]) => any
     pub divert_fn: &'static str,
-    pub temp_divert_fn: &'static str
+    pub temp_divert_fn: &'static str,
+    /// Responsible for creating paragraphs
+    /// (text: string, attribues: Array<{name: string, params: string[]}>) => any
+    pub paragraph_fn: &'static str,
+    /// Responsible for creating code blocks
+    /// (code: string, language: string, attribues: Array<{name: string, params: string[]}>) => any
+    pub codeblock_fn: &'static str,
+    /// Responsible for creating match blocks
+    /// (matched: string, choices: Array<{text: string, children: Children[]}>, directChildren: Children[], kind?: string) => any
+    pub match_fn: &'static str
 }
 
 pub enum MagicVariableType {
@@ -24,12 +33,12 @@ pub enum MagicVariableType {
     Map
 }
 
-pub struct Compiler<T: FileHost> {
+pub struct JSCompiler<T: FileHost> {
     pub cwd: String,
     pub host: T
 }
 
-impl<T: FileHost> Compiler<T> {
+impl<T: FileHost> JSCompiler<T> {
 
     pub fn new(cwd: &str, host: T) -> Self {
         Self {

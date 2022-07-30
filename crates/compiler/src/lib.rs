@@ -1,3 +1,3 @@
 
 pub mod files;
-pub mod compiler;
+pub mod js_compiler;
