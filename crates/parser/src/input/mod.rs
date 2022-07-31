@@ -24,7 +24,6 @@ impl<'a, P: ParsingContext> InputConsumer<'a, P> {
 
     pub fn slice(&self, len: usize) -> &str {
         if (self.pos + len) > self.data.len() {
-
         }
         unsafe { 
             std::str::from_utf8_unchecked(&self.data[if (self.pos + len) > self.data.len() {

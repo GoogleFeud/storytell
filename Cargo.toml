@@ -2,6 +2,7 @@
 members = [
     "./crates/diagnostics",
     "./crates/parser",
+    "./crates/js_parser",
     "./crates/compiler",
     "./crates/app/src-tauri"
 ]
