@@ -118,9 +118,55 @@ impl JSCompilable for ASTCodeBlock {
 
 impl JSCompilable for ASTMatch {
     fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String> {
+        let match_fn = ctx.bootstrap.match_fn;
         Ok(format!("{}({}, {}, {}, {})", 
-        ctx.bootstrap.match_fn, 
-        self.matched, ))
+        match_fn, 
+        self.matched,
+        self.choices.compile(ctx)?,
+        self.direct_children.compile(ctx)?,
+        self.kind.clone().unwrap_or(String::from("\"\""))
+        ))
+    }
+}
+
+impl JSCompilable for ASTChoiceGroup {
+    fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String> {
+        let choice_group_fn = ctx.bootstrap.choice_group_fn;
+        Ok(format!("{}({}, {})",
+        choice_group_fn,
+        self.choices.compile(ctx)?,
+        self.attributes.compile(ctx)?
+        ))
+    }
+}
+
+impl JSCompilable for Vec<ASTChoice> {
+    fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String> {
+        Ok(format!("[{}]", self.iter().filter_map(|i| i.compile(ctx).ok()).collect::<Vec<String>>().join(",")))
+    }
+}
+
+impl JSCompilable for ASTChoice {
+    fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String> {
+        Ok(format!("{{text: {}, children: {}}}", self.text.compile(ctx)?, self.children.compile(ctx)?))
+    }
+}
+
+impl JSCompilable for ASTBlock {
+    fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String> {
+        match self {
+            Self::ChoiceGroup(block) => block.compile(ctx),
+            Self::CodeBlock(block) => block.compile(ctx),
+            Self::Header(block) => block.compile(ctx),
+            Self::Match(block) => block.compile(ctx),
+            Self::Paragraph(block) => block.compile(ctx)
+        }
+    }
+}
+
+impl JSCompilable for Vec<ASTBlock> {
+    fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String> {
+        Ok(format!("[{}]", self.iter().filter_map(|i| i.compile(ctx).ok()).collect::<Vec<String>>().join(",")))
     }
 }
 

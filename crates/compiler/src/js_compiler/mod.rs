@@ -22,7 +22,10 @@ pub struct JSBootstrapVars {
     pub codeblock_fn: &'static str,
     /// Responsible for creating match blocks
     /// (matched: string, choices: Array<{text: string, children: Children[]}>, directChildren: Children[], kind?: string) => any
-    pub match_fn: &'static str
+    pub match_fn: &'static str,
+    /// Responsible for creating choice groups
+    /// (choices: Array<{text: string, children: Children[]}>, attribues: Array<{name: string, params: string[]}>) => any
+    pub choice_group_fn: &'static str
 }
 
 pub enum MagicVariableType {
