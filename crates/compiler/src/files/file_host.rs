@@ -2,15 +2,10 @@ use super::file::File;
 use std::collections::HashMap;
 use std::fs::{read_dir, read_to_string, write};
 
-pub enum DirResult {
-    File(String),
-    Dir(String, Vec<DirResult>),
-}
-
 pub trait FileHost {
     fn create(&mut self, path: &str, content: String) -> bool;
     fn get(&mut self, path: &str) -> Option<&File>;
-    fn get_files_from_directory(path: &str) -> Vec<DirResult>;
+    fn get_files_from_directory(&self, path: &str) -> Vec<String>;
 }
 
 pub struct VirtualFileHost {
@@ -42,7 +37,7 @@ impl FileHost for VirtualFileHost {
         self.files.get(path)
     }
 
-    fn get_files_from_directory(_path: &str) -> Vec<DirResult> {
+    fn get_files_from_directory(&self, _path: &str) -> Vec<String> {
         panic!("Method now allowed for virtual file host.")
     }
 }
@@ -82,20 +77,18 @@ impl FileHost for SysFileHost {
         }
     }
 
-    fn get_files_from_directory(directory: &str) -> Vec<DirResult> {
-        let mut files: Vec<DirResult> = vec![];
+    fn get_files_from_directory(&self, directory: &str) -> Vec<String> {
+        let mut files: Vec<String> = vec![];
         for entry in read_dir(directory).unwrap().flatten() {
             if entry.file_type().unwrap().is_dir() {
                 let path = entry.path();
                 let path_str = path.to_str().unwrap();
-                files.push(DirResult::Dir(
-                    path_str.to_string(),
-                    Self::get_files_from_directory(path_str),
-                ));
+                files.append(&mut self.get_files_from_directory(path_str));
             } else {
-                files.push(DirResult::File(entry.path().to_str().unwrap().to_string()));
+                files.push(entry.path().to_str().unwrap().to_string());
             }
         }
         files
     }
+
 }

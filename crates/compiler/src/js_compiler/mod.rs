@@ -1,9 +1,17 @@
 pub mod compile;
 
+use compile::{JSCompilable};
 use std::collections::{HashMap};
-use storytell_diagnostics::diagnostic::{DiagnosticCollector, Diagnostic};
+use storytell_diagnostics::diagnostic::{Diagnostic};
 use storytell_parser::ast::model::{ASTHeader, ASTBlock};
-use crate::files::file_host::FileHost;
+use crate::files::file_host::{FileHost};
+
+use self::compile::JSSafeCompilable;
+
+pub struct FileDiagnostic {
+    pub diagnostic: Diagnostic,
+    pub filename: String
+}
 
 /// The compiler just compiles everything to javascript
 /// It doesn't provide a "runtime" which actually keeps
@@ -50,8 +58,50 @@ impl<T: FileHost> JSCompiler<T> {
         }
     }
 
-    pub fn compile(&self, ctx: Option<CompilerContext>) -> String {
-        String::new()
+    pub fn prepare(&mut self, file_name: &str, ctx: &mut CompilerContext) -> Option<Vec<&ASTHeader>> {
+        let file = self.host.get(file_name)?;
+        let mut paths: Vec<&ASTHeader> = vec![];
+        for thing in &file.content {
+            if let ASTBlock::Header(header) = thing {
+                ctx.paths.add_child_ast(header);
+                paths.push(header);
+            }
+        }
+        Some(paths)
+    }
+
+    pub fn compile_file(&mut self, ctx: &mut CompilerContext, file_name: &str) -> Option<String> {
+        let mut result: Vec<String> = vec![];
+        for header in self.prepare(file_name, ctx)? {
+            match header.compile(ctx) {
+                Ok(compiled) => result.push(compiled),
+                Err(error) => {
+                    ctx.diagnostics.push(FileDiagnostic {
+                        diagnostic: error,
+                        filename: file_name.to_string()
+                    });
+                    return None
+                }
+            }
+        }
+        Some(result.safe_compile())
+    }
+
+    pub fn compile(&mut self, bootstrap: JSBootstrapVars) -> (String, CompilerContext) {
+        let mut ctx = CompilerContext::new(bootstrap);
+        let mut results: Vec<String> = vec![];
+        for file_path in self.host.get_files_from_directory(&self.cwd) {
+            for header in self.prepare(&file_path, &mut ctx).unwrap() {
+                match header.compile(&mut ctx) {
+                    Ok(compiled) => results.push(compiled),
+                    Err(error) => ctx.diagnostics.push(FileDiagnostic {
+                        diagnostic: error,
+                        filename: file_path.clone()
+                    })
+                }
+            }
+        }
+        (results.safe_compile(), ctx)
     }
 
 }
@@ -64,18 +114,22 @@ pub struct Path {
 }
 
 impl Path {
-    pub fn new(ast: &ASTHeader) -> Self {
-        let mut children: HashMap<String, Path> = HashMap::new();
+    pub fn new(name: &str) -> Self {
+        Path { name: name.to_string(), depth: 0, children: HashMap::new() }
+    }
+
+    pub fn add_child_ast(&mut self, ast: &ASTHeader) {
+        let mut path = Self {
+            name: ast.title.text.clone(),
+            depth: ast.depth,
+            children: HashMap::new()
+        };
         for child in &ast.children {
             if let ASTBlock::Header(block) = child {
-                children.insert(block.title.text.clone(), Path::new(block));
+                path.add_child_ast(block);
             }
         }
-        Self {
-            depth: ast.depth,
-            name: ast.title.text.clone(),
-            children
-        }
+        self.children.insert(path.name.clone(), path);
     }
 
     pub fn get_child_by_path(&self, path: &[String]) -> Option<&Path> {
@@ -123,8 +177,8 @@ impl Path {
 
 pub struct CompilerContext {
     pub magic_variables: HashMap<String, MagicVariableType>,
-    pub diagnostics: Vec<Diagnostic>,
-    pub paths: Vec<Path>,
+    pub diagnostics: Vec<FileDiagnostic>,
+    pub paths: Path,
     pub bootstrap: JSBootstrapVars
 }
 
@@ -134,15 +188,13 @@ impl CompilerContext {
         Self { 
             magic_variables: HashMap::new(), 
             diagnostics: vec![], 
-            paths: vec![],
+            paths: Path::new("global"),
             bootstrap 
         }
     }
 
-}
-
-impl DiagnosticCollector for CompilerContext {
-    fn add_diagnostic(&mut self, err: Diagnostic) {
+    pub fn add_diagnostic(&mut self, err: FileDiagnostic) {
         self.diagnostics.push(err);
     }
+
 }

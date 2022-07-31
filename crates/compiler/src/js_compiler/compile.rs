@@ -14,7 +14,7 @@ make_diagnostics!(define [
 ]);
 
 pub trait JSCompilable {
-    fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String>;
+    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String>;
 }
 
 pub trait JSSafeCompilable {
@@ -22,7 +22,7 @@ pub trait JSSafeCompilable {
 }
 
 impl JSCompilable for ASTInline {
-    fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String> {
+    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
         match &self.kind {
             ASTInlineKind::Bold(text) => Ok(format!("<b>{}</b>", text.compile(ctx)?)),
             ASTInlineKind::Italics(text) => Ok(format!("<i>{}</i>", text.compile(ctx)?)),
@@ -30,7 +30,7 @@ impl JSCompilable for ASTInline {
             ASTInlineKind::Code(text) => Ok(format!("<code>{}</code>", text.compile(ctx)?)),
             ASTInlineKind::Javascript(text) => Ok(format!("${{{}}}", text)),
             ASTInlineKind::Divert(thing, is_temp) => {
-                match ctx.paths[0].try_get_child_by_path(thing) {
+                match ctx.paths.try_get_child_by_path(thing) {
                     Ok(_) => {
                         Ok(format!("${{{}([{}])}}", if *is_temp { ctx.bootstrap.temp_divert_fn } else { ctx.bootstrap.divert_fn }, thing.iter().map(|string| format!("\"{}\"", string)).collect::<Vec<String>>().join(", ")))
                     },
@@ -48,7 +48,7 @@ impl JSCompilable for ASTInline {
 }
 
 impl JSCompilable for ASTText {
-    fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String> {
+    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
         if self.parts.is_empty() {
             return Ok(self.tail.clone())
         }
@@ -68,10 +68,10 @@ impl JSCompilable for ASTHeader {
     /// {
     ///     title: string,
     ///     canonicalTitle: string,
-    ///     childPaths: [self],
+    ///     childPaths: {self},
     ///     children: []
     /// }
-    fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String> {
+    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
         let mut header_children: Vec<String> = vec![];
         let mut others: Vec<&ASTBlock> = vec![];
         for child in &self.children {
@@ -94,7 +94,7 @@ impl JSCompilable for ASTHeader {
 }
 
 impl JSCompilable for ASTParagraph {
-    fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String> {
+    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
         if self.parts.is_empty() {
             return Ok(self.tail.clone())
         }
@@ -110,27 +110,27 @@ impl JSCompilable for ASTParagraph {
 }
 
 impl JSCompilable for ASTCodeBlock {
-    fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String> {
+    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
         let codeblock_fn = ctx.bootstrap.codeblock_fn;
         Ok(format!("{}({}, {}, {})", codeblock_fn, self.text.safe_compile(), self.language.safe_compile(), self.attributes.compile(ctx)?))
     }
 }
 
 impl JSCompilable for ASTMatch {
-    fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String> {
+    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
         let match_fn = ctx.bootstrap.match_fn;
         Ok(format!("{}({}, {}, {}, {})", 
         match_fn, 
         self.matched,
         self.choices.compile(ctx)?,
         self.direct_children.compile(ctx)?,
-        self.kind.clone().unwrap_or(String::from("\"\""))
+        self.kind.clone().unwrap_or_else(|| String::from("\"\""))
         ))
     }
 }
 
 impl JSCompilable for ASTChoiceGroup {
-    fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String> {
+    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
         let choice_group_fn = ctx.bootstrap.choice_group_fn;
         Ok(format!("{}({}, {})",
         choice_group_fn,
@@ -140,20 +140,14 @@ impl JSCompilable for ASTChoiceGroup {
     }
 }
 
-impl JSCompilable for Vec<ASTChoice> {
-    fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String> {
-        Ok(format!("[{}]", self.iter().filter_map(|i| i.compile(ctx).ok()).collect::<Vec<String>>().join(",")))
-    }
-}
-
 impl JSCompilable for ASTChoice {
-    fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String> {
+    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
         Ok(format!("{{text: {}, children: {}}}", self.text.compile(ctx)?, self.children.compile(ctx)?))
     }
 }
 
 impl JSCompilable for ASTBlock {
-    fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String> {
+    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
         match self {
             Self::ChoiceGroup(block) => block.compile(ctx),
             Self::CodeBlock(block) => block.compile(ctx),
@@ -164,14 +158,8 @@ impl JSCompilable for ASTBlock {
     }
 }
 
-impl JSCompilable for Vec<ASTBlock> {
-    fn compile(&self, ctx: &mut CompilerContext) -> StroytellResult<String> {
-        Ok(format!("[{}]", self.iter().filter_map(|i| i.compile(ctx).ok()).collect::<Vec<String>>().join(",")))
-    }
-}
-
 impl JSCompilable for Vec<ASTAttribute> {
-    fn compile(&self, _ctx: &mut CompilerContext) -> StroytellResult<String> {
+    fn compile(&self, _ctx: &mut CompilerContext) -> StorytellResult<String> {
         Ok(format!("[{}]", 
         self.iter().map(|i| 
             format!("{{name: {}, params: {}}}", i.name.safe_compile(), i.parameters.iter().map(|i| 
@@ -184,5 +172,17 @@ impl JSCompilable for Vec<ASTAttribute> {
 impl JSSafeCompilable for String {
     fn safe_compile(&self) -> String {
         format!("\"{}\"", self)
+    }
+}
+
+impl JSSafeCompilable for Vec<String> {
+    fn safe_compile(&self) -> String {
+        format!("[{}]", self.join(","))
+    }
+}
+
+impl<T: JSCompilable> JSCompilable for Vec<T> {
+    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
+        Ok(format!("[{}]", self.iter().map(|i| i.compile(ctx)).collect::<StorytellResult<Vec<String>>>()?.join(",")))
     }
 }
