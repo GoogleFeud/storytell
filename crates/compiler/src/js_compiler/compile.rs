@@ -5,11 +5,11 @@ use storytell_diagnostics::{dia, make_diagnostics};
 
 make_diagnostics!(define [
     UNKNOWN_CHILD_PATH,
-    2001,
+    C1001,
     "\"$\" is not a sub-path of \"$\"."
 ], [
     UNKNOWN_PATH,
-    2002,
+    C1002,
     "\"$\" is not a path."
 ]);
 

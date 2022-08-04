@@ -8,19 +8,19 @@ use storytell_diagnostics::{diagnostic::*, make_diagnostics, dia};
 
 make_diagnostics!(define [
     REQUIRED_JS,
-    1001,
+    P1001,
     "Match condition must be a javascript inline expression."
 ], [
     MISSING_CLOSING,
-    1002,
+    P1002,
     "Missing closing character '$'."
 ], [
     NESTED_HEADER,
-    1003,
+    P1003,
     "Path start cannot be inside options."
 ], [
     INCORRECT_HEADER_SIZE,
-    1004,
+    P1004,
     "Path should be one ($) level deeper than it's parent."
 ]);
 

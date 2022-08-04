@@ -2,7 +2,7 @@ use crate::location::Range;
 use std::fmt::{ Debug, Formatter, Display, Result as FmtResult };
 
 pub struct DiagnosticMessage {
-    pub code: u16,
+    pub code: &'static str,
     pub message: &'static str
 }
 
@@ -54,7 +54,7 @@ macro_rules! make_diagnostics {
         impl Diagnostics {
             $(
                 pub const $name: DiagnosticMessage = DiagnosticMessage {
-                    code: $code,
+                    code: stringify!($code),
                     message: $msg
                 };
             )+
@@ -65,7 +65,7 @@ macro_rules! make_diagnostics {
         impl Diagnostics {
             $(
                 pub const $name: DiagnosticMessage = DiagnosticMessage {
-                    code: $code,
+                    code: stringify!($code),
                     message: $msg
                 };
             )+
