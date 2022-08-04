@@ -85,7 +85,7 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    pub fn parse_string(&mut self, end_char: char) -> Option<Token> {
+    fn parse_string(&mut self, end_char: char) -> Option<Token> {
         let start = self.input.pos - 1;
         loop {
             match self.input.next() {
@@ -102,7 +102,7 @@ impl<'a> Tokenizer<'a> {
         })
     }
 
-    pub fn parse_number(&mut self) -> Option<Token> {
+    fn parse_number(&mut self) -> Option<Token> {
         let start = self.input.pos - 1;
         let mut has_dot = false;
         let mut number_type = if let Some('0') = self.input.prev(1) {
@@ -161,6 +161,31 @@ impl<'a> Tokenizer<'a> {
         })
     }
 
+    fn parse_identifier_or_keyword(&mut self) -> Option<Token> {
+        let start = self.input.pos - 1;
+        while let Some(character) = self.input.peek() {
+            match character {
+                'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '$' => {
+                    self.input.skip_chars(1);
+                    continue;
+                },
+                _ => break
+            }
+        }
+        let range = self.input.range(start);
+        let kind = match self.input.data.from_range(&range) {
+            "false" => TokenKind::FalseKeyword,
+            "true" => TokenKind::TrueKeyword,
+            "void" => TokenKind::VoidKeyword,
+            "new" => TokenKind::NewKeyword,
+            _ => TokenKind::Identifier
+        };
+        Some(Token {
+            range,
+            kind
+        })
+    }
+
     fn consume(&mut self) -> Option<Token> {
         if self.input.is_eof() {
             return None;
@@ -194,9 +219,11 @@ impl<'a> Tokenizer<'a> {
             '>' => TokenKind::GreaterThanOp,
             '<' if self.input.is_next(b'=', 0) => { self.input.skip_chars(1); TokenKind::LessThanEqualsOp },
             '<' => TokenKind::LessThanOp,
+            ' ' | '\n' | '\r' => return self.consume(),
             '"' => return self.parse_string('"'),
             '\'' => return self.parse_string('\''),
             '0'..='9' => return self.parse_number(),
+            'a'..='z' | 'A'..='Z' | '$' | '_' => return self.parse_identifier_or_keyword(),
             _ => return None
         };
         Some(Token {
@@ -278,6 +305,26 @@ mod tests {
         assert_eq!(result[2].kind, TokenKind::PlusEqualsOp);
         assert_eq!(result[3].kind, TokenKind::EqualsEqualsEqualsOp);
         assert_eq!(result[4].kind, TokenKind::ExclamationOp);
+    }
+
+    #[test]
+    fn test_identifiers_and_keywords() {
+        let (result, range_reader, _) = Tokenizer::parse_full("
+        hello_world HelloWorld
+        helloWorld12d$
+        void
+        false
+        true
+        ");
+        assert_eq!(result[0].kind, TokenKind::Identifier);
+        assert_eq!(range_reader.from_range(&result[0].range), "hello_world");
+        assert_eq!(result[1].kind, TokenKind::Identifier);
+        assert_eq!(range_reader.from_range(&result[1].range), "HelloWorld");
+        assert_eq!(result[2].kind, TokenKind::Identifier);
+        assert_eq!(range_reader.from_range(&result[2].range), "helloWorld12d$");
+        assert_eq!(result[3].kind, TokenKind::VoidKeyword);
+        assert_eq!(result[4].kind, TokenKind::FalseKeyword);
+        assert_eq!(result[5].kind, TokenKind::TrueKeyword);
     }
 
 }
