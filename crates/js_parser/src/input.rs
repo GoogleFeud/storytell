@@ -71,6 +71,10 @@ impl<'a> InputConsumer<'a> {
         }
     }
 
+    pub fn prev(&self, n: usize) -> Option<char> {
+        Some(self.data[self.pos - n] as char)
+    }
+
     pub fn skip_chars(&mut self, n: usize) {
         self.pos += n;
     }
