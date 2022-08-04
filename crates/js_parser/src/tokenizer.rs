@@ -13,6 +13,10 @@ make_diagnostics!(define [
     DECIMAL_POINT,
     JSP1003,
     "Number already has a decimal point."
+], [
+    NUMERIC_SEPARATOR_AT_END,
+    JSP1004,
+    "Numeric separators are not allowed at the end of numeric literals."
 ]);
 
 #[derive(Clone, Debug, PartialEq)]
@@ -148,6 +152,9 @@ impl<'a> Tokenizer<'a> {
                 _ => break
             }
         };
+        if self.input.prev(1)? == '_' {
+            self.errors.push(dia!(NUMERIC_SEPARATOR_AT_END, self.input.range(start)))
+        }
         Some(Token {
             kind: TokenKind::Number,
             range: self.input.range(start)
