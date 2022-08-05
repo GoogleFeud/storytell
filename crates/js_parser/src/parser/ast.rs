@@ -75,6 +75,8 @@ create_nodes!([
 ], [
     ASTBoolean, boolean {}, {}
 ], [
+    ASTIdentifier, identifier {}, {}
+], [
     ASTBinary, binary {
         operator: TokenKind
     }, {
@@ -94,6 +96,7 @@ pub enum ASTExpression {
     String(ASTString),
     Number(ASTNumber),
     Boolean(ASTBoolean),
+    Identifier(ASTIdentifier),
     Binary(Box<ASTBinary>),
     Unary(Box<ASTUnary>)
 }
@@ -104,19 +107,15 @@ impl Visitable for ASTExpression {
             Self::String(str) => visitor.string(str),
             Self::Number(num) => visitor.number(num),
             Self::Boolean(bool) => visitor.boolean(bool),
+            Self::Identifier(ident) => visitor.identifier(ident),
             Self::Binary(binary) => visitor.binary(binary),
-            Self::Unary(unary) => visitor.unary(unary)
+            Self::Unary(unary) => visitor.unary(unary),
         }
     }
 
     fn visit_each_child<T: Visitor>(&self, visitor: &mut T) {
-        match self {
-            Self::String(str) => visitor.string(str),
-            Self::Number(num) => visitor.number(num),
-            Self::Boolean(bool) => visitor.boolean(bool),
-            Self::Binary(binary) => visitor.binary(binary),
-            Self::Unary(unary) => visitor.unary(unary)
-        }
+        self.visit(visitor)
     }
+    
 }
 
