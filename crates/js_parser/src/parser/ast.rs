@@ -91,7 +91,7 @@ create_nodes!([
     ASTUnary, unary {
         operator: TokenKind
     }, {
-        experssion: ASTExpression [expression]
+        expression: ASTExpression [expression]
     }
 ]);
 

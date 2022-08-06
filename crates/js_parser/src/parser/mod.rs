@@ -1,6 +1,6 @@
 
 use crate::{tokenizer::{Tokenizer, TokenKind}, input::InputPresenter};
-use storytell_diagnostics::{diagnostic::*, *};
+use storytell_diagnostics::{diagnostic::*, location::Range, *};
 use self::ast::*;
 pub mod ast;
 
@@ -8,6 +8,10 @@ make_diagnostics!(define [
     UNKNOWN_TOKEN,
     JSP2001,
     "Unknown token $."
+], [
+    EXPECTED,
+    JSP2002,
+    "Expected $."
 ]);
 
 pub struct JsParser<'a> {
@@ -73,6 +77,13 @@ impl<'a> JsParser<'a> {
             TokenKind::Number => Some(ASTExpression::Number(ASTNumber { range: token.range })),
             TokenKind::Identifier => Some(ASTExpression::Identifier(ASTIdentifier { range: token.range })),
             TokenKind::FalseKeyword | TokenKind::TrueKeyword => Some(ASTExpression::Boolean(ASTBoolean { range: token.range })),
+            TokenKind::ExclamationOp => {
+                Some(ASTExpression::Unary(Box::from(ASTUnary {
+                    operator: TokenKind::ExclamationOp,
+                    expression: self.expect_single_expr("an expression")?,
+                    range: Range::new(token.range.start, self.tokens.input.pos)
+                })))
+            },
             _ => {
                 self.errors.push(dia!(UNKNOWN_TOKEN, token.range, self.tokens.input.data.from_range(&token.range)));
                 None
@@ -86,6 +97,14 @@ impl<'a> JsParser<'a> {
         } else {
             None
         }
+    }
+
+    fn expect_single_expr(&mut self, msg: &str) -> Option<ASTExpression> {
+        let expr = self.parse_single_expression();
+        if expr.is_none() {
+            self.errors.push(dia!(EXPECTED, self.tokens.input.range_here(), msg));
+        }
+        expr
     }
 
     pub fn parse(content: &'a str) -> (Vec<ASTExpression>, Vec<Diagnostic>, Vec<Diagnostic>, InputPresenter<'a>) {
@@ -143,14 +162,33 @@ mod tests {
             self.occurance += 1;
             exp.visit_each_child(self);
         }
+
     }
 
     #[test]
     fn test_binary_prec() {
-        let (tokens, _, _, input) = JsParser::parse("
+        let (tokens, errors, _, input) = JsParser::parse("
             a + b - c / d * c
         ");
+        assert_eq!(errors.len(), 0);
         let mut visitor = MyVisitor { input, occurance: 0 };
         tokens[0].visit(&mut visitor);
+    }
+
+    #[test]
+    fn test_unary() {
+        let (tokens, errors, _, input) = JsParser::parse("
+            !a && b
+       ");
+        assert_eq!(errors.len(), 0);
+        if let ASTExpression::Binary(expr) = &tokens[0] {
+            if let ASTExpression::Unary(unary) = &expr.left {
+                assert_eq!(input.from_range(unary.expression.range()), "a");
+            } else {
+                panic!("Expected unary expression.");
+            }
+        } else {
+            panic!("Expected binary expression.")
+        }
     }
 }

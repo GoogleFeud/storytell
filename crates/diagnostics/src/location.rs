@@ -47,6 +47,15 @@ pub struct Range<T: Position> {
     pub end: T
 }
 
+impl<T: Position> Range<T> {
+    pub fn new(start: T, end: T) -> Self {
+        Range {
+            start,
+            end
+        }
+    }
+}
+
 impl<T: Position> Display for Range<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "({} - {})", self.start.pos(), self.end.pos())
