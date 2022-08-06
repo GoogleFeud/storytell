@@ -20,7 +20,7 @@ impl<'a> InputPresenter<'a> {
         }
     }
 
-    pub fn len(&self) -> usize {
+    pub fn length(&self) -> usize {
         self.data.len()
     }
 
@@ -55,7 +55,7 @@ impl<'a> InputConsumer<'a> {
     }
 
     pub fn peek(&self) -> Option<char> {
-        if self.pos >= self.data.len() {
+        if self.pos >= self.data.length() {
             None
         } else {
             Some(self.data[self.pos] as char)
@@ -64,7 +64,7 @@ impl<'a> InputConsumer<'a> {
 
     pub fn peek_nth(&self, n: usize) -> Option<char> {
         let f = self.pos + n;
-        if f >= self.data.len()  {
+        if f >= self.data.length()  {
             None 
         } else {
             Some(self.data[f] as char)
@@ -80,7 +80,7 @@ impl<'a> InputConsumer<'a> {
     }
 
     pub fn skip_until_after(&mut self, character: u8) {
-        while self.pos < self.data.len() {
+        while self.pos < self.data.length() {
             if self.data[self.pos] == character {
                 self.pos += 1;
                 break;
@@ -90,7 +90,7 @@ impl<'a> InputConsumer<'a> {
     }
 
     pub fn skip_until_bool(&mut self, condition: fn(u8, u8) -> bool) {
-        let len = self.data.len() - 1;
+        let len = self.data.length() - 1;
         while self.pos < len {
             if condition(self.data[self.pos], self.data[self.pos + 1]) {
                 self.pos += 2;
@@ -101,7 +101,7 @@ impl<'a> InputConsumer<'a> {
     }
 
     pub fn expect_next(&mut self, character: u8) -> bool {
-        if self.pos >= self.data.len() {
+        if self.pos >= self.data.length() {
             false 
         } else {
             let item = self.data[self.pos];
@@ -111,7 +111,7 @@ impl<'a> InputConsumer<'a> {
     }
 
     pub fn is_next(&mut self, character: u8, step: usize) -> bool {
-        if self.pos >= self.data.len() {
+        if self.pos >= self.data.length() {
             false 
         } else {
             (self.data[self.pos + step]) == character 
@@ -119,7 +119,7 @@ impl<'a> InputConsumer<'a> {
     }
 
     pub fn is_eof(&self) -> bool {
-        self.pos >= self.data.len()
+        self.pos >= self.data.length()
     }
 
     pub fn range(&self, start: usize) -> Range<usize> {
@@ -135,7 +135,7 @@ impl<'a> Iterator for InputConsumer<'a> {
     type Item = char;
 
     fn next(&mut self) -> Option<char> {
-        if self.pos >= self.data.len() {
+        if self.pos >= self.data.length() {
             None 
         } else {
             let item = self.data[self.pos] as char;

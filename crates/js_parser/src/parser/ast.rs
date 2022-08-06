@@ -81,6 +81,15 @@ create_nodes!([
 ], [
     ASTIdentifier, identifier {}, {}
 ], [
+    ASTExpressionList, expression_list {
+        elements: Vec<ASTExpression>
+    }, {}
+], [
+    ASTCall, call {}, {
+        expression: ASTExpression [expression],
+        arguments: ASTExpressionList [expression_list]
+    }
+], [
     ASTBinary, binary {
         operator: TokenKind
     }, {
@@ -102,7 +111,8 @@ pub enum ASTExpression {
     Boolean(ASTBoolean),
     Identifier(ASTIdentifier),
     Binary(Box<ASTBinary>),
-    Unary(Box<ASTUnary>)
+    Unary(Box<ASTUnary>),
+    Call(Box<ASTCall>)
 }
 
 impl Visitable for ASTExpression {
@@ -114,6 +124,7 @@ impl Visitable for ASTExpression {
             Self::Identifier(ident) => visitor.identifier(ident),
             Self::Binary(binary) => visitor.binary(binary),
             Self::Unary(unary) => visitor.unary(unary),
+            Self::Call(call) => visitor.call(call)
         }
     }
 
@@ -132,6 +143,7 @@ impl MutVisitable<ASTExpression> for ASTExpression {
             Self::Identifier(ident) => ASTExpression::Identifier(visitor.identifier(ident)),
             Self::Binary(binary) => ASTExpression::Binary(Box::from(visitor.binary(binary))),
             Self::Unary(unary) => ASTExpression::Unary(Box::from(visitor.unary(unary))),
+            Self::Call(call) => ASTExpression::Call(Box::from(visitor.call(call)))
         }
     }
 
@@ -148,7 +160,8 @@ impl ASTExpression {
             Self::Boolean(bool) => &bool.range,
             Self::Identifier(ident) => &ident.range,
             Self::Binary(binary) => &binary.range,
-            Self::Unary(unary) => &unary.range
+            Self::Unary(unary) => &unary.range,
+            Self::Call(thing) => &thing.range
         }
     }
 }

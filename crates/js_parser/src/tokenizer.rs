@@ -17,6 +17,10 @@ make_diagnostics!(define [
     NUMERIC_SEPARATOR_AT_END,
     JSP1004,
     "Numeric separators are not allowed at the end of numeric literals."
+], [
+    EXPECTED_TOKEN,
+    JSP1005,
+    "Expected token '$'."
 ]);
 
 #[derive(Clone, Debug, PartialEq)]
@@ -28,7 +32,7 @@ pub enum TokenKind {
     SemicolonPunc, //;
     SquareBracketOpenPunc, // [
     SquareBracketClosePunc, // ]
-    PranthesisOpenPunc, // (
+    ParanthesisOpenPunc, // (
     ParanthesisClosePunc, // )
     PlusOp, // +
     MinusOp, // -
@@ -192,7 +196,7 @@ impl<'a> Tokenizer<'a> {
         })
     }
 
-    fn consume(&mut self) -> Option<Token> {
+    fn parse(&mut self) -> Option<Token> {
         if self.input.is_eof() {
             return None;
         }
@@ -204,7 +208,7 @@ impl<'a> Tokenizer<'a> {
             ';' => TokenKind::SemicolonPunc,
             '[' => TokenKind::SquareBracketOpenPunc,
             ']' => TokenKind::SquareBracketClosePunc,
-            '(' => TokenKind::PranthesisOpenPunc,
+            '(' => TokenKind::ParanthesisOpenPunc,
             ')' => TokenKind::ParanthesisClosePunc,
             '+' if self.input.is_next(b'=', 0) => { self.input.skip_chars(1); TokenKind::PlusEqualsOp },
             '+' => TokenKind::PlusOp,
@@ -231,7 +235,7 @@ impl<'a> Tokenizer<'a> {
             '>' => TokenKind::GreaterThanOp,
             '<' if self.input.is_next(b'=', 0) => { self.input.skip_chars(1); TokenKind::LessThanEqualsOp },
             '<' => TokenKind::LessThanOp,
-            ' ' | '\n' | '\r' => return self.consume(),
+            ' ' | '\n' | '\r' => return self.parse(),
             '"' => return self.parse_string('"'),
             '\'' => return self.parse_string('\''),
             '0'..='9' => return self.parse_number(),
@@ -244,11 +248,11 @@ impl<'a> Tokenizer<'a> {
         })
     }
 
-    pub fn next(&mut self) -> Option<Token> {
+    pub fn consume(&mut self) -> Option<Token> {
         if self.last_token.is_some() {
             self.last_token.take()
         } else {
-            self.consume()
+            self.parse()
         }
     }
 
@@ -256,7 +260,7 @@ impl<'a> Tokenizer<'a> {
         if self.last_token.is_some() {
             self.last_token.as_ref()
         } else {
-            self.last_token = self.consume();
+            self.last_token = self.parse();
             self.last_token.as_ref()
         }
     }
@@ -269,15 +273,36 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
+    pub fn expect(&mut self, kind: TokenKind, msg: &str) -> Option<()> {
+        if let Some(token) = self.consume() {
+            if token.kind == kind {
+                return Some(());
+            }
+        }
+        self.errors.push(dia!(EXPECTED_TOKEN, self.input.range_here(), msg));
+        None
+    }
+
+    pub fn pos(&self) -> usize {
+        match self.last_token {
+            Some(_) => self.input.pos - 1,
+            None => self.input.pos
+        }
+    }
+
+    pub fn range(&self, start: usize) -> Range<usize> {
+        Range { start, end: self.pos() }
+    }
+
     pub fn is_eof(&self) -> bool {
         self.input.is_eof()
     }
 
-    pub fn parse_full<'b>(content: &'b str) -> (Vec<Token>, InputPresenter<'b>, Vec<Diagnostic>) {
+    pub fn parse_full(content: &str) -> (Vec<Token>, InputPresenter, Vec<Diagnostic>) {
         let mut parser = Tokenizer::new(content);
         let mut res: Vec<Token> = vec![];
         while !parser.is_eof() {
-            if let Some(tok) = parser.next() {
+            if let Some(tok) = parser.consume() {
                 res.push(tok);
             }
         }

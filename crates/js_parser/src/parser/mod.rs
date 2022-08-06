@@ -50,8 +50,8 @@ impl<'a> JsParser<'a> {
                 return Some(left);
             };
             if right_prec > left_prec {
-                let op_token = self.tokens.next().unwrap();
-                let exp = if let Some(exp) = self.parse_single_expression() {
+                let op_token = self.tokens.consume().unwrap();
+                let exp = if let Some(exp) = self.parse_single_expression(true) {
                     exp
                 } else { 
                     return Some(left)
@@ -61,7 +61,7 @@ impl<'a> JsParser<'a> {
                     left,
                     right,
                     operator: op_token.kind,
-                    range: self.tokens.input.range(start)
+                    range: self.tokens.range(start)
                 })), left_prec)
             } else {
                 Some(left)
@@ -71,37 +71,85 @@ impl<'a> JsParser<'a> {
         }
     }
 
-    fn parse_single_expression(&mut self) -> Option<ASTExpression> {
-        let token = self.tokens.next()?;
+    fn parse_list<T>(&mut self, separator: TokenKind, end_token: TokenKind, parse_fn: fn(thing: &mut Self) -> Option<T>) -> (Vec<T>, Range<usize>) {
+        let start = self.tokens.pos();
+        let mut result: Vec<T> = vec![];
+        loop {
+            if self.tokens.is_next(end_token.clone()) {
+                self.tokens.consume();
+                break;
+            }
+            if let Some(thing) = parse_fn(self) {
+                result.push(thing);
+                if let Some(thing) = self.tokens.peek() {
+                    if thing.kind == separator {
+                        self.tokens.consume();
+                    } else {
+                        break;
+                    }
+                }
+            } else {
+                break;
+            }
+        }
+        (result, self.tokens.range(start))
+    }
+    
+    fn parse_suffix(&mut self, tok: ASTExpression, start: usize) -> Option<ASTExpression> {
+        let token = if let Some(token) = self.tokens.peek() { token } else {
+            return Some(tok)
+        };
         match token.kind {
-            TokenKind::String => Some(ASTExpression::String(ASTString { range: token.range })),
-            TokenKind::Number => Some(ASTExpression::Number(ASTNumber { range: token.range })),
-            TokenKind::Identifier => Some(ASTExpression::Identifier(ASTIdentifier { range: token.range })),
-            TokenKind::FalseKeyword | TokenKind::TrueKeyword => Some(ASTExpression::Boolean(ASTBoolean { range: token.range })),
-            TokenKind::ExclamationOp => {
-                Some(ASTExpression::Unary(Box::from(ASTUnary {
-                    operator: TokenKind::ExclamationOp,
-                    expression: self.expect_single_expr("an expression")?,
-                    range: Range::new(token.range.start, self.tokens.input.pos)
+            TokenKind::ParanthesisOpenPunc => {
+                self.tokens.consume();
+                let (args, args_range) = self.parse_list(TokenKind::CommaPunc, TokenKind::ParanthesisClosePunc, |parser| parser.parse_full_expression());            
+                Some(ASTExpression::Call(Box::from(ASTCall {
+                    expression: tok,
+                    arguments: ASTExpressionList { elements: args, range: args_range },
+                    range: self.tokens.range(start)
                 })))
+            },
+            _ => Some(tok)
+        }
+    }
+
+    fn parse_single_expression(&mut self, parse_suffix: bool) -> Option<ASTExpression> {
+        let token = self.tokens.consume()?;
+        let tok_start = token.range.start;
+        let ast_token = match token.kind {
+            TokenKind::String => ASTExpression::String(ASTString { range: token.range }),
+            TokenKind::Number => ASTExpression::Number(ASTNumber { range: token.range }),
+            TokenKind::Identifier => ASTExpression::Identifier(ASTIdentifier { range: token.range }),
+            TokenKind::FalseKeyword | TokenKind::TrueKeyword => ASTExpression::Boolean(ASTBoolean { range: token.range }),
+            TokenKind::ExclamationOp => {
+                ASTExpression::Unary(Box::from(ASTUnary {
+                    operator: TokenKind::ExclamationOp,
+                    expression: self.expect_single_expr("an expression", true)?,
+                    range: self.tokens.range(token.range.start)
+                }))
             },
             _ => {
                 self.errors.push(dia!(UNKNOWN_TOKEN, token.range, self.tokens.input.data.from_range(&token.range)));
-                None
+                return None
             }
+        };
+        if parse_suffix {
+            self.parse_suffix(ast_token, tok_start)
+        } else {
+            Some(ast_token)
         }
     }
 
     fn parse_full_expression(&mut self) -> Option<ASTExpression> {
-        if let Some(exp) = self.parse_single_expression() {
+        if let Some(exp) = self.parse_single_expression(true) {
             self.parse_binary(exp, 0)
         } else {
             None
         }
     }
 
-    fn expect_single_expr(&mut self, msg: &str) -> Option<ASTExpression> {
-        let expr = self.parse_single_expression();
+    fn expect_single_expr(&mut self, msg: &str, parse_suffix: bool) -> Option<ASTExpression> {
+        let expr = self.parse_single_expression(parse_suffix);
         if expr.is_none() {
             self.errors.push(dia!(EXPECTED, self.tokens.input.range_here(), msg));
         }
@@ -114,7 +162,7 @@ impl<'a> JsParser<'a> {
         while let Some(exp) = parser.parse_full_expression() {
             result.push(exp);
             if parser.tokens.is_next(TokenKind::SemicolonPunc) {
-                parser.tokens.next();
+                parser.tokens.consume();
             } else {
                 break;
             }
@@ -144,7 +192,7 @@ mod tests {
 
     impl<'a> Visitor for MyVisitor<'a> {
         fn binary(&mut self, exp: &ASTBinary) {
-            println!("THING: {}", self.input.from_range(&exp.range));
+            println!("THING: {:?}", self.input.from_range(&exp.range));
             if self.occurance == 0 {
                 assert_eq!(exp.operator, TokenKind::MinusOp);
             }
@@ -190,6 +238,37 @@ mod tests {
             }
         } else {
             panic!("Expected binary expression.")
+        }
+    }
+
+    #[test]
+    fn test_call() {
+        let (tokens, errors, _, input) = JsParser::parse("
+            test(test(), test123(3 + 2))
+       ");
+        assert_eq!(errors.len(), 0);
+        if let ASTExpression::Call(expr) = &tokens[0] {
+            assert_eq!(expr.arguments.elements.len(), 2);
+            assert_eq!(input.from_range(expr.expression.range()), "test");
+            if let ASTExpression::Call(expr) = &expr.arguments.elements[0] {
+                assert_eq!(expr.arguments.elements.len(), 0);
+                assert_eq!(input.from_range(expr.expression.range()), "test");
+            } else {
+                panic!("Expected call.")
+            }
+            if let ASTExpression::Call(expr) = &expr.arguments.elements[1] {
+                assert_eq!(expr.arguments.elements.len(), 1);
+                assert_eq!(input.from_range(expr.expression.range()), "test123");
+                if let ASTExpression::Binary(expr) = &expr.arguments.elements[0] {
+                    assert_eq!(input.from_range(&expr.range), "3 + 2");
+                } else {
+                    panic!("Expected binary.")
+                }
+            } else {
+                panic!("Expected call.")
+            }
+        } else {
+            panic!("Expected call.")
         }
     }
 }
