@@ -37,7 +37,12 @@ pub enum TokenKind {
     PercentOp, // %
     EqualsEqualsEqualsOp, // ===
     EqualsEqualsOp, // ==
-    EqualsOp,
+    NotEqualsOp, // !=
+    NotEqualsEqualsOp, // !==
+    AmpersandAmpersandOp, // &&
+    BarBarOp, // ||
+    QuestionQuestionOp, // ??
+    EqualsOp, // =
     PlusEqualsOp, // +=
     MinusEqualsOp, // -=
     StarEqualsOp, // *=
@@ -212,7 +217,12 @@ impl<'a> Tokenizer<'a> {
             '=' if self.input.is_next(b'=', 0) && self.input.is_next(b'=', 1) => { self.input.skip_chars(2); TokenKind::EqualsEqualsEqualsOp },
             '=' if self.input.is_next(b'=', 0) => { self.input.skip_chars(1); TokenKind::EqualsEqualsOp },
             '=' => TokenKind::EqualsOp,
+            '!' if self.input.is_next(b'=', 0) && self.input.is_next(b'=', 1) => { self.input.skip_chars(2); TokenKind::NotEqualsEqualsOp },
+            '!' if self.input.is_next(b'=', 0) => { self.input.skip_chars(2); TokenKind::NotEqualsOp },
             '!' => TokenKind::ExclamationOp,
+            '&' if self.input.is_next(b'&', 0) => { self.input.skip_chars(1); TokenKind::AmpersandAmpersandOp },
+            '|' if self.input.is_next(b'|', 0) => { self.input.skip_chars(1); TokenKind::BarBarOp },
+            '?' if self.input.is_next(b'?', 0) => { self.input.skip_chars(1); TokenKind::QuestionQuestionOp },
             '.' if self.input.is_next(b'.', 0) && self.input.is_next(b'.', 1) => { self.input.skip_chars(2); TokenKind::DotDotDotOp },
             '.' => TokenKind::DotOp,
             '>' if self.input.is_next(b'=', 0) => { self.input.skip_chars(1); TokenKind::GreaterThanEqualsOp },
