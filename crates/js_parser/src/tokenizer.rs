@@ -33,6 +33,7 @@ pub enum TokenKind {
     PlusOp, // +
     MinusOp, // -
     StarOp, // *
+    StarStarOp, // **
     SlashOp, // /
     PercentOp, // %
     EqualsEqualsEqualsOp, // ===
@@ -210,6 +211,7 @@ impl<'a> Tokenizer<'a> {
             '-' if self.input.is_next(b'=', 0) => { self.input.skip_chars(1); TokenKind::MinusEqualsOp},
             '-' => TokenKind::MinusOp,
             '*' if self.input.is_next(b'=', 0) => { self.input.skip_chars(1); TokenKind::StarEqualsOp},
+            '*' if self.input.is_next(b'*', 0) => { self.input.skip_chars(1); TokenKind::StarStarOp},
             '*' => TokenKind::StarOp,
             '/' if self.input.is_next(b'=', 0) => { self.input.skip_chars(1); TokenKind::SlashEqualsOp},
             '/' => TokenKind::SlashOp,

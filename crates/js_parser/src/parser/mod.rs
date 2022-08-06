@@ -30,6 +30,7 @@ impl<'a> JsParser<'a> {
 
     pub fn resolve_prec(token: &TokenKind) -> u8 {
         match token {
+            TokenKind::StarStarOp => 13,
             TokenKind::StarOp | TokenKind::SlashOp | TokenKind::PercentOp => 12,
             TokenKind::PlusOp | TokenKind::MinusOp => 11,
             TokenKind::LessThanOp | TokenKind::LessThanEqualsOp | TokenKind::GreaterThanOp | TokenKind::GreaterThanEqualsOp => 9,
