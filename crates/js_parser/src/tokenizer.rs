@@ -259,6 +259,14 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
+    pub fn is_next(&mut self, kind: TokenKind) -> bool {
+        if let Some(tok) = self.peek() {
+            tok.kind == kind
+        } else { 
+            false
+        }
+    }
+
     pub fn is_eof(&self) -> bool {
         self.input.is_eof()
     }
