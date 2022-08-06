@@ -126,11 +126,19 @@ mod tests {
         fn binary(&mut self, exp: &ASTBinary) {
             println!("THING: {}", self.input.from_range(&exp.range));
             if self.occurance == 0 {
-                assert_eq!(self.input.from_range(exp.right.range()), "c");
+                assert_eq!(exp.operator, TokenKind::MinusOp);
             }
             if self.occurance == 1 {
                 assert_eq!(self.input.from_range(exp.left.range()), "a");
                 assert_eq!(self.input.from_range(exp.right.range()), "b");
+            }
+            if self.occurance == 2 {
+                assert_eq!(self.input.from_range(exp.right.range()), "c");
+                assert_eq!(exp.operator, TokenKind::StarOp);
+            }
+            if self.occurance == 3 {
+                assert_eq!(self.input.from_range(exp.left.range()), "c");
+                assert_eq!(self.input.from_range(exp.right.range()), "d");
             }
             self.occurance += 1;
             exp.visit_each_child(self);
@@ -140,7 +148,7 @@ mod tests {
     #[test]
     fn test_binary_prec() {
         let (tokens, _, _, input) = JsParser::parse("
-            a + b - c
+            a + b - c / d * c
         ");
         let mut visitor = MyVisitor { input, occurance: 0 };
         tokens[0].visit(&mut visitor);
