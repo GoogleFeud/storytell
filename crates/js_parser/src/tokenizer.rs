@@ -66,6 +66,7 @@ pub enum TokenKind {
     NewKeyword
 }
 
+#[derive(Clone, Debug)]
 pub struct Token {
     pub kind: TokenKind,
     pub range: Range<usize>

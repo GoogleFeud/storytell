@@ -12,6 +12,28 @@ pub trait MutVisitable<Item> {
     fn visit_each_child_mut<T: MutVisitor + ?Sized>(&self, visitor: &mut T) -> Item;
 }
 
+impl Visitable for Vec<ASTExpression> {
+    fn visit<T: Visitor + ?Sized>(&self, visitor: &mut T) {
+        visitor.expression_list(self)
+    }
+
+    fn visit_each_child<T: Visitor + ?Sized>(&self, visitor: &mut T) {
+        for element in self {
+            element.visit(visitor)
+        }
+    }
+}
+
+impl MutVisitable<Vec<ASTExpression>> for Vec<ASTExpression> {
+    fn visit_mut<T: MutVisitor + ?Sized>(&self, visitor: &mut T) -> Vec<ASTExpression> {
+        visitor.expression_list(self)
+    }
+
+    fn visit_each_child_mut<T: MutVisitor + ?Sized>(&self, visitor: &mut T) -> Vec<ASTExpression> {
+        self.iter().map(|e| e.visit_mut(visitor)).collect()
+    }
+}
+
 macro_rules! create_nodes {
     ($([$name: ident, $type: ident {$($field_name: ident: $field_type: ty),*}, {$($child_name: ident: $child_type: ty [$child_type_name: ident]),*}]),+) => {
         pub trait Visitor {
@@ -19,8 +41,9 @@ macro_rules! create_nodes {
                 exp.visit(self)
             }
             fn optional_expression(&mut self, exp: &Option<ASTExpression>) {
-                if let Some(exp) = exp { self.expression(exp) }
+                if let Some(exp) = exp { exp.visit(self) }
             }
+            fn expression_list(&mut self, _exp: &[ASTExpression]) {}
             $(fn $type(&mut self, _exp: &$name) {})+
         }
 
@@ -29,8 +52,9 @@ macro_rules! create_nodes {
                exp.visit_mut(self)
             }
             fn optional_expression(&mut self, exp: &Option<ASTExpression>) -> Option<ASTExpression> {
-                exp.as_ref().map(|exp| self.expression(exp))
+                exp.as_ref().map(|exp| exp.visit_mut(self))
             }
+            fn expression_list(&mut self, exp: &[ASTExpression]) -> Vec<ASTExpression> { exp.to_vec() }
             $(fn $type(&mut self, exp: &$name) -> $name { exp.clone() })+
         }
 
@@ -81,13 +105,13 @@ create_nodes!([
 ], [
     ASTIdentifier, identifier {}, {}
 ], [
-    ASTExpressionList, expression_list {
-        elements: Vec<ASTExpression>
-    }, {}
+    ASTArray, array {}, {
+        elements: Vec<ASTExpression> [expression_list]
+    }
 ], [
     ASTCall, call {}, {
         expression: ASTExpression [expression],
-        arguments: ASTExpressionList [expression_list]
+        arguments: Vec<ASTExpression> [expression_list]
     }
 ], [
     ASTBinary, binary {
@@ -112,7 +136,8 @@ pub enum ASTExpression {
     Identifier(ASTIdentifier),
     Binary(Box<ASTBinary>),
     Unary(Box<ASTUnary>),
-    Call(Box<ASTCall>)
+    Call(Box<ASTCall>),
+    ArrayLit(ASTArray)
 }
 
 impl Visitable for ASTExpression {
@@ -124,7 +149,8 @@ impl Visitable for ASTExpression {
             Self::Identifier(ident) => visitor.identifier(ident),
             Self::Binary(binary) => visitor.binary(binary),
             Self::Unary(unary) => visitor.unary(unary),
-            Self::Call(call) => visitor.call(call)
+            Self::Call(call) => visitor.call(call),
+            Self::ArrayLit(arr) => visitor.array(arr)
         }
     }
 
@@ -143,7 +169,8 @@ impl MutVisitable<ASTExpression> for ASTExpression {
             Self::Identifier(ident) => ASTExpression::Identifier(visitor.identifier(ident)),
             Self::Binary(binary) => ASTExpression::Binary(Box::from(visitor.binary(binary))),
             Self::Unary(unary) => ASTExpression::Unary(Box::from(visitor.unary(unary))),
-            Self::Call(call) => ASTExpression::Call(Box::from(visitor.call(call)))
+            Self::Call(call) => ASTExpression::Call(Box::from(visitor.call(call))),
+            Self::ArrayLit(arr) => ASTExpression::ArrayLit(visitor.array(arr))
         }
     }
 
@@ -161,7 +188,8 @@ impl ASTExpression {
             Self::Identifier(ident) => &ident.range,
             Self::Binary(binary) => &binary.range,
             Self::Unary(unary) => &unary.range,
-            Self::Call(thing) => &thing.range
+            Self::Call(thing) => &thing.range,
+            Self::ArrayLit(thing) => &thing.range,
         }
     }
 }
