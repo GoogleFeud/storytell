@@ -137,22 +137,27 @@ impl<'a> JsParser<'a> {
             TokenKind::ExclamationOp => ASTExpression::Unary(Box::from(ASTUnary {
                 operator: TokenKind::ExclamationOp,
                 expression: self.expect_single_expr("an expression", true)?,
-                range: self.tokens.range(token.range.start)
+                range: self.tokens.range(tok_start)
             })),
             TokenKind::PlusOp => ASTExpression::Unary(Box::from(ASTUnary {
                 operator: TokenKind::PlusOp,
                 expression: self.expect_single_expr("an expression", true)?,
-                range: self.tokens.range(token.range.start)
+                range: self.tokens.range(tok_start)
             })),
             TokenKind::MinusOp => ASTExpression::Unary(Box::from(ASTUnary {
                 operator: TokenKind::MinusOp,
                 expression: self.expect_single_expr("an expression", true)?,
-                range: self.tokens.range(token.range.start)
+                range: self.tokens.range(tok_start)
             })),
             TokenKind::DotDotDotOp => ASTExpression::Unary(Box::from(ASTUnary {
                 operator: TokenKind::DotDotDotOp,
                 expression: self.expect_single_expr("an expression", true)?,
-                range: self.tokens.range(token.range.start)
+                range: self.tokens.range(tok_start)
+            })),
+            TokenKind::VoidKeyword => ASTExpression::Unary(Box::from(ASTUnary {
+                operator: TokenKind::VoidKeyword,
+                expression: self.expect_single_expr("an expression", true)?,
+                range: self.tokens.range(tok_start)
             })),
             TokenKind::SquareBracketOpenPunc => {
                 let elements = self.parse_list(TokenKind::CommaPunc, TokenKind::SquareBracketClosePunc, "]", |parser| parser.parse_full_expression());
