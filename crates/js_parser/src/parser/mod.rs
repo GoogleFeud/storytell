@@ -165,7 +165,21 @@ impl<'a> JsParser<'a> {
                 let exp = self.parse_full_expression()?;
                 self.tokens.expect(TokenKind::ParanthesisClosePunc, ")")?;
                 exp
-            }
+            },
+            TokenKind::NewKeyword => {
+                let expression = self.parse_single_expression(false)?;
+                let arguments = if self.tokens.is_next(TokenKind::ParanthesisOpenPunc) {
+                    self.tokens.consume();
+                    self.parse_list(TokenKind::CommaPunc, TokenKind::ParanthesisClosePunc, ")", |parser| parser.parse_full_expression())
+                } else {
+                    vec![]
+                };
+                ASTExpression::New(Box::from(ASTNew {
+                    expression,
+                    arguments,
+                    range: self.tokens.range(tok_start)
+                }))
+            },
             _ => {
                 self.errors.push(dia!(UNKNOWN_TOKEN, token.range, self.tokens.input.data.from_range(&token.range)));
                 return None
@@ -382,6 +396,25 @@ mod tests {
             }
         } else {
             panic!("Expected access.")
+        }
+    }
+
+    #[test]
+    fn test_new() {
+        let (tokens, errors, _, input) = JsParser::parse("
+            new Something(new Other)
+       ");
+        assert_eq!(errors.len(), 0);
+        if let ASTExpression::New(new) = &tokens[0] {
+            assert_eq!(input.from_range(new.expression.range()), "Something");
+            if let ASTExpression::New(new) = &new.arguments[0] {
+                assert_eq!(new.arguments.len(), 0);
+                assert_eq!(input.from_range(new.expression.range()), "Other")
+            } else {
+                panic!("Expected new.")
+            }
+        } else {
+            panic!("Expected new.")
         }
     }
 }

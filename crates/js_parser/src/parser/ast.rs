@@ -110,6 +110,11 @@ create_nodes!([
     }, {
         expression: ASTExpression [expression]
     }
+], [
+    ASTNew, new_exp {}, {
+        arguments: Vec<ASTExpression> [expression_list],
+        expression: ASTExpression [expression]
+    }
 ]);
 
 #[derive(Clone, Debug)]
@@ -169,7 +174,8 @@ pub enum ASTExpression {
     Unary(Box<ASTUnary>),
     Call(Box<ASTCall>),
     ArrayLit(ASTArray),
-    Access(Box<ASTAccess>)
+    Access(Box<ASTAccess>),
+    New(Box<ASTNew>)
 }
 
 impl Visitable for ASTExpression {
@@ -183,7 +189,8 @@ impl Visitable for ASTExpression {
             Self::Unary(unary) => unary.visit(visitor),
             Self::Call(call) => call.visit(visitor),
             Self::ArrayLit(arr) => arr.visit(visitor),
-            Self::Access(access) => access.visit(visitor)
+            Self::Access(access) => access.visit(visitor),
+            Self::New(new) => new.visit(visitor)
         }
     }
 
@@ -197,7 +204,8 @@ impl Visitable for ASTExpression {
             Self::Unary(unary) => unary.visit_each_child(visitor),
             Self::Call(call) => call.visit_each_child(visitor),
             Self::ArrayLit(arr) => arr.visit_each_child(visitor),
-            Self::Access(access) => access.visit_each_child(visitor)
+            Self::Access(access) => access.visit_each_child(visitor),
+            Self::New(new) => new.visit_each_child(visitor)
         }
     }
     
@@ -214,7 +222,8 @@ impl MutVisitable<ASTExpression> for ASTExpression {
             Self::Unary(unary) => ASTExpression::Unary(Box::from(unary.visit_mut(visitor))),
             Self::Call(call) => ASTExpression::Call(Box::from(call.visit_mut(visitor))),
             Self::ArrayLit(arr) => ASTExpression::ArrayLit(arr.visit_mut(visitor)),
-            Self::Access(access) => ASTExpression::Access(Box::from(access.visit_mut(visitor)))
+            Self::Access(access) => ASTExpression::Access(Box::from(access.visit_mut(visitor))),
+            Self::New(new) => ASTExpression::New(Box::from(new.visit_mut(visitor)))
         }
     }
 
@@ -228,7 +237,8 @@ impl MutVisitable<ASTExpression> for ASTExpression {
             Self::Unary(unary) => ASTExpression::Unary(Box::from(unary.visit_each_child_mut(visitor))),
             Self::Call(call) => ASTExpression::Call(Box::from(call.visit_each_child_mut(visitor))),
             Self::ArrayLit(arr) => ASTExpression::ArrayLit(arr.visit_each_child_mut(visitor)),
-            Self::Access(access) => ASTExpression::Access(Box::from(access.visit_each_child_mut(visitor)))
+            Self::Access(access) => ASTExpression::Access(Box::from(access.visit_each_child_mut(visitor))),
+            Self::New(new) => ASTExpression::New(Box::from(new.visit_each_child_mut(visitor)))
         }
     }
 }
@@ -266,7 +276,8 @@ impl ASTExpression {
             Self::Unary(unary) => &unary.range,
             Self::Call(thing) => &thing.range,
             Self::ArrayLit(thing) => &thing.range,
-            Self::Access(thing) => &thing.range
+            Self::Access(thing) => &thing.range,
+            Self::New(thing) => &thing.range
         }
     }
 }
