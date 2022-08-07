@@ -97,11 +97,20 @@ impl<'a> JsParser<'a> {
             TokenKind::ParanthesisOpenPunc => {
                 self.tokens.consume();
                 let arguments = self.parse_list(TokenKind::CommaPunc, TokenKind::ParanthesisClosePunc, ")", |parser| parser.parse_full_expression());            
-                Some(ASTExpression::Call(Box::from(ASTCall {
+                self.parse_suffix(ASTExpression::Call(Box::from(ASTCall {
                     expression: tok,
                     arguments,
                     range: self.tokens.range(start)
-                })))
+                })), start)
+            },
+            TokenKind::DotOp => {
+                self.tokens.consume();
+                let ident = self.tokens.expect(TokenKind::Identifier, "identifier")?;
+                self.parse_suffix(ASTExpression::Access(Box::from(ASTAccess {
+                    accessor: ASTAccessContent::Identifier(ASTIdentifier { range: ident.range }),
+                    expression: tok,
+                    range: self.tokens.range(start)
+                })), start)
             },
             _ => Some(tok)
         }
@@ -305,6 +314,30 @@ mod tests {
             }
         } else {
             panic!("Expected array.")
+        }
+    }
+
+    #[test]
+    fn test_dot_access() {
+        let (tokens, errors, _, input) = JsParser::parse("
+            a().b.c.d;
+       ");
+        assert_eq!(errors.len(), 0);
+        if let ASTExpression::Access(acc) = &tokens[0] {
+            assert_eq!(input.from_range(acc.accessor.range()), "d");
+            if let ASTExpression::Access(acc) = &acc.expression {
+                assert_eq!(input.from_range(acc.accessor.range()), "c");
+                if let ASTExpression::Access(acc) = &acc.expression {
+                    assert_eq!(input.from_range(acc.accessor.range()), "b");
+                    assert!(matches!(acc.expression, ASTExpression::Call(_)));
+                } else {
+                    panic!("Expected access.");
+                }
+            } else {
+                panic!("Expected access.");
+            }
+        } else {
+            panic!("Expected access.")
         }
     }
 }

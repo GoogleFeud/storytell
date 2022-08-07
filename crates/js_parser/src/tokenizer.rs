@@ -274,10 +274,10 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    pub fn expect(&mut self, kind: TokenKind, msg: &str) -> Option<()> {
+    pub fn expect(&mut self, kind: TokenKind, msg: &str) -> Option<Token> {
         if let Some(token) = self.consume() {
             if token.kind == kind {
-                return Some(());
+                return Some(token);
             }
         }
         self.errors.push(dia!(EXPECTED_TOKEN, self.input.range_here(), msg));

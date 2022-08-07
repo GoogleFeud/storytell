@@ -12,28 +12,6 @@ pub trait MutVisitable<Item> {
     fn visit_each_child_mut<T: MutVisitor + ?Sized>(&self, visitor: &mut T) -> Item;
 }
 
-impl Visitable for Vec<ASTExpression> {
-    fn visit<T: Visitor + ?Sized>(&self, visitor: &mut T) {
-        visitor.expression_list(self)
-    }
-
-    fn visit_each_child<T: Visitor + ?Sized>(&self, visitor: &mut T) {
-        for element in self {
-            element.visit(visitor)
-        }
-    }
-}
-
-impl MutVisitable<Vec<ASTExpression>> for Vec<ASTExpression> {
-    fn visit_mut<T: MutVisitor + ?Sized>(&self, visitor: &mut T) -> Vec<ASTExpression> {
-        visitor.expression_list(self)
-    }
-
-    fn visit_each_child_mut<T: MutVisitor + ?Sized>(&self, visitor: &mut T) -> Vec<ASTExpression> {
-        self.iter().map(|e| e.visit_mut(visitor)).collect()
-    }
-}
-
 macro_rules! create_nodes {
     ($([$name: ident, $type: ident {$($field_name: ident: $field_type: ty),*}, {$($child_name: ident: $child_type: ty [$child_type_name: ident]),*}]),+) => {
         pub trait Visitor {
@@ -126,7 +104,60 @@ create_nodes!([
     }, {
         expression: ASTExpression [expression]
     }
+], [
+    ASTAccess, access {
+        accessor: ASTAccessContent
+    }, {
+        expression: ASTExpression [expression]
+    }
 ]);
+
+#[derive(Clone, Debug)]
+pub enum ASTAccessContent {
+    Identifier(ASTIdentifier),
+    Expression(ASTExpression)
+}
+
+impl ASTAccessContent {
+    pub fn range(&self) -> &Range<usize> {
+        match self {
+            Self::Identifier(ident) => &ident.range,
+            Self::Expression(exp) => exp.range()
+        }
+    }
+}
+
+impl Visitable for ASTAccessContent {
+    fn visit<T: Visitor + ?Sized>(&self, visitor: &mut T) {
+        match self {
+            Self::Identifier(ident) => ident.visit(visitor),
+            Self::Expression(exp) => exp.visit(visitor)
+        }
+    }
+
+    fn visit_each_child<T: Visitor + ?Sized>(&self, visitor: &mut T) {
+        match self {
+            Self::Identifier(ident) => ident.visit_each_child(visitor),
+            Self::Expression(exp) => exp.visit_each_child(visitor)
+        }
+    }
+}
+
+impl MutVisitable<ASTAccessContent> for ASTAccessContent {
+    fn visit_mut<T: MutVisitor + ?Sized>(&self, visitor: &mut T) -> Self {
+        match self {
+            Self::Identifier(ident) => Self::Identifier(ident.visit_mut(visitor)),
+            Self::Expression(exp) => Self::Expression(exp.visit_mut(visitor))
+        }
+    }
+
+    fn visit_each_child_mut<T: MutVisitor + ?Sized>(&self, visitor: &mut T) -> Self {
+        match self {
+            Self::Identifier(ident) => Self::Identifier(ident.visit_each_child_mut(visitor)),
+            Self::Expression(exp) => Self::Expression(exp.visit_each_child_mut(visitor))
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub enum ASTExpression {
@@ -137,25 +168,37 @@ pub enum ASTExpression {
     Binary(Box<ASTBinary>),
     Unary(Box<ASTUnary>),
     Call(Box<ASTCall>),
-    ArrayLit(ASTArray)
+    ArrayLit(ASTArray),
+    Access(Box<ASTAccess>)
 }
 
 impl Visitable for ASTExpression {
     fn visit<T: Visitor + ?Sized>(&self, visitor: &mut T) {
         match self {
-            Self::String(str) => visitor.string(str),
-            Self::Number(num) => visitor.number(num),
-            Self::Boolean(bool) => visitor.boolean(bool),
-            Self::Identifier(ident) => visitor.identifier(ident),
-            Self::Binary(binary) => visitor.binary(binary),
-            Self::Unary(unary) => visitor.unary(unary),
-            Self::Call(call) => visitor.call(call),
-            Self::ArrayLit(arr) => visitor.array(arr)
+            Self::String(str) => str.visit(visitor),
+            Self::Number(num) => num.visit(visitor),
+            Self::Boolean(bool) => bool.visit(visitor),
+            Self::Identifier(ident) => ident.visit(visitor),
+            Self::Binary(binary) => binary.visit(visitor),
+            Self::Unary(unary) => unary.visit(visitor),
+            Self::Call(call) => call.visit(visitor),
+            Self::ArrayLit(arr) => arr.visit(visitor),
+            Self::Access(access) => access.visit(visitor)
         }
     }
 
     fn visit_each_child<T: Visitor + ?Sized>(&self, visitor: &mut T) {
-        Visitable::visit(self, visitor)
+        match self {
+            Self::String(str) => str.visit_each_child(visitor),
+            Self::Number(num) => num.visit_each_child(visitor),
+            Self::Boolean(bool) => bool.visit_each_child(visitor),
+            Self::Identifier(ident) => ident.visit_each_child(visitor),
+            Self::Binary(binary) => binary.visit_each_child(visitor),
+            Self::Unary(unary) => unary.visit_each_child(visitor),
+            Self::Call(call) => call.visit_each_child(visitor),
+            Self::ArrayLit(arr) => arr.visit_each_child(visitor),
+            Self::Access(access) => access.visit_each_child(visitor)
+        }
     }
     
 }
@@ -163,19 +206,52 @@ impl Visitable for ASTExpression {
 impl MutVisitable<ASTExpression> for ASTExpression {
     fn visit_mut<T: MutVisitor + ?Sized>(&self, visitor: &mut T) -> ASTExpression {
         match self {
-            Self::String(str) => ASTExpression::String(visitor.string(str)),
-            Self::Number(num) => ASTExpression::Number(visitor.number(num)),
-            Self::Boolean(bool) => ASTExpression::Boolean(visitor.boolean(bool)),
-            Self::Identifier(ident) => ASTExpression::Identifier(visitor.identifier(ident)),
-            Self::Binary(binary) => ASTExpression::Binary(Box::from(visitor.binary(binary))),
-            Self::Unary(unary) => ASTExpression::Unary(Box::from(visitor.unary(unary))),
-            Self::Call(call) => ASTExpression::Call(Box::from(visitor.call(call))),
-            Self::ArrayLit(arr) => ASTExpression::ArrayLit(visitor.array(arr))
+            Self::String(str) => ASTExpression::String(str.visit_mut(visitor)),
+            Self::Number(num) => ASTExpression::Number(num.visit_mut(visitor)),
+            Self::Boolean(bool) => ASTExpression::Boolean(bool.visit_mut(visitor)),
+            Self::Identifier(ident) => ASTExpression::Identifier(ident.visit_mut(visitor)),
+            Self::Binary(binary) => ASTExpression::Binary(Box::from(binary.visit_mut(visitor))),
+            Self::Unary(unary) => ASTExpression::Unary(Box::from(unary.visit_mut(visitor))),
+            Self::Call(call) => ASTExpression::Call(Box::from(call.visit_mut(visitor))),
+            Self::ArrayLit(arr) => ASTExpression::ArrayLit(arr.visit_mut(visitor)),
+            Self::Access(access) => ASTExpression::Access(Box::from(access.visit_mut(visitor)))
         }
     }
 
     fn visit_each_child_mut<T: MutVisitor + ?Sized>(&self, visitor: &mut T) -> ASTExpression {
-        self.visit_mut(visitor)
+        match self {
+            Self::String(str) => ASTExpression::String(str.visit_each_child_mut(visitor)),
+            Self::Number(num) => ASTExpression::Number(num.visit_each_child_mut(visitor)),
+            Self::Boolean(bool) => ASTExpression::Boolean(bool.visit_each_child_mut(visitor)),
+            Self::Identifier(ident) => ASTExpression::Identifier(ident.visit_each_child_mut(visitor)),
+            Self::Binary(binary) => ASTExpression::Binary(Box::from(binary.visit_each_child_mut(visitor))),
+            Self::Unary(unary) => ASTExpression::Unary(Box::from(unary.visit_each_child_mut(visitor))),
+            Self::Call(call) => ASTExpression::Call(Box::from(call.visit_each_child_mut(visitor))),
+            Self::ArrayLit(arr) => ASTExpression::ArrayLit(arr.visit_each_child_mut(visitor)),
+            Self::Access(access) => ASTExpression::Access(Box::from(access.visit_each_child_mut(visitor)))
+        }
+    }
+}
+
+impl Visitable for Vec<ASTExpression> {
+    fn visit<T: Visitor + ?Sized>(&self, visitor: &mut T) {
+        visitor.expression_list(self)
+    }
+
+    fn visit_each_child<T: Visitor + ?Sized>(&self, visitor: &mut T) {
+        for element in self {
+            element.visit(visitor)
+        }
+    }
+}
+
+impl MutVisitable<Vec<ASTExpression>> for Vec<ASTExpression> {
+    fn visit_mut<T: MutVisitor + ?Sized>(&self, visitor: &mut T) -> Vec<ASTExpression> {
+        visitor.expression_list(self)
+    }
+
+    fn visit_each_child_mut<T: MutVisitor + ?Sized>(&self, visitor: &mut T) -> Vec<ASTExpression> {
+        self.iter().map(|e| e.visit_mut(visitor)).collect()
     }
 }
 
@@ -190,6 +266,7 @@ impl ASTExpression {
             Self::Unary(unary) => &unary.range,
             Self::Call(thing) => &thing.range,
             Self::ArrayLit(thing) => &thing.range,
+            Self::Access(thing) => &thing.range
         }
     }
 }
