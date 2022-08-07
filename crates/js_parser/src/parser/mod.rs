@@ -112,6 +112,16 @@ impl<'a> JsParser<'a> {
                     range: self.tokens.range(start)
                 })), start)
             },
+            TokenKind::SquareBracketOpenPunc => {
+                self.tokens.consume();
+                let exp = self.parse_full_expression()?;
+                self.tokens.expect(TokenKind::SquareBracketClosePunc, "]")?;
+                self.parse_suffix(ASTExpression::Access(Box::from(ASTAccess {
+                    accessor: ASTAccessContent::Expression(exp),
+                    expression: tok,
+                    range: self.tokens.range(start)
+                })), start)
+            },
             _ => Some(tok)
         }
     }
@@ -151,6 +161,11 @@ impl<'a> JsParser<'a> {
                     range: self.tokens.range(tok_start)
                 })
             },
+            TokenKind::ParanthesisOpenPunc => {
+                let exp = self.parse_full_expression()?;
+                self.tokens.expect(TokenKind::ParanthesisClosePunc, ")")?;
+                exp
+            }
             _ => {
                 self.errors.push(dia!(UNKNOWN_TOKEN, token.range, self.tokens.input.data.from_range(&token.range)));
                 return None
@@ -330,6 +345,35 @@ mod tests {
                 if let ASTExpression::Access(acc) = &acc.expression {
                     assert_eq!(input.from_range(acc.accessor.range()), "b");
                     assert!(matches!(acc.expression, ASTExpression::Call(_)));
+                } else {
+                    panic!("Expected access.");
+                }
+            } else {
+                panic!("Expected access.");
+            }
+        } else {
+            panic!("Expected access.")
+        }
+    }
+
+    #[test]
+    fn test_exp_access() {
+        let (tokens, errors, _, input) = JsParser::parse("
+            (1 + 2).c[d][e].z;
+       ");
+        assert_eq!(errors.len(), 0);
+        if let ASTExpression::Access(acc) = &tokens[0] {
+            assert_eq!(input.from_range(acc.accessor.range()), "z");
+            if let ASTExpression::Access(acc) = &acc.expression {
+                assert_eq!(input.from_range(acc.accessor.range()), "e");
+                if let ASTExpression::Access(acc) = &acc.expression {
+                    assert_eq!(input.from_range(acc.accessor.range()), "d");
+                    if let ASTExpression::Access(acc) = &acc.expression {
+                        assert_eq!(input.from_range(acc.accessor.range()), "c");
+                        assert!(matches!(acc.expression, ASTExpression::Binary(_)));
+                    } else {
+                        panic!("Expected access.");
+                    }
                 } else {
                     panic!("Expected access.");
                 }
