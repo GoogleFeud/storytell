@@ -84,19 +84,22 @@ impl JSCompilable for ASTHeader {
         Ok(format!("{{
             title: {},
             canonicalTitle: {},
-            childPaths: {{{}}}
+            childPaths: {{{}}},
+            children: {}
         }}", 
         self.title.text.safe_compile(), 
         Path::canonicalize_name(&self.title.text).safe_compile(),
-        header_children.join(",")
+        header_children.join(","),
+        format!("[{}]", others.iter().map(|i| i.compile(ctx)).collect::<StorytellResult<Vec<String>>>()?.join(","))
         ))
     }
 }
 
 impl JSCompilable for ASTParagraph {
     fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
+        let para = ctx.bootstrap.paragraph_fn;
         if self.parts.is_empty() {
-            return Ok(self.tail.clone())
+            return Ok(format!("{}({}, {})", para, self.tail.safe_compile(), self.attributes.compile(ctx)?))
         }
         let mut result = String::new();
         for part in &self.parts {
@@ -104,7 +107,6 @@ impl JSCompilable for ASTParagraph {
             result.push_str(&part.text.compile(ctx)?)
         }
         result.push_str(&self.tail);
-        let para = ctx.bootstrap.paragraph_fn;
         Ok(format!("{}({}, {})", para, result.safe_compile(), self.attributes.compile(ctx)?))
     }
 }

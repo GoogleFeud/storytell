@@ -3,7 +3,7 @@ pub mod compile;
 use compile::{JSCompilable};
 use std::collections::{HashMap};
 use storytell_diagnostics::diagnostic::{Diagnostic};
-use storytell_parser::ast::model::{ASTHeader, ASTBlock};
+use storytell_parser::{ast::{model::{ASTHeader, ASTBlock}, Parser}, input::ParsingContext};
 use crate::files::file_host::{FileHost};
 
 use self::compile::JSSafeCompilable;
@@ -17,6 +17,7 @@ pub struct FileDiagnostic {
 /// It doesn't provide a "runtime" which actually keeps
 /// track of the current path, etc.
 /// The compiler itself also doesn't provide any tools for analyzing.
+#[derive(Clone, Debug)]
 pub struct JSBootstrapVars {
     /// Name of a funtion which moves the current path,
     /// (path: string[]) => any
@@ -58,7 +59,7 @@ impl<T: FileHost> JSCompiler<T> {
         }
     }
 
-    pub fn prepare(&mut self, file_name: &str, ctx: &mut CompilerContext) -> Option<Vec<&ASTHeader>> {
+    fn prepare(&mut self, file_name: &str, ctx: &mut CompilerContext) -> Option<Vec<&ASTHeader>> {
         let file = self.host.get(file_name)?;
         let mut paths: Vec<&ASTHeader> = vec![];
         for thing in &file.content {
@@ -106,6 +107,26 @@ impl<T: FileHost> JSCompiler<T> {
 
 }
 
+pub fn compile_str(string: &str, booststrap: JSBootstrapVars, line_endings: usize) -> (String, Vec<Diagnostic>, CompilerContext) {
+    let (parsed, parsing_ctx) = Parser::new(string, ParsingContext::new(line_endings)).parse();
+    let mut total_errors = parsing_ctx.diagnostics;
+    let mut ctx = CompilerContext::new(booststrap);
+    let mut result: Vec<String> = vec![];
+    let mut headers: Vec<ASTHeader> = vec![];
+    for thing in parsed {
+        if let ASTBlock::Header(header) = thing {
+            ctx.paths.add_child_ast(&header);
+            headers.push(header);
+        }
+    }
+    for header in headers {
+        match header.compile(&mut ctx) {
+            Ok(compiled) => result.push(compiled),
+            Err(err) => total_errors.push(err)
+        }
+    }
+    (result.safe_compile(), total_errors, ctx)
+}
 
 pub struct Path {
     pub name: String,
@@ -195,6 +216,33 @@ impl CompilerContext {
 
     pub fn add_diagnostic(&mut self, err: FileDiagnostic) {
         self.diagnostics.push(err);
+    }
+
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const BOOTSTRAP_VARS: JSBootstrapVars = JSBootstrapVars {
+        divert_fn: "divert",
+        temp_divert_fn: "tempDivert",
+        paragraph_fn: "Paragraph",
+        codeblock_fn: "Codeblock",
+        match_fn: "Match",
+        choice_group_fn: "ChoiceGroup"
+    };
+
+    #[test]
+    fn compile() {
+        let (result, errors, _) = compile_str("
+# Hello, World!
+How's it going on this **fine** day?
+
+Hello!
+", BOOTSTRAP_VARS.clone(), 1);
+        println!("{} {:?}", result, errors);
+        panic!("AAA");
     }
 
 }
