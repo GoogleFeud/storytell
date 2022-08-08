@@ -122,6 +122,17 @@ impl<'a> JsParser<'a> {
                     range: self.tokens.range(start)
                 })), start)
             },
+            TokenKind::QuestionOp => {
+                self.tokens.consume();
+                let left = self.parse_full_expression()?;
+                self.tokens.expect(TokenKind::ColonOp, "colon")?;
+                Some(ASTExpression::Ternary(Box::from(ASTTernary {
+                    condition: tok,
+                    left,
+                    right: self.parse_full_expression()?,
+                    range: self.tokens.range(start)
+                })))
+            },
             _ => Some(tok)
         }
     }
@@ -420,6 +431,27 @@ mod tests {
             }
         } else {
             panic!("Expected new.")
+        }
+    }
+
+    #[test]
+    fn test_ternary() {
+        let (tokens, errors, _, input) = JsParser::parse("
+            a ? b : (c + k) ? d : e;
+       ");
+        assert_eq!(errors.len(), 0);
+        if let ASTExpression::Ternary(exp) = &tokens[0] {
+            assert_eq!(input.from_range(exp.condition.range()), "a");
+            assert_eq!(input.from_range(exp.left.range()), "b");
+            if let ASTExpression::Ternary(exp) = &exp.right {
+                assert_eq!(input.from_range(exp.condition.range()), "c + k");
+                assert_eq!(input.from_range(exp.left.range()), "d");
+                assert_eq!(input.from_range(exp.right.range()), "e");
+            } else {
+                panic!("Expected ternary.")
+            }
+        } else {
+            panic!("Expected ternary.")
         }
     }
 }
