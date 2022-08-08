@@ -30,13 +30,13 @@ pub enum InlineTextParseResult {
     NotFound,
 }
 
-pub struct Parser<'a, P: ParsingContext> {
-    input: InputConsumer<'a, P>,
+pub struct Parser<'a> {
+    input: InputConsumer<'a>,
     collected_attributes: VecStack<ASTAttribute>
 }
 
-impl<'a, P: ParsingContext> Parser<'a, P> {
-    pub fn new(text: &'a str, ctx: P) -> Self {
+impl<'a> Parser<'a> {
+    pub fn new(text: &'a str, ctx: ParsingContext) -> Self {
         Self {
             input: InputConsumer::new(text, ctx),
             collected_attributes: VecStack::new()
@@ -56,7 +56,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                     return self.parse_block(depth);
                 }
                 if depth != 0 {
-                    self.input.ctx.add_diagnostic(dia!(NESTED_HEADER, self.input.range_here(start)));
+                    self.input.ctx.diagnostics.push(dia!(NESTED_HEADER, self.input.range_here(start)));
                 }
                 let header_depth = 1 + self.input.count_while('#');
                 Some(ASTBlock::Header(ASTHeader {
@@ -76,7 +76,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                             else if let Some(block) = self.parse_block(depth) {
                                 if let ASTBlock::Header(header) = &block {
                                     if (header.depth - 1) != (header_depth as u8) {
-                                        self.input.ctx.add_diagnostic(dia!(INCORRECT_HEADER_SIZE, header.title.range.clone(), &(header.depth - 1).to_string()));
+                                        self.input.ctx.diagnostics.push(dia!(INCORRECT_HEADER_SIZE, header.title.range.clone(), &(header.depth - 1).to_string()));
                                     }
                                 }
                                 res.push(block);
@@ -179,7 +179,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
                             let text = self.parse_paragraph();
                             let unwrapped = text?;
                             if require_js && (unwrapped.parts.is_empty() || !matches!(unwrapped.parts[0].text.kind, ASTInlineKind::Javascript(_))) {
-                                self.input.ctx.add_diagnostic(dia!(REQUIRED_JS, self.input.range_here(start)));
+                                self.input.ctx.diagnostics.push(dia!(REQUIRED_JS, self.input.range_here(start)));
                                 continue;
                             } else { unwrapped }
                         },
@@ -216,10 +216,10 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
     }
 
     pub fn parse_paragraph(&mut self) -> Option<ASTText> {
-        match self.parse_text(resolve_line_endings(self.input.ctx.line_endings()), true) {
+        match self.parse_text(resolve_line_endings(self.input.ctx.line_endings), true) {
             InlineTextParseResult::FoundClosing(text)
             | InlineTextParseResult::NotFoundOptional(text) => {
-                self.input.skip_n(self.input.ctx.line_endings());
+                self.input.skip_n(self.input.ctx.line_endings);
                 Some(text)
             }
             InlineTextParseResult::NotFound => None,
@@ -280,7 +280,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
             }
         }
         // If this is executed it means the method didn't find anything
-        self.input.ctx.add_diagnostic(dia!(MISSING_CLOSING, self.input.range_here(start), &until.to_string()));
+        self.input.ctx.diagnostics.push(dia!(MISSING_CLOSING, self.input.range_here(start), &until.to_string()));
         result
     }
 
@@ -318,7 +318,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
             }
         }
         // If this is executed it means the method didn't find anything
-        self.input.ctx.add_diagnostic(dia!(MISSING_CLOSING, self.input.range_here(start), "]"));
+        self.input.ctx.diagnostics.push(dia!(MISSING_CLOSING, self.input.range_here(start), "]"));
         attributes
     }
 
@@ -437,7 +437,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
         }
     }
 
-    pub fn parse(mut self) -> (Vec<ASTBlock>, P) {
+    pub fn parse(mut self) -> (Vec<ASTBlock>, ParsingContext) {
         let mut res = vec![];
         while !self.input.is_eof() {
             if let Some(block) = self.parse_block(0) {
@@ -450,29 +450,7 @@ impl<'a, P: ParsingContext> Parser<'a, P> {
 
 #[cfg(test)]
 mod tests {
-    use storytell_diagnostics::diagnostic::Diagnostic;
-
     use super::*;
-
-    pub struct Context {
-        pub errors: Vec<Diagnostic>,
-    }
-
-    impl ParsingContext for Context {
-        fn line_endings(&self) -> usize {
-            1
-        }
-
-        fn add_diagnostic(&mut self, diagnostic: Diagnostic) {
-            self.errors.push(diagnostic);
-        }
-    }
-
-    impl Context {
-        pub fn new() -> Self {
-            Self { errors: vec![] }
-        }
-    }
 
     fn get_header_children(input: &Vec<ASTBlock>) -> &Vec<ASTBlock> {
         if let ASTBlock::Header(header) = &input[0] {
@@ -494,8 +472,8 @@ Text...
 #### Fourth header
 ###### Wrong header!!!
 ## This is child of first
-        ", Context::new()).parse();
-        assert_eq!(ctx.errors[0].msg, "Path should be one (5) level deeper than it's parent.");
+        ", ParsingContext::new(1)).parse();
+        assert_eq!(ctx.diagnostics[0].msg, "Path should be one (5) level deeper than it's parent.");
         let header = &input[0];
         if let ASTBlock::Header(block) = header {
             assert_eq!(block.title.text, "This is some header!!!...");
@@ -525,7 +503,7 @@ Text...
     fn parse_codeblock() {
         let (input, _) = Parser::new(
             "# This is some header!!!...\n```js\nThis is a code\nblock...\nyeah...```",
-            Context::new(),
+            ParsingContext::new(1),
         ).parse();
         let header = get_header_children(&input);
         let code_block = &header[0];
@@ -539,7 +517,7 @@ Text...
 
     #[test]
     fn parse_inline_bold() {
-        let (input, _) = Parser::new("# This is some header!!!...\nThis is **a** paragraph, pretty cool... **really** cool! Same paragraph...\nAlright this is a different one!!## Another heading", Context::new()).parse();
+        let (input, _) = Parser::new("# This is some header!!!...\nThis is **a** paragraph, pretty cool... **really** cool! Same paragraph...\nAlright this is a different one!!## Another heading", ParsingContext::new(1)).parse();
         let children = get_header_children(&input);
         if let ASTBlock::Paragraph(para) = &children[0] {
             assert_eq!(
@@ -555,7 +533,7 @@ Text...
     fn parse_inline_italics() {
         let (input, _) = Parser::new(
             "# This is some header!!!...\n**really** interesting *word*...\nAlright",
-            Context::new(),
+            ParsingContext::new(1),
         ).parse();
         let children = get_header_children(&input);
         if let ASTBlock::Paragraph(para) = &children[0] {
@@ -574,7 +552,7 @@ Text...
 
     #[test]
     fn parse_inline_divert() {
-        let (input, _) = Parser::new("# This is some header!!!...\n**really** interesting *word...\nAlright, second paragraph -> second_chapter", Context::new()).parse();
+        let (input, _) = Parser::new("# This is some header!!!...\n**really** interesting *word...\nAlright, second paragraph -> second_chapter", ParsingContext::new(1)).parse();
         let children = get_header_children(&input);
         if let ASTBlock::Paragraph(para) = &children[1] {
             if let ASTInlineKind::Divert(arrow, _) = &para.parts[0].text.kind {
@@ -622,11 +600,11 @@ This is a **paragraph**...
         - Some choices
         - Cause why not...
 ",
-            Context::new(),
+ParsingContext::new(1),
         )
         .parse();
         let children = get_header_children(&input);
-        assert_eq!(ctx.errors.len(), 1);
+        assert_eq!(ctx.diagnostics.len(), 1);
         if let ASTBlock::Match(matcher) = &children[1] {
             assert_eq!(matcher.matched, "match_condition");
             // 3 because "Third option..." doesn't get included because JS is required
@@ -667,9 +645,9 @@ This is a paragraph with an attribute in it!
 
 #[SomeThing(123]
 Another paragraph...
-        ", Context::new()).parse();
+        ", ParsingContext::new(1)).parse();
         let children = get_header_children(&input);
-        assert_eq!(ctx.errors.len(), 1);
+        assert_eq!(ctx.diagnostics.len(), 1);
         if let ASTBlock::Paragraph(para) = &children[0] {
             println!("{:?}", para.attributes);
             assert_eq!(para.attributes.len(), 2);
@@ -699,7 +677,7 @@ It's time to choose...
         You chose option C
     - #[SomeAttribute] Option D
         You chose option D
-        ", Context::new()).parse();
+        ", ParsingContext::new(1)).parse();
         println!("{:?}", input);
         let children = get_header_children(&input);
         if let ASTBlock::ChoiceGroup(para) = &children[1] {
@@ -725,7 +703,7 @@ It's time to choose...
 # Hello World!
 // A comment
 // # A second comment...
-## A sub-path", Context::new()).parse();
+## A sub-path", ParsingContext::new(1)).parse();
         let children = get_header_children(&input);
         assert!(matches!(input[0], ASTBlock::Header(_)));
         assert!(matches!(children[0], ASTBlock::Header(_)));
