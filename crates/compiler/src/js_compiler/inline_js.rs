@@ -30,25 +30,11 @@ impl<'a> Visitor for MagicVariableTraverser<'a> {
                     };
                     self.magic_variables.insert(self.input.from_range(&left_ident.range).to_string(), variable_type);
                 },
-                TokenKind::MinusEqualsOp | TokenKind::StarEqualsOp | TokenKind::StarEqualsOp if is_num(&exp.right) => {
+                TokenKind::MinusEqualsOp | TokenKind::StarEqualsOp | TokenKind::StarEqualsOp if matches!(exp.right, ASTExpression::Number(_)) => {
                     self.magic_variables.insert(self.input.from_range(&left_ident.range).to_string(), MagicVariableType::Number);
                 },
                 _ => {}
             }
         }
-    }
-}
-
-pub fn is_str(exp: &ASTExpression) -> bool {
-    match exp {
-        ASTExpression::String(_) => true,
-        _ => false
-    }
-}
-
-pub fn is_num(exp: &ASTExpression) -> bool {
-    match exp {
-        ASTExpression::Number(_) => true,
-        _ => false
     }
 }

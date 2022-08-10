@@ -98,12 +98,12 @@ impl JSCompilable for ASTHeader {
             title: {},
             canonicalTitle: {},
             childPaths: {{{}}},
-            children: {}
+            children: [{}]
         }}", 
         self.title.text.safe_compile(), 
         Path::canonicalize_name(&self.title.text).safe_compile(),
         header_children.join(","),
-        format!("[{}]", others.iter().map(|i| i.compile(ctx)).collect::<StorytellResult<Vec<String>>>()?.join(","))
+        others.iter().map(|i| i.compile(ctx)).collect::<StorytellResult<Vec<String>>>()?.join(",")
         ))
     }
 }
