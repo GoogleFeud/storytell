@@ -15,16 +15,14 @@ make_diagnostics!(define [
 ]);
 
 pub struct JsParser<'a> {
-    pub tokens: Tokenizer<'a>,
-    pub errors: Vec<Diagnostic>
+    pub tokens: Tokenizer<'a>
 }
 
 impl<'a> JsParser<'a> {
 
     pub fn new(content: &'a str) -> Self {
         Self { 
-            tokens: Tokenizer::new(content),
-            errors: vec![]
+            tokens: Tokenizer::new(content)
         }
     }
 
@@ -197,7 +195,7 @@ impl<'a> JsParser<'a> {
                 }))
             },
             _ => {
-                self.errors.push(dia!(UNKNOWN_TOKEN, token.range, self.tokens.input.data.from_range(&token.range)));
+                self.tokens.diagnostics.push(dia!(UNKNOWN_TOKEN, token.range, self.tokens.input.data.from_range(&token.range)));
                 return None
             }
         };
@@ -219,13 +217,13 @@ impl<'a> JsParser<'a> {
     fn expect_single_expr(&mut self, msg: &str, parse_suffix: bool) -> Option<ASTExpression> {
         let expr = self.parse_single_expression(parse_suffix);
         if expr.is_none() {
-            self.errors.push(dia!(EXPECTED, self.tokens.input.range_here(), msg));
+            self.tokens.diagnostics.push(dia!(EXPECTED, self.tokens.input.range_here(), msg));
         }
         expr
     }
 
-    pub fn parse(content: &'a str) -> (Vec<ASTExpression>, Vec<Diagnostic>, Vec<Diagnostic>, InputPresenter<'a>) {
-        let mut parser = JsParser::new(content);
+    pub fn parse(content: &'a str) -> (Vec<ASTExpression>, Vec<Diagnostic>, InputPresenter<'a>) {
+        let mut parser = JsParser::new(content, );
         let mut result: Vec<ASTExpression> = vec![];
         while let Some(exp) = parser.parse_full_expression() {
             result.push(exp);
@@ -235,7 +233,7 @@ impl<'a> JsParser<'a> {
                 break;
             }
         }
-        (result, parser.errors, parser.tokens.errors, parser.tokens.input.data)
+        (result, parser.tokens.diagnostics, parser.tokens.input.data)
     }
 
 }
@@ -247,7 +245,7 @@ mod tests {
 
     #[test]
     fn test_basic_tokens() {
-        let (tokens, _, _, input) = JsParser::parse("\"HelloWorld\"; 123.4; false");
+        let (tokens, _, input) = JsParser::parse("\"HelloWorld\"; 123.4; false");
         assert_eq!(input.from_range(tokens[0].range()), "\"HelloWorld\"");
         assert_eq!(input.from_range(tokens[1].range()), "123.4");
         assert_eq!(input.from_range(tokens[2].range()), "false");
@@ -284,7 +282,7 @@ mod tests {
 
     #[test]
     fn test_binary_prec() {
-        let (tokens, errors, _, input) = JsParser::parse("
+        let (tokens, errors, input) = JsParser::parse("
             a + b - c / d * c
         ");
         assert_eq!(errors.len(), 0);
@@ -294,7 +292,7 @@ mod tests {
 
     #[test]
     fn test_unary() {
-        let (tokens, errors, _, input) = JsParser::parse("
+        let (tokens, errors, input) = JsParser::parse("
             !a && b
        ");
         assert_eq!(errors.len(), 0);
@@ -311,7 +309,7 @@ mod tests {
 
     #[test]
     fn test_call() {
-        let (tokens, errors, _, input) = JsParser::parse("
+        let (tokens, errors, input) = JsParser::parse("
             test(test(), test123(3 + 2))
        ");
         assert_eq!(errors.len(), 0);
@@ -342,7 +340,7 @@ mod tests {
 
     #[test]
     fn test_array() {
-        let (tokens, errors, _, input) = JsParser::parse("
+        let (tokens, errors, input) = JsParser::parse("
             [1, 2, 3, [4, 5], [6], []]
        ");
         assert_eq!(errors.len(), 0);
@@ -364,7 +362,7 @@ mod tests {
 
     #[test]
     fn test_dot_access() {
-        let (tokens, errors, _, input) = JsParser::parse("
+        let (tokens, errors, input) = JsParser::parse("
             a().b.c.d;
        ");
         assert_eq!(errors.len(), 0);
@@ -388,7 +386,7 @@ mod tests {
 
     #[test]
     fn test_exp_access() {
-        let (tokens, errors, _, input) = JsParser::parse("
+        let (tokens, errors, input) = JsParser::parse("
             (1 + 2).c[d][e].z;
        ");
         assert_eq!(errors.len(), 0);
@@ -417,7 +415,7 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let (tokens, errors, _, input) = JsParser::parse("
+        let (tokens, errors, input) = JsParser::parse("
             new Something(new Other)
        ");
         assert_eq!(errors.len(), 0);
@@ -436,7 +434,7 @@ mod tests {
 
     #[test]
     fn test_ternary() {
-        let (tokens, errors, _, input) = JsParser::parse("
+        let (tokens, errors, input) = JsParser::parse("
             a ? b : (c + k) ? d : e;
        ");
         assert_eq!(errors.len(), 0);

@@ -42,7 +42,7 @@ impl Display for Diagnostic {
     }
 }
 
-pub type StorytellResult<T> = Result<T, Diagnostic>;
+pub type StorytellResult<T> = Result<T, Vec<Diagnostic>>;
 
 pub trait DiagnosticCollector {
     fn add_diagnostic(&mut self, err: Diagnostic);

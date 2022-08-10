@@ -85,7 +85,7 @@ pub enum NumberType {
 pub struct Tokenizer<'a> {
     pub input: InputConsumer<'a>,
     pub last_token: Option<Token>,
-    pub errors: Vec<Diagnostic>
+    pub diagnostics: Vec<Diagnostic>
 }
 
 impl<'a> Tokenizer<'a> {
@@ -94,7 +94,7 @@ impl<'a> Tokenizer<'a> {
         Self { 
             input: InputConsumer::new(content),
             last_token: None,
-            errors: vec![]
+            diagnostics: vec![]
         }
     }
 
@@ -104,7 +104,7 @@ impl<'a> Tokenizer<'a> {
             match self.input.next() {
                 Some(character) if character == end_char => break,
                 None => {
-                    self.errors.push(dia!(END_OF_STR, self.input.range(start)))
+                    self.diagnostics.push(dia!(END_OF_STR, self.input.range(start)))
                 },
                 _ => {}
             }
@@ -141,11 +141,11 @@ impl<'a> Tokenizer<'a> {
                 ch @ '1'..='9' => {
                     match number_type {
                         NumberType::Binary if ch > '1' => {
-                            self.errors.push(dia!(INVALID_DIGIT, self.input.range_here(), &ch.to_string()));
+                            self.diagnostics.push(dia!(INVALID_DIGIT, self.input.range_here(), &ch.to_string()));
                             number_type = NumberType::None;
                         },
                         NumberType::Octal if ch > '7' => {
-                            self.errors.push(dia!(INVALID_DIGIT, self.input.range_here(), &ch.to_string()));
+                            self.diagnostics.push(dia!(INVALID_DIGIT, self.input.range_here(), &ch.to_string()));
                             number_type = NumberType::None;
                         },
                         _ => {}
@@ -156,7 +156,7 @@ impl<'a> Tokenizer<'a> {
                 '.' if number_type == NumberType::None => {
                     self.input.skip_chars(1);
                     if has_dot {
-                        self.errors.push(dia!(DECIMAL_POINT, self.input.range_here()));
+                        self.diagnostics.push(dia!(DECIMAL_POINT, self.input.range_here()));
                         break;
                     };
                     has_dot = true;
@@ -166,7 +166,7 @@ impl<'a> Tokenizer<'a> {
             }
         };
         if self.input.prev(1)? == '_' {
-            self.errors.push(dia!(NUMERIC_SEPARATOR_AT_END, self.input.range(start)))
+            self.diagnostics.push(dia!(NUMERIC_SEPARATOR_AT_END, self.input.range(start)))
         }
         Some(Token {
             kind: TokenKind::Number,
@@ -284,7 +284,7 @@ impl<'a> Tokenizer<'a> {
                 return Some(token);
             }
         }
-        self.errors.push(dia!(EXPECTED_TOKEN, self.input.range_here(), msg));
+        self.diagnostics.push(dia!(EXPECTED_TOKEN, self.input.range_here(), msg));
         None
     }
 
@@ -311,7 +311,7 @@ impl<'a> Tokenizer<'a> {
                 res.push(tok);
             }
         }
-        (res, parser.input.data, parser.errors)
+        (res, parser.input.data, parser.diagnostics)
     }
 
 

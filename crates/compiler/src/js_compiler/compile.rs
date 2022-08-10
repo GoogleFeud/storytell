@@ -1,7 +1,10 @@
+use super::inline_js::MagicVariableTraverser;
 use super::{CompilerContext, Path};
+use storytell_js_parser::ast::Visitable;
 use storytell_parser::ast::model::*;
 use storytell_diagnostics::diagnostic::*;
 use storytell_diagnostics::{dia, make_diagnostics};
+use storytell_js_parser::JsParser;
 
 make_diagnostics!(define [
     UNKNOWN_CHILD_PATH,
@@ -28,7 +31,17 @@ impl JSCompilable for ASTInline {
             ASTInlineKind::Italics(text) => Ok(format!("<i>{}</i>", text.compile(ctx)?)),
             ASTInlineKind::Underline(text) => Ok(format!("<u>{}</u>", text.compile(ctx)?)),
             ASTInlineKind::Code(text) => Ok(format!("<code>{}</code>", text.compile(ctx)?)),
-            ASTInlineKind::Javascript(text) => Ok(format!("${{{}}}", text)),
+            ASTInlineKind::Javascript(text) => {
+                let (expressions, diagnostics, input) = JsParser::parse(text);
+                if !diagnostics.is_empty() {
+                    Err(diagnostics)
+                } else {
+                    let mut visitor = MagicVariableTraverser::new(input);
+                    expressions.visit_each_child(&mut visitor);
+                    ctx.magic_variables.extend(visitor.magic_variables.into_iter());
+                    Ok(format!("${{{}({})}}", ctx.bootstrap.inline_js_fn, text.safe_compile()))
+                }
+            },
             ASTInlineKind::Divert(thing, is_temp) => {
                 match ctx.paths.try_get_child_by_path(thing) {
                     Ok(_) => {
@@ -36,9 +49,9 @@ impl JSCompilable for ASTInline {
                     },
                     Err(ind) => {
                         if ind == 0 {
-                            Err(dia!(UNKNOWN_PATH, self.range.clone(), &thing[ind]))
+                            Err(vec![dia!(UNKNOWN_PATH, self.range.clone(), &thing[ind])])
                         } else {
-                            Err(dia!(UNKNOWN_CHILD_PATH, self.range.clone(), &thing[ind], &thing[ind - 1]))
+                            Err(vec![dia!(UNKNOWN_CHILD_PATH, self.range.clone(), &thing[ind], &thing[ind - 1])])
                         }
                     }
                 }

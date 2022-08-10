@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 storytell_diagnostics = { path = "../diagnostics" }
 storytell_parser = { path = "../parser" }
+storytell_js_parser = { path = "../js_parser" }

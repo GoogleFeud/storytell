@@ -1,3 +1,4 @@
+pub mod inline_js;
 pub mod compile;
 
 use compile::{JSCompilable};
@@ -9,7 +10,7 @@ use crate::files::file_host::{FileHost};
 use self::compile::JSSafeCompilable;
 
 pub struct FileDiagnostic {
-    pub diagnostic: Diagnostic,
+    pub diagnostics: Vec<Diagnostic>,
     pub filename: String
 }
 
@@ -34,15 +35,20 @@ pub struct JSBootstrapVars {
     pub match_fn: &'static str,
     /// Responsible for creating choice groups
     /// (choices: Array<{text: string, children: Children[]}>, attribues: Array<{name: string, params: string[]}>) => any
-    pub choice_group_fn: &'static str
+    pub choice_group_fn: &'static str,
+    // Responsible for handling inline js
+    /// (codes: Array<string>) => any
+    pub inline_js_fn: &'static str
 }
 
+#[derive(Clone, Debug)]
 pub enum MagicVariableType {
     String,
     Number,
     Bool,
     Array,
-    Map
+    Map,
+    Unknown
 }
 
 pub struct JSCompiler<T: FileHost> {
@@ -78,7 +84,7 @@ impl<T: FileHost> JSCompiler<T> {
                 Ok(compiled) => result.push(compiled),
                 Err(error) => {
                     ctx.diagnostics.push(FileDiagnostic {
-                        diagnostic: error,
+                        diagnostics: error,
                         filename: file_name.to_string()
                     });
                     return None
@@ -96,7 +102,7 @@ impl<T: FileHost> JSCompiler<T> {
                 match header.compile(&mut ctx) {
                     Ok(compiled) => results.push(compiled),
                     Err(error) => ctx.diagnostics.push(FileDiagnostic {
-                        diagnostic: error,
+                        diagnostics: error,
                         filename: file_path.clone()
                     })
                 }
@@ -122,7 +128,7 @@ pub fn compile_str(string: &str, booststrap: JSBootstrapVars, line_endings: usiz
     for header in headers {
         match header.compile(&mut ctx) {
             Ok(compiled) => result.push(compiled),
-            Err(err) => total_errors.push(err)
+            Err(mut err) => total_errors.append(&mut err)
         }
     }
     (result.safe_compile(), total_errors, ctx)
@@ -230,18 +236,22 @@ mod tests {
         paragraph_fn: "Paragraph",
         codeblock_fn: "Codeblock",
         match_fn: "Match",
-        choice_group_fn: "ChoiceGroup"
+        choice_group_fn: "ChoiceGroup",
+        inline_js_fn: "Js"
     };
 
     #[test]
     fn compile() {
-        let (result, errors, _) = compile_str("
+        let (result, _, ctx) = compile_str("
 # Hello, World!
-How's it going on this **fine** day?
+How's it going on this {a += 1} {b += 5; c += \"Hello World!\"}?
 
+```js
+console.log('some code...');
+```
 Hello!
 ", BOOTSTRAP_VARS.clone(), 1);
-        println!("{} {:?}", result, errors);
+        println!("{} {:?}", result, ctx.magic_variables);
         panic!("AAA");
     }
 
