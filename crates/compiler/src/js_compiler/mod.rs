@@ -37,13 +37,21 @@ pub struct JSBootstrapVars {
     /// (choices: Array<{text: string, children: Children[]}>, attribues: Array<{name: string, params: string[]}>) => any
     pub choice_group_fn: &'static str,
     // Responsible for handling inline js
-    /// (codes: Array<string>) => any
-    pub inline_js_fn: &'static str
+    /// (codes: Array<string>, collected_variables: Array<{ name: string, value_type: number }>) => any
+    pub inline_js_fn: &'static str,
+    /// Responsible for handling paths
+    /// (path: {
+    ///     title: string,
+    ///     canonicalTitle: string,
+    ///     childPaths: Array<This>
+    ///     children: []
+    /// }) => any
+    pub path_fn: &'static str
 }
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum MagicVariableType {
-    String,
+    String = 0,
     Number,
     Bool,
     Array,
@@ -237,21 +245,22 @@ mod tests {
         codeblock_fn: "Codeblock",
         match_fn: "Match",
         choice_group_fn: "ChoiceGroup",
-        inline_js_fn: "Js"
+        inline_js_fn: "Js",
+        path_fn: "Path"
     };
 
     #[test]
     fn compile() {
-        let (result, _, ctx) = compile_str("
+        let (result, _, _ctx) = compile_str("
 # Hello, World!
-How's it going on this {a += 1} {b += 5; c += \"Hello World!\"}?
+How's it going on this {a += 1} {b += 5; c += \"Hello World!\"; v = d = 33}?
 
 ```js
-console.log('some code...');
+console.log(\"some code...\");
 ```
 Hello!
 ", BOOTSTRAP_VARS.clone(), 1);
-        println!("{} {:?}", result, ctx.magic_variables);
+        println!("{:?}", result);
         panic!("AAA");
     }
 

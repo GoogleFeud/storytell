@@ -47,7 +47,7 @@ impl<'a> JsParser<'a> {
             if right_prec == 0 {
                 return Some(left);
             };
-            if right_prec > left_prec {
+            if right_prec >= left_prec {
                 let op_token = self.tokens.consume().unwrap();
                 let exp = if let Some(exp) = self.parse_single_expression(true) {
                     exp

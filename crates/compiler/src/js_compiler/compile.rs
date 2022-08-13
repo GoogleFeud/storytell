@@ -32,14 +32,16 @@ impl JSCompilable for ASTInline {
             ASTInlineKind::Underline(text) => Ok(format!("<u>{}</u>", text.compile(ctx)?)),
             ASTInlineKind::Code(text) => Ok(format!("<code>{}</code>", text.compile(ctx)?)),
             ASTInlineKind::Javascript(text) => {
-                let (expressions, diagnostics, input) = JsParser::parse(text);
+                let replaced_text = text.replace("\n", "\\n");
+                let (expressions, diagnostics, input) = JsParser::parse(&replaced_text);
                 if !diagnostics.is_empty() {
                     Err(diagnostics)
                 } else {
                     let mut visitor = MagicVariableTraverser::new(input);
                     expressions.visit_each_child(&mut visitor);
+                    let gathered_variables = visitor.magic_variables.iter().map(|pair| format!("{{name: {}, type: {}}}", pair.0.safe_compile(), *pair.1 as u8)).collect::<Vec<String>>();
                     ctx.magic_variables.extend(visitor.magic_variables.into_iter());
-                    Ok(format!("${{{}({})}}", ctx.bootstrap.inline_js_fn, text.safe_compile()))
+                    Ok(format!("${{{}({},{})}}", ctx.bootstrap.inline_js_fn, replaced_text.safe_compile(), gathered_variables.safe_compile()))
                 }
             },
             ASTInlineKind::Divert(thing, is_temp) => {
@@ -94,12 +96,7 @@ impl JSCompilable for ASTHeader {
                 others.push(child)
             }
         }
-        Ok(format!("{{
-            title: {},
-            canonicalTitle: {},
-            childPaths: {{{}}},
-            children: [{}]
-        }}", 
+        Ok(format!("{{title:{},canonicalTitle:{},childPaths:{{{}}},children:[{}]}}", 
         self.title.text.safe_compile(), 
         Path::canonicalize_name(&self.title.text).safe_compile(),
         header_children.join(","),
@@ -112,7 +109,7 @@ impl JSCompilable for ASTParagraph {
     fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
         let para = ctx.bootstrap.paragraph_fn;
         if self.parts.is_empty() {
-            return Ok(format!("{}({}, {})", para, self.tail.safe_compile(), self.attributes.compile(ctx)?))
+            return Ok(format!("{}({},{})", para, self.tail.safe_compile(), self.attributes.compile(ctx)?))
         }
         let mut result = String::new();
         for part in &self.parts {
@@ -120,21 +117,21 @@ impl JSCompilable for ASTParagraph {
             result.push_str(&part.text.compile(ctx)?)
         }
         result.push_str(&self.tail);
-        Ok(format!("{}({}, {})", para, result.safe_compile(), self.attributes.compile(ctx)?))
+        Ok(format!("{}(`{}`,{})", para, result, self.attributes.compile(ctx)?))
     }
 }
 
 impl JSCompilable for ASTCodeBlock {
     fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
         let codeblock_fn = ctx.bootstrap.codeblock_fn;
-        Ok(format!("{}({}, {}, {})", codeblock_fn, self.text.safe_compile(), self.language.safe_compile(), self.attributes.compile(ctx)?))
+        Ok(format!("{}({},{},{})", codeblock_fn, self.text.safe_compile(), self.language.safe_compile(), self.attributes.compile(ctx)?))
     }
 }
 
 impl JSCompilable for ASTMatch {
     fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
         let match_fn = ctx.bootstrap.match_fn;
-        Ok(format!("{}({}, {}, {}, {})", 
+        Ok(format!("{}({},{},{},{})", 
         match_fn, 
         self.matched,
         self.choices.compile(ctx)?,
@@ -157,7 +154,7 @@ impl JSCompilable for ASTChoiceGroup {
 
 impl JSCompilable for ASTChoice {
     fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
-        Ok(format!("{{text: {}, children: {}}}", self.text.compile(ctx)?, self.children.compile(ctx)?))
+        Ok(format!("{{text:{},children:{}}}", self.text.compile(ctx)?, self.children.compile(ctx)?))
     }
 }
 
@@ -177,7 +174,7 @@ impl JSCompilable for Vec<ASTAttribute> {
     fn compile(&self, _ctx: &mut CompilerContext) -> StorytellResult<String> {
         Ok(format!("[{}]", 
         self.iter().map(|i| 
-            format!("{{name: {}, params: {}}}", i.name.safe_compile(), i.parameters.iter().map(|i| 
+            format!("{{name:{},params:{}}}", i.name.safe_compile(), i.parameters.iter().map(|i| 
                 i.safe_compile()).collect::<Vec<String>>().join(",")
             )).collect::<Vec<String>>().join(",")
         ))
@@ -186,7 +183,7 @@ impl JSCompilable for Vec<ASTAttribute> {
 
 impl JSSafeCompilable for String {
     fn safe_compile(&self) -> String {
-        format!("\"{}\"", self)
+        format!("'{}'", self)
     }
 }
 

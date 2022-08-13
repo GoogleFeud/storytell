@@ -21,7 +21,7 @@ impl<'a> Visitor for MagicVariableTraverser<'a> {
     fn binary(&mut self, exp: &ASTBinary) {
         if let ASTExpression::Identifier(left_ident) = &exp.left {
             match exp.operator {
-                TokenKind::PlusEqualsOp | TokenKind::EqualsEqualsOp | TokenKind::EqualsEqualsEqualsOp | TokenKind::NotEqualsEqualsOp => {
+                TokenKind::PlusEqualsOp | TokenKind::EqualsEqualsOp | TokenKind::EqualsEqualsEqualsOp | TokenKind::NotEqualsEqualsOp | TokenKind::EqualsOp => {
                     let variable_type = match exp.right {
                         ASTExpression::String(_) => MagicVariableType::String,
                         ASTExpression::Number(_) => MagicVariableType::Number,
@@ -36,5 +36,7 @@ impl<'a> Visitor for MagicVariableTraverser<'a> {
                 _ => {}
             }
         }
+        exp.visit_each_child(self)
     }
+
 }
