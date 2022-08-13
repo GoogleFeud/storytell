@@ -7,7 +7,7 @@ pub trait Visitable {
     fn visit_each_child<T: Visitor + ?Sized>(&self, visitor: &mut T);
 }
 
-pub trait MutVisitable<Item> {
+pub trait MutVisitable<Item>: Clone {
     fn visit_mut<T: MutVisitor + ?Sized>(&self, visitor: &mut T) -> Item;
     fn visit_each_child_mut<T: MutVisitor + ?Sized>(&self, visitor: &mut T) -> Item;
 }
@@ -21,7 +21,7 @@ macro_rules! create_nodes {
             fn optional_expression(&mut self, exp: &Option<ASTExpression>) {
                 if let Some(exp) = exp { exp.visit(self) }
             }
-            fn expression_list(&mut self, _exp: &[ASTExpression]) {}
+            fn list<T: Visitable>(&mut self, _exp: &Vec<T>) {}
             $(fn $type(&mut self, _exp: &$name) {})+
         }
 
@@ -32,7 +32,7 @@ macro_rules! create_nodes {
             fn optional_expression(&mut self, exp: &Option<ASTExpression>) -> Option<ASTExpression> {
                 exp.as_ref().map(|exp| exp.visit_mut(self))
             }
-            fn expression_list(&mut self, exp: &[ASTExpression]) -> Vec<ASTExpression> { exp.to_vec() }
+            fn list<M, T: MutVisitable<M> + Clone>(&mut self, exp: &Vec<T>) -> Vec<T> { exp.to_vec() }
             $(fn $type(&mut self, exp: &$name) -> $name { exp.clone() })+
         }
 
@@ -84,12 +84,12 @@ create_nodes!([
     ASTIdentifier, identifier {}, {}
 ], [
     ASTArray, array {}, {
-        elements: Vec<ASTExpression> [expression_list]
+        elements: Vec<ASTExpression> [list]
     }
 ], [
     ASTCall, call {}, {
         expression: ASTExpression [expression],
-        arguments: Vec<ASTExpression> [expression_list]
+        arguments: Vec<ASTExpression> [list]
     }
 ], [
     ASTBinary, binary {
@@ -112,7 +112,7 @@ create_nodes!([
     }
 ], [
     ASTNew, new_exp {}, {
-        arguments: Vec<ASTExpression> [expression_list],
+        arguments: Vec<ASTExpression> [list],
         expression: ASTExpression [expression]
     }
 ], [
@@ -120,6 +120,18 @@ create_nodes!([
         condition: ASTExpression [expression],
         left: ASTExpression [expression],
         right: ASTExpression [expression]
+    }
+], [
+    ASTStringLiteralPart, string_literal_part {
+        before: String
+    }, {
+        expression: ASTExpression [expression]
+    }
+], [
+    ASTStringLiteral, string_literal {
+        start: String
+    }, {
+        spans: Vec<ASTStringLiteralPart> [list]
     }
 ]);
 
@@ -254,9 +266,9 @@ impl MutVisitable<ASTExpression> for ASTExpression {
     }
 }
 
-impl Visitable for Vec<ASTExpression> {
+impl<Item: Visitable> Visitable for Vec<Item> {
     fn visit<T: Visitor + ?Sized>(&self, visitor: &mut T) {
-        visitor.expression_list(self)
+        visitor.list(self)
     }
 
     fn visit_each_child<T: Visitor + ?Sized>(&self, visitor: &mut T) {
@@ -266,12 +278,12 @@ impl Visitable for Vec<ASTExpression> {
     }
 }
 
-impl MutVisitable<Vec<ASTExpression>> for Vec<ASTExpression> {
-    fn visit_mut<T: MutVisitor + ?Sized>(&self, visitor: &mut T) -> Vec<ASTExpression> {
-        visitor.expression_list(self)
+impl<Item: MutVisitable<Item>> MutVisitable<Vec<Item>> for Vec<Item> {
+    fn visit_mut<T: MutVisitor + ?Sized>(&self, visitor: &mut T) -> Vec<Item> {
+        visitor.list(self)
     }
 
-    fn visit_each_child_mut<T: MutVisitor + ?Sized>(&self, visitor: &mut T) -> Vec<ASTExpression> {
+    fn visit_each_child_mut<T: MutVisitor + ?Sized>(&self, visitor: &mut T) -> Vec<Item> {
         self.iter().map(|e| e.visit_mut(visitor)).collect()
     }
 }

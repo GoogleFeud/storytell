@@ -277,7 +277,6 @@ mod tests {
             self.occurance += 1;
             exp.visit_each_child(self);
         }
-
     }
 
     #[test]

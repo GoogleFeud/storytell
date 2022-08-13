@@ -32,8 +32,7 @@ impl JSCompilable for ASTInline {
             ASTInlineKind::Underline(text) => Ok(format!("<u>{}</u>", text.compile(ctx)?)),
             ASTInlineKind::Code(text) => Ok(format!("<code>{}</code>", text.compile(ctx)?)),
             ASTInlineKind::Javascript(text) => {
-                let replaced_text = text.replace("\n", "\\n");
-                let (expressions, diagnostics, input) = JsParser::parse(&replaced_text);
+                let (expressions, diagnostics, input) = JsParser::parse(text);
                 if !diagnostics.is_empty() {
                     Err(diagnostics)
                 } else {
@@ -41,7 +40,7 @@ impl JSCompilable for ASTInline {
                     expressions.visit_each_child(&mut visitor);
                     let gathered_variables = visitor.magic_variables.iter().map(|pair| format!("{{name: {}, type: {}}}", pair.0.safe_compile(), *pair.1 as u8)).collect::<Vec<String>>();
                     ctx.magic_variables.extend(visitor.magic_variables.into_iter());
-                    Ok(format!("${{{}({},{})}}", ctx.bootstrap.inline_js_fn, replaced_text.safe_compile(), gathered_variables.safe_compile()))
+                    Ok(format!("${{{}({},{})}}", ctx.bootstrap.inline_js_fn, text.safe_compile(), gathered_variables.safe_compile()))
                 }
             },
             ASTInlineKind::Divert(thing, is_temp) => {
