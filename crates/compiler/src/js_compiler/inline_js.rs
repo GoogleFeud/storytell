@@ -17,26 +17,46 @@ impl<'a> MagicVariableTraverser<'a> {
     }
 }
 
-impl<'a> Visitor for MagicVariableTraverser<'a> {
-    fn binary(&mut self, exp: &ASTBinary) {
-        if let ASTExpression::Identifier(left_ident) = &exp.left {
-            match exp.operator {
-                TokenKind::PlusEqualsOp | TokenKind::EqualsEqualsOp | TokenKind::EqualsEqualsEqualsOp | TokenKind::NotEqualsEqualsOp | TokenKind::EqualsOp => {
-                    let variable_type = match exp.right {
-                        ASTExpression::String(_) => MagicVariableType::String,
-                        ASTExpression::Number(_) => MagicVariableType::Number,
-                        ASTExpression::Boolean(_) => MagicVariableType::Bool,
-                        _ => MagicVariableType::Unknown
-                    };
-                    self.magic_variables.insert(self.input.from_range(&left_ident.range).to_string(), variable_type);
-                },
-                TokenKind::MinusEqualsOp | TokenKind::StarEqualsOp | TokenKind::StarEqualsOp if matches!(exp.right, ASTExpression::Number(_)) => {
-                    self.magic_variables.insert(self.input.from_range(&left_ident.range).to_string(), MagicVariableType::Number);
-                },
-                _ => {}
+impl<'a> MagicVariableTraverser<'a> {
+    fn process_exp(&mut self, exp: &ASTExpression) -> MagicVariableType {
+        match exp {
+            ASTExpression::Binary(exp) => {
+                if let ASTExpression::Identifier(left_ident) = &exp.left {
+                    match exp.operator {
+                        TokenKind::PlusEqualsOp | TokenKind::EqualsEqualsOp | TokenKind::EqualsEqualsEqualsOp | TokenKind::NotEqualsEqualsOp | TokenKind::EqualsOp => {
+                            let variable_type = self.process_exp(&exp.right);
+                            self.magic_variables.insert(self.input.from_range(&left_ident.range).to_string(), variable_type);
+                            variable_type
+                        },
+                        TokenKind::MinusEqualsOp | TokenKind::StarEqualsOp | TokenKind::StarEqualsOp if matches!(exp.right, ASTExpression::Number(_)) => {
+                            self.magic_variables.insert(self.input.from_range(&left_ident.range).to_string(), MagicVariableType::Number);
+                            MagicVariableType::Number
+                        },
+                        _ => {
+                            let exp_type = self.process_exp(&exp.right);
+                            self.magic_variables.insert(self.input.from_range(&left_ident.range).to_string(), exp_type);
+                            exp_type
+                        }
+                    }
+                } else {
+                    exp.visit_each_child(self);
+                    MagicVariableType::Unknown
+                }
+            },
+            ASTExpression::String(_) => MagicVariableType::String,
+            ASTExpression::Number(_) => MagicVariableType::Number,
+            ASTExpression::Boolean(_) => MagicVariableType::Bool,
+            ASTExpression::ArrayLit(_) => MagicVariableType::Array,
+            _ => {
+                exp.visit_each_child(self);
+                MagicVariableType::Unknown
             }
         }
-        exp.visit_each_child(self)
     }
+}
 
+impl<'a> Visitor for MagicVariableTraverser<'a> {
+    fn expression(&mut self,exp: &ASTExpression) {
+        self.process_exp(exp);
+    }
 }

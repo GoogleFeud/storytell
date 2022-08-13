@@ -253,7 +253,7 @@ mod tests {
     fn compile() {
         let (result, diagnostics, _ctx) = compile_str("
 # Hello, World!
-How's it going on this {a += 1} {b += 5; c += `Hello World!`; v = d = 33}?
+How's it going on this {a += 1} {b += 5; c += \"Hello World!\"; v = d = 33}?
 
 ```js
 console.log(\"some code...\");
