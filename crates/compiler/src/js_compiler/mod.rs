@@ -6,14 +6,9 @@ use compile::{JSCompilable};
 use std::collections::{HashMap};
 use storytell_diagnostics::diagnostic::{Diagnostic};
 use storytell_parser::{ast::{model::{ASTHeader, ASTBlock}, Parser}, input::ParsingContext};
-use crate::files::file_host::{FileHost};
+use storytell_fs::file_host::{FileHost, FileDiagnostic, GetFindResult};
 
 use self::compile::JSSafeCompilable;
-
-pub struct FileDiagnostic {
-    pub diagnostics: Vec<Diagnostic>,
-    pub filename: String
-}
 
 /// The compiler just compiles everything to javascript
 /// It doesn't provide a "runtime" which actually keeps
@@ -75,7 +70,16 @@ impl<T: FileHost> JSCompiler<T> {
     }
 
     fn prepare(&mut self, file_name: &str, ctx: &mut CompilerContext) -> Option<Vec<&ASTHeader>> {
-        let file = self.host.get(file_name)?;
+        let file = match self.host.get_or_find(file_name) {
+            GetFindResult::FromCache(file) => file,
+            GetFindResult::Parsed(file, diagnostic) => {
+                if let Some(dia) = diagnostic {
+                    ctx.add_diagnostic(dia);
+                }
+                file
+            }
+            GetFindResult::NotFound => return None
+        };
         let mut paths: Vec<&ASTHeader> = vec![];
         for thing in &file.content {
             if let ASTBlock::Header(header) = thing {
