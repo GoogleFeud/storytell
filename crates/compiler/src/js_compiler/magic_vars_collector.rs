@@ -1,14 +1,13 @@
-
 use storytell_js_parser::{ast::*, tokenizer::TokenKind, input::InputPresenter};
 use crate::js_compiler::MagicVariableType;
 use std::collections::HashMap;
 
-pub struct MagicVariableTraverser<'a> {
+pub struct MagicVarCollector<'a> {
     pub input: InputPresenter<'a>,
     pub magic_variables: HashMap<String, MagicVariableType>
 }
 
-impl<'a> MagicVariableTraverser<'a> {
+impl<'a> MagicVarCollector<'a> {
     pub fn new(input: InputPresenter<'a>) -> Self {
         Self { 
             magic_variables: HashMap::new(),
@@ -17,7 +16,7 @@ impl<'a> MagicVariableTraverser<'a> {
     }
 }
 
-impl<'a> MagicVariableTraverser<'a> {
+impl<'a> MagicVarCollector<'a> {
     fn process_exp(&mut self, exp: &ASTExpression) -> MagicVariableType {
         match exp {
             ASTExpression::Binary(exp) => {
@@ -55,7 +54,7 @@ impl<'a> MagicVariableTraverser<'a> {
     }
 }
 
-impl<'a> Visitor for MagicVariableTraverser<'a> {
+impl<'a> Visitor for MagicVarCollector<'a> {
     fn expression(&mut self,exp: &ASTExpression) {
         self.process_exp(exp);
     }

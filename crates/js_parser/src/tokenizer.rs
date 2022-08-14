@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use storytell_diagnostics::{location::Range, diagnostic::*, make_diagnostics, dia};
 use crate::input::{InputConsumer, InputPresenter};
 
@@ -315,6 +317,51 @@ impl<'a> Tokenizer<'a> {
     }
 
 
+}
+
+impl Display for TokenKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::AmpersandAmpersandOp => write!(f, "&&"),
+            Self::BarBarOp => write!(f, "||"),
+            Self::ColonOp => write!(f, ":"),
+            Self::CommaPunc => write!(f, ","),
+            Self::DotDotDotOp => write!(f, "..."),
+            Self::DotOp => write!(f, "."),
+            Self::EqualsEqualsEqualsOp => write!(f, "==="),
+            Self::EqualsEqualsOp => write!(f, "=="),
+            Self::EqualsOp => write!(f, "="),
+            Self::ExclamationOp => write!(f, "!"),
+            Self::FalseKeyword => write!(f, "false"),
+            Self::GreaterThanEqualsOp => write!(f, ">="),
+            Self::GreaterThanOp => write!(f, ">"),
+            Self::LessThanEqualsOp => write!(f, "<="),
+            Self::LessThanOp => write!(f, "<"),
+            Self::MinusEqualsOp => write!(f, "-="),
+            Self::MinusOp => write!(f, "-"),
+            Self::NewKeyword => write!(f, "new"),
+            Self::NotEqualsEqualsOp => write!(f, "!=="),
+            Self::NotEqualsOp => write!(f, "!="),
+            Self::ParanthesisClosePunc => write!(f, ")"),
+            Self::ParanthesisOpenPunc => write!(f, "("),
+            Self::PercentOp => write!(f, "%"),
+            Self::PlusEqualsOp => write!(f, "+="),
+            Self::PlusOp => write!(f, "+"),
+            Self::QuestionOp => write!(f, "?"),
+            Self::QuestionQuestionOp => write!(f, "??"),
+            Self::SemicolonPunc => write!(f, ";"),
+            Self::SlashEqualsOp => write!(f, "/="),
+            Self::SlashOp => write!(f, "/"),
+            Self::SquareBracketClosePunc => write!(f, "]"),
+            Self::SquareBracketOpenPunc => write!(f, "["),
+            Self::StarEqualsOp => write!(f, "*="),
+            Self::StarOp => write!(f, "*"),
+            Self::StarStarOp => write!(f, "**"),
+            Self::TrueKeyword => write!(f, "true"),
+            Self::VoidKeyword => write!(f, "void"),
+            _ => panic!("Token kind cannot be turned into a string.")
+        }
+    }
 }
 
 #[cfg(test)]

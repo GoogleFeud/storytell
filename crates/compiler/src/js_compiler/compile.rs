@@ -1,4 +1,5 @@
-use super::visitors::MagicVariableTraverser;
+use super::magic_vars_collector::MagicVarCollector;
+use super::rebuilder::Rebuilder;
 use super::{CompilerContext, Path};
 use storytell_js_parser::ast::Visitable;
 use storytell_parser::ast::model::*;
@@ -36,11 +37,12 @@ impl JSCompilable for ASTInline {
                 if !diagnostics.is_empty() {
                     Err(diagnostics)
                 } else {
-                    let mut visitor = MagicVariableTraverser::new(input);
-                    expressions.visit_each_child(&mut visitor);
-                    let gathered_variables = visitor.magic_variables.iter().map(|pair| format!("{{name: {}, type: {}}}", pair.0.safe_compile(), *pair.1 as u8)).collect::<Vec<String>>();
-                    ctx.magic_variables.extend(visitor.magic_variables.into_iter());
-                    Ok(format!("${{{}({},{})}}", ctx.bootstrap.inline_js_fn, text.replace("\"", "\\\"").safe_compile(), gathered_variables.safe_compile()))
+                    let mut magic_vars_collector = MagicVarCollector::new(input);
+                    expressions.visit_each_child(&mut magic_vars_collector);
+                    let gathered_variables = magic_vars_collector.magic_variables.iter().map(|pair| format!("{{name: {}, type: {}}}", pair.0.safe_compile(), *pair.1 as u8)).collect::<Vec<String>>();
+                    ctx.magic_variables.extend(magic_vars_collector.magic_variables.into_iter());
+                    let rebuilt_code = Rebuilder::run(magic_vars_collector.input, &expressions);
+                    Ok(format!("${{{}({},{})}}", ctx.bootstrap.inline_js_fn, rebuilt_code.safe_compile(), gathered_variables.safe_compile()))
                 }
             },
             ASTInlineKind::Divert(thing, is_temp) => {
@@ -108,7 +110,7 @@ impl JSCompilable for ASTParagraph {
     fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
         let para = ctx.bootstrap.paragraph_fn;
         if self.parts.is_empty() {
-            return Ok(format!("{}({},{})", para, self.tail.safe_compile(), self.attributes.compile(ctx)?))
+            return Ok(format!("{}(`{}`,{})", para, self.tail, self.attributes.compile(ctx)?))
         }
         let mut result = String::new();
         for part in &self.parts {
@@ -123,7 +125,7 @@ impl JSCompilable for ASTParagraph {
 impl JSCompilable for ASTCodeBlock {
     fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
         let codeblock_fn = ctx.bootstrap.codeblock_fn;
-        Ok(format!("{}({},{},{})", codeblock_fn, self.text.safe_compile(), self.language.safe_compile(), self.attributes.compile(ctx)?))
+        Ok(format!("{}(`{}`,{},{})", codeblock_fn, self.text, self.language.safe_compile(), self.attributes.compile(ctx)?))
     }
 }
 
