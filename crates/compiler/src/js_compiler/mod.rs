@@ -155,8 +155,9 @@ impl Path {
     }
 
     pub fn add_child_ast(&mut self, ast: &ASTHeader) {
+        let path_name = Self::canonicalize_name(&ast.title.text);
         let mut path = Self {
-            name: ast.title.text.clone(),
+            name: path_name.clone(),
             depth: ast.depth,
             children: HashMap::new()
         };
@@ -165,7 +166,7 @@ impl Path {
                 path.add_child_ast(block);
             }
         }
-        self.children.insert(path.name.clone(), path);
+        self.children.insert(path_name, path);
     }
 
     pub fn get_child_by_path(&self, path: &[String]) -> Option<&Path> {
@@ -260,6 +261,14 @@ How's it going on this {a += 1} {b += 5; c += 'Hello World!'; v = d = 33}?
 console.log(\"some code...\");
 ```
 Hello!
+
+## This is a subpath...
+
+- This is a choice group!
+    {killed += 1}
+    {saved -= 1}
+- Second choice 
+    -> hello_world
 ", BOOTSTRAP_VARS.clone(), 1);
         println!("{} {:?}", result, diagnostics);
         panic!("AAA");

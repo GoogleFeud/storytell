@@ -123,7 +123,7 @@ impl<'a> Parser<'a> {
                     kind
                 }))
             },
-            '-' => {
+            '-' if !self.input.peek_n(1).is('>') => {
                 Some(ASTBlock::ChoiceGroup(self.parse_choice_list(depth, false, true)?))
             },
             '/' if self.input.peek_n(1).is('/') => {

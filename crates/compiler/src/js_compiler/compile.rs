@@ -66,7 +66,7 @@ impl JSCompilable for ASTInline {
 impl JSCompilable for ASTText {
     fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
         if self.parts.is_empty() {
-            return Ok(self.tail.clone())
+            return Ok(self.tail.clone().safe_compile())
         }
         let mut result = String::new();
         for part in &self.parts {
@@ -74,7 +74,7 @@ impl JSCompilable for ASTText {
             result.push_str(&part.text.compile(ctx)?)
         }
         result.push_str(&self.tail);
-        Ok(result)
+        Ok(result.safe_compile())
     }
 }
 
@@ -97,7 +97,9 @@ impl JSCompilable for ASTHeader {
                 others.push(child)
             }
         }
-        Ok(format!("{{title:{},canonicalTitle:{},childPaths:{{{}}},children:[{}]}}", 
+        let path_fn = ctx.bootstrap.path_fn;
+        Ok(format!("{}({{title:{},canonicalTitle:{},childPaths:{{{}}},children:[{}]}})", 
+        path_fn,
         self.title.text.safe_compile(), 
         Path::canonicalize_name(&self.title.text).safe_compile(),
         header_children.join(","),

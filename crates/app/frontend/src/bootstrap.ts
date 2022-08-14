@@ -42,14 +42,14 @@ export const [state, setState] = createStore<{
     choiceSelection?: [ChoiceGroup, (selectedChoice: Choice) => Promise<void>],
     currentPath?: Path,
     textEntries: Array<string>
-        }>({
-            textEntries: []
-        });
+}>({
+    textEntries: []
+});
 
 window.jumpToPath = (path: Array<string>, choice?: Choice) => {
     let finalPath = window.paths[path[0]];
     if (!finalPath) return;
-    for (let i=1; i < path.length; i++) {
+    for (let i = 1; i < path.length; i++) {
         finalPath = finalPath.children[i];
         if (!finalPath) return;
     }
@@ -69,6 +69,6 @@ window.makeChoice = (group: ChoiceGroup) => {
     });
 };
 
-export function saveState() : Record<string, any> {
+export function saveState(): Record<string, any> {
     return JSON.parse(JSON.stringify(window.state));
 }
