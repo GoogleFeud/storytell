@@ -50,8 +50,7 @@ impl FileHost for VirtualFileHost {
     fn get_or_find(&mut self, path: &str) -> GetFindResult {
         if self.files.contains_key(path) {
             GetFindResult::FromCache(self.files.get(path).unwrap())
-        } else {
-            if let Some(content) = self.written_files.get(path) {
+        } else if let Some(content) = self.written_files.get(path) {
                 let (file, diagnostics) = File::new(path, content);
                 self.files.insert(path.to_string(), file);
                 GetFindResult::Parsed(self.files.get(path).unwrap(), if diagnostics.is_empty() {
@@ -63,8 +62,7 @@ impl FileHost for VirtualFileHost {
                     })
                 })
             } else {
-                GetFindResult::NotFound
-            }
+            GetFindResult::NotFound
         }
     }
 
@@ -99,21 +97,19 @@ impl FileHost for SysFileHost {
     fn get_or_find(&mut self, path: &str) -> GetFindResult {
         if self.files.contains_key(path) {
             GetFindResult::FromCache(self.files.get(path).unwrap())
-        } else {
-            if let Ok(file_contents) = read_to_string(path) {
-                let (file, dia) = File::new(path, &file_contents);
-                self.files.insert(path.to_string(), file);
-                GetFindResult::Parsed(self.files.get(path).unwrap(), if dia.is_empty() {
-                    None
-                } else {
-                    Some(FileDiagnostic {
-                        diagnostics: dia,
-                        filename: path.to_string()
-                    })
-                })
+        } else if let Ok(file_contents) = read_to_string(path) {
+            let (file, dia) = File::new(path, &file_contents);
+            self.files.insert(path.to_string(), file);
+            GetFindResult::Parsed(self.files.get(path).unwrap(), if dia.is_empty() {
+                None
             } else {
-                GetFindResult::NotFound
-            }
+                Some(FileDiagnostic {
+                    diagnostics: dia,
+                    filename: path.to_string()
+                })
+            })
+        } else {
+            GetFindResult::NotFound
         }
     }
 

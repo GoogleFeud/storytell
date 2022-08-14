@@ -1,5 +1,6 @@
 use storytell_diagnostics::location::Range;
 use storytell_js_parser::{ast::*, input::InputPresenter};
+use std::fmt::Write as _;
 
 pub struct Rebuilder<'a> {
     input: InputPresenter<'a>
@@ -10,13 +11,13 @@ impl<'a> Rebuilder<'a> {
         let mut rebuilder = Rebuilder { input };
         let mut output = String::new();
         for exp in exps {
-            output += &format!("{};", rebuilder.stringify_exp(exp));
+            write!(output, "{};", rebuilder.stringify_exp(exp)).unwrap();
         }
         output
     }
 
     fn stringify_vec_of_expr(&mut self, vector: &[ASTExpression]) -> String {
-        vector.iter().map(|el| self.stringify_exp(&el)).collect::<Vec<String>>().join(",")
+        vector.iter().map(|el| self.stringify_exp(el)).collect::<Vec<String>>().join(",")
     }
 
     fn stringify_exp(&mut self, exp: &ASTExpression) -> String {
@@ -25,11 +26,11 @@ impl<'a> Rebuilder<'a> {
             ASTExpression::Number(num) => self.input.from_range(&num.range).to_string(),
             ASTExpression::Boolean(bool) => self.input.from_range(&bool.range).to_string(),
             ASTExpression::Identifier(ident) => self.input.from_range(&ident.range).to_string(),
-            ASTExpression::Binary(binary) => format!("{}{}{}", self.stringify_exp(&binary.left), binary.operator.to_string(), self.stringify_exp(&binary.right)),
-            ASTExpression::Unary(unary) => format!("{}{}", unary.operator.to_string(), self.stringify_exp(&unary.expression)),
+            ASTExpression::Binary(binary) => format!("{}{}{}", self.stringify_exp(&binary.left), binary.operator, self.stringify_exp(&binary.right)),
+            ASTExpression::Unary(unary) => format!("{}{}", unary.operator, self.stringify_exp(&unary.expression)),
             ASTExpression::Access(access) => {
                 match &access.accessor {
-                    ASTAccessContent::Expression(exp) => format!("{}[{}]", self.stringify_exp(&access.expression), self.stringify_exp(&exp)),
+                    ASTAccessContent::Expression(exp) => format!("{}[{}]", self.stringify_exp(&access.expression), self.stringify_exp(exp)),
                     ASTAccessContent::Identifier(ident) => format!("{}.{}", self.stringify_exp(&access.expression), self.input.from_range(&ident.range))
                 }
             },

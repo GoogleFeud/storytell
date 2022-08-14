@@ -21,7 +21,7 @@ macro_rules! create_nodes {
             fn optional_expression(&mut self, exp: &Option<ASTExpression>) {
                 if let Some(exp) = exp { exp.visit_inner(self) }
             }
-            fn list<T: Visitable>(&mut self, _exp: &Vec<T>) {}
+            fn list<T: Visitable>(&mut self, _exp: &[T]) {}
             $(fn $type(&mut self, _exp: &$name) {})+
         }
 
@@ -32,7 +32,7 @@ macro_rules! create_nodes {
             fn optional_expression(&mut self, exp: &Option<ASTExpression>) -> Option<ASTExpression> {
                 exp.as_ref().map(|exp| exp.visit_inner_mut(self))
             }
-            fn list<M, T: MutVisitable<M> + Clone>(&mut self, exp: &Vec<T>) -> Vec<T> { exp.to_vec() }
+            fn list<M, T: MutVisitable<M> + Clone>(&mut self, exp: &[T]) -> Vec<T> { exp.to_vec() }
             $(fn $type(&mut self, exp: &$name) -> $name { exp.clone() })+
         }
 
