@@ -75,13 +75,21 @@ macro_rules! create_nodes {
 }
 
 create_nodes!([
-    ASTString, string {}, {}
+    ASTString, string {
+        content: Option<String>
+    }, {}
 ], [
-    ASTNumber, number {}, {}
+    ASTNumber, number {
+        content: Option<String>
+    }, {}
 ], [
-    ASTBoolean, boolean {}, {}
+    ASTBoolean, boolean {
+        content: Option<String>
+    }, {}
 ], [
-    ASTIdentifier, identifier {}, {}
+    ASTIdentifier, identifier {
+        content: Option<String>
+    }, {}
 ], [
     ASTArray, array {}, {
         elements: Vec<ASTExpression> [list]

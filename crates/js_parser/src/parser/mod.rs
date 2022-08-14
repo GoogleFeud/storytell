@@ -105,7 +105,7 @@ impl<'a> JsParser<'a> {
                 self.tokens.consume();
                 let ident = self.tokens.expect(TokenKind::Identifier, "identifier")?;
                 self.parse_suffix(ASTExpression::Access(Box::from(ASTAccess {
-                    accessor: ASTAccessContent::Identifier(ASTIdentifier { range: ident.range }),
+                    accessor: ASTAccessContent::Identifier(ASTIdentifier { range: ident.range, content: None }),
                     expression: tok,
                     range: self.tokens.range(start)
                 })), start)
@@ -139,10 +139,10 @@ impl<'a> JsParser<'a> {
         let token = self.tokens.consume()?;
         let tok_start = token.range.start;
         let ast_token = match token.kind {
-            TokenKind::String => ASTExpression::String(ASTString { range: token.range }),
-            TokenKind::Number => ASTExpression::Number(ASTNumber { range: token.range }),
-            TokenKind::Identifier => ASTExpression::Identifier(ASTIdentifier { range: token.range }),
-            TokenKind::FalseKeyword | TokenKind::TrueKeyword => ASTExpression::Boolean(ASTBoolean { range: token.range }),
+            TokenKind::String => ASTExpression::String(ASTString { range: token.range, content: None }),
+            TokenKind::Number => ASTExpression::Number(ASTNumber { range: token.range, content: None }),
+            TokenKind::Identifier => ASTExpression::Identifier(ASTIdentifier { range: token.range, content: None }),
+            TokenKind::FalseKeyword | TokenKind::TrueKeyword => ASTExpression::Boolean(ASTBoolean { range: token.range, content: None }),
             TokenKind::ExclamationOp => ASTExpression::Unary(Box::from(ASTUnary {
                 operator: TokenKind::ExclamationOp,
                 expression: self.expect_single_expr("an expression", true)?,

@@ -1,4 +1,4 @@
-pub mod inline_js;
+pub mod visitors;
 pub mod compile;
 
 use compile::{JSCompilable};
@@ -253,14 +253,14 @@ mod tests {
     fn compile() {
         let (result, diagnostics, _ctx) = compile_str("
 # Hello, World!
-How's it going on this {a += 1} {b += 5; c += \"Hello World!\"; v = d = 33}?
+How's it going on this {a += 1} {b += 5; c += 'Hello World!'; v = d = 33}?
 
 ```js
 console.log(\"some code...\");
 ```
 Hello!
 ", BOOTSTRAP_VARS.clone(), 1);
-        println!("{:?} {:?}", result, diagnostics);
+        println!("{} {:?}", result, diagnostics);
         panic!("AAA");
     }
 

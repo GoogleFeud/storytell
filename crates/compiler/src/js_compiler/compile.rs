@@ -1,4 +1,4 @@
-use super::inline_js::MagicVariableTraverser;
+use super::visitors::MagicVariableTraverser;
 use super::{CompilerContext, Path};
 use storytell_js_parser::ast::Visitable;
 use storytell_parser::ast::model::*;
@@ -40,7 +40,7 @@ impl JSCompilable for ASTInline {
                     expressions.visit_each_child(&mut visitor);
                     let gathered_variables = visitor.magic_variables.iter().map(|pair| format!("{{name: {}, type: {}}}", pair.0.safe_compile(), *pair.1 as u8)).collect::<Vec<String>>();
                     ctx.magic_variables.extend(visitor.magic_variables.into_iter());
-                    Ok(format!("${{{}({},{})}}", ctx.bootstrap.inline_js_fn, text.safe_compile(), gathered_variables.safe_compile()))
+                    Ok(format!("${{{}({},{})}}", ctx.bootstrap.inline_js_fn, text.replace("\"", "\\\"").safe_compile(), gathered_variables.safe_compile()))
                 }
             },
             ASTInlineKind::Divert(thing, is_temp) => {
@@ -182,7 +182,7 @@ impl JSCompilable for Vec<ASTAttribute> {
 
 impl JSSafeCompilable for String {
     fn safe_compile(&self) -> String {
-        format!("'{}'", self)
+        format!("\"{}\"", self)
     }
 }
 
