@@ -1,5 +1,4 @@
-use super::magic_vars_collector::MagicVarCollector;
-use super::rebuilder::Rebuilder;
+use crate::visitors::{MagicVarCollector, Rebuilder};
 use super::{CompilerContext, Path};
 use storytell_js_parser::ast::Visitable;
 use storytell_parser::ast::model::*;
@@ -127,7 +126,7 @@ impl JSCompilable for ASTParagraph {
 impl JSCompilable for ASTCodeBlock {
     fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
         let codeblock_fn = ctx.bootstrap.codeblock_fn;
-        Ok(format!("{}(`{}`,{},{})", codeblock_fn, self.text, self.language.safe_compile(), self.attributes.compile(ctx)?))
+        Ok(format!("{}(`{}`,{},{})", codeblock_fn, self.text.replace("`", "\\`"), self.language.safe_compile(), self.attributes.compile(ctx)?))
     }
 }
 
