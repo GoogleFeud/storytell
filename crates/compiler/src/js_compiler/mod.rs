@@ -260,7 +260,7 @@ mod tests {
 How's it going on this {a += 1} {b += 5; c += 'Hello World!'; v = d = 33}?
 
 ```js
-console.log(\"some code...\");
+console.log(`Some code ${123}`);
 ```
 Hello!
 
@@ -271,9 +271,14 @@ Hello!
     {saved -= 1}
 - Second choice 
     -> hello_world
+    @{condition}
+    - {true}
+        This condition is true...
+    - {false}
+        This condition is false...
 ", BOOTSTRAP_VARS.clone(), 1);
         println!("{} {:?}", result, diagnostics);
-        //panic!("AAA");
+        panic!("AAA");
     }
 
 }

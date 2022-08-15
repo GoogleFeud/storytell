@@ -1,6 +1,5 @@
 use storytell_diagnostics::location::Range;
 use storytell_js_parser::{ast::*, input::InputPresenter};
-use std::fmt::Write as _;
 
 pub struct Rebuilder<'a> {
     input: InputPresenter<'a>
@@ -9,11 +8,11 @@ pub struct Rebuilder<'a> {
 impl<'a> Rebuilder<'a> {
     pub fn run(input: InputPresenter<'a>, exps: &[ASTExpression]) -> String {
         let mut rebuilder = Rebuilder { input };
-        let mut output = String::new();
+        let mut output: Vec<String> = vec![];
         for exp in exps {
-            write!(output, "{};", rebuilder.stringify_exp(exp)).unwrap();
+           output.push(format!("{}", rebuilder.stringify_exp(exp)));
         }
-        output
+        output.join(";")
     }
 
     fn stringify_vec_of_expr(&mut self, vector: &[ASTExpression]) -> String {

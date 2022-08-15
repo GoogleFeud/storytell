@@ -133,10 +133,14 @@ impl JSCompilable for ASTCodeBlock {
 impl JSCompilable for ASTMatch {
     fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
         let match_fn = ctx.bootstrap.match_fn;
+        let mut choices: Vec<String> = vec![];
+        for choice in &self.choices {
+            choices.push(format!("{{text:{}, children:{}}}", transform_js(&choice.text.parts[0].text.to_raw())?.safe_compile(), choice.children.compile(ctx)?));
+        }
         Ok(format!("{}({},{},{},{})", 
         match_fn, 
-        self.matched,
-        self.choices.compile(ctx)?,
+        transform_js(&self.matched)?.safe_compile(),
+        choices.safe_compile(),
         self.direct_children.compile(ctx)?,
         self.kind.clone().unwrap_or_else(|| String::from("\"\""))
         ))
@@ -198,5 +202,14 @@ impl JSSafeCompilable for Vec<String> {
 impl<T: JSCompilable> JSCompilable for Vec<T> {
     fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
         Ok(format!("[{}]", self.iter().map(|i| i.compile(ctx)).collect::<StorytellResult<Vec<String>>>()?.join(",")))
+    }
+}
+
+fn transform_js(input: &str) -> StorytellResult<String> {
+    let (result, diagnostics, input) = JsParser::parse(input);
+    if diagnostics.is_empty() {
+        Ok(Rebuilder::run(input, &result))
+    } else {
+        Err(diagnostics)
     }
 }
