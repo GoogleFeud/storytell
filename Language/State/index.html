@@ -75,7 +75,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="../../intro.html"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded "><a href="../../Language/index.html"><strong aria-hidden="true">2.</strong> Language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../Language/paths.html"><strong aria-hidden="true">2.1.</strong> Paths</a></li><li class="chapter-item expanded "><a href="../../Language/choices.html"><strong aria-hidden="true">2.2.</strong> Choices</a></li><li class="chapter-item expanded "><a href="../../Language/State/index.html" class="active"><strong aria-hidden="true">2.3.</strong> State</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../Language/State/variables.html"><strong aria-hidden="true">2.3.1.</strong> Variables</a></li><li class="chapter-item expanded "><a href="../../Language/State/conditions.html"><strong aria-hidden="true">2.3.2.</strong> Conditions</a></li></ol></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../../intro.html"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded "><a href="../../Language/index.html"><strong aria-hidden="true">2.</strong> Language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../Language/paths.html"><strong aria-hidden="true">2.1.</strong> Paths</a></li><li class="chapter-item expanded "><a href="../../Language/choices.html"><strong aria-hidden="true">2.2.</strong> Choices</a></li><li class="chapter-item expanded "><a href="../../Language/State/index.html" class="active"><strong aria-hidden="true">2.3.</strong> State</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../Language/State/data.html"><strong aria-hidden="true">2.3.1.</strong> Data</a></li><li class="chapter-item expanded "><a href="../../Language/State/conditions.html"><strong aria-hidden="true">2.3.2.</strong> Conditions</a></li></ol></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -135,34 +135,27 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="state"><a class="header" href="#state">State</a></h1>
-<p>Some choices don't have consequences which change the entire course of the story - they could just change dialogue options, interactions between characters, or possibly what happens in a certain path. We can use <strong>state</strong> for this with <strong>javascript</strong>. <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript">Javascript</a> is a scripting language originally meant for the web, but these days it's used everywhere! 
-Don't worry, you don't need to know javascript to add state to your story.</p>
-<p>Javascript can be used inline by placing it between curly brackets <code>{}</code>, or as a block with 3 backticks:</p>
-<pre><code>{&quot;This is inline javascript&quot;}
+<p>Some choices don't have consequences which change the entire course of the story - they could just change dialogue options, interactions between characters, or possibly what happens in a certain path. </p>
+<p>Storytell allows you to save data via a powerful scripting language called <code>InlineJs</code>, which is almost exactly the same as <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript">JavaScript</a>. You <strong>do not</strong> need to know JavaScript in order to use this feature, storing data is super simple!</p>
+<h2 id="inline-usage"><a class="header" href="#inline-usage">Inline usage</a></h2>
+<p>This scripting language can only be used <strong>inline</strong>, by placing it between curly brackets (<code>{}</code>). Everything in the language evaluates to a value which will show up in your story, except for <strong>variable assignments</strong>, which completely dissapear.</p>
+<pre><code>- Action A
+    {chosen_action = &quot;A&quot;}
+- Action B
+    {chosen_action = &quot;B&quot;}
 
-```
-&quot;This is block javascript&quot;
-```
+You chose {chosen_action}.
 </code></pre>
-<h2 id="inline-javascript"><a class="header" href="#inline-javascript">Inline javascript</a></h2>
-<p>The inline javascript always evaluates to a value. If this value can be represented as text, it'll be embedded into your story. For example:</p>
-<pre><code>{&quot;This is inline javascript&quot;}
-{[1, 2, 3]}
-{3.14}
-{true}
-{myValue = 1}
-{myValue}
+<p>will show up as...</p>
+<pre><code>- Action A
+- Action B
+[Chooses A]
+You chose A.
 </code></pre>
-<p>Will show the following to the reader:</p>
-<pre><code>This is inline javascript
-1, 2, 3
-3.14
-true
-1
-</code></pre>
-<p>By default all value assignment (<code>=</code>, <code>+=</code>, <code>-=</code>, etc.) will be hidden, even if it does evaluate to a value that can be represented as text.</p>
-<h2 id="block-javascript"><a class="header" href="#block-javascript">Block javascript</a></h2>
-<p>By default, block javascript will never embed anything into your story, unless you make it so by using the <code>return</code> keyword, or the <code>document</code> API to modify the DOM.</p>
+<p>In the above example, we save the string <code>&quot;A&quot;</code> to the <code>chosen_action</code> variable if the reader chooses the <code>Action A</code> option, and if they choose the <code>Action B</code> option, <code>chosen_action</code> gets set to <code>&quot;B&quot;</code>. Afterwards, we show which option the user chose by displaying the contents of the variable.</p>
+<h2 id="block-javascript"><a class="header" href="#block-javascript">Block JavaScript</a></h2>
+<p>You can also use regular JavaScript with code blocks, although it should be used only where you can't achieve something with InlineJs, which should be rare.</p>
+<p>By default, block JavaScript will never embed anything into your story, unless you make it so by using the <code>return</code> keyword, or the <code>document</code> API to modify the DOM.</p>
 <pre><code>```js
 const yourName = prompt(&quot;What's your name?&quot;);
 return `Hello, ${yourName}`;
@@ -171,6 +164,16 @@ return `Hello, ${yourName}`;
 <p>Will embed:</p>
 <pre><code>Hello GoogleFeud!
 </code></pre>
+<h2 id="differences-between-inlinejs-and-javascript"><a class="header" href="#differences-between-inlinejs-and-javascript">Differences between InlineJS and JavaScript</a></h2>
+<ul>
+<li>Since InlineJS needs to be wrapped between curly brackets (<code>{}</code>), object literals are not part of the language.</li>
+<li>Function expressions (<code>function() {}</code> and <code>() =&gt; {}</code>) don't exist in InlineJS.</li>
+<li>In string template literals, inserting a literals happens with <code>$()</code>, not <code>${}</code>.</li>
+<li>Bitwise operators aren't supported.</li>
+<li>BigInt literals aren't supported.</li>
+<li>Regex literals aren't supported.</li>
+<li>Expression list expressions (<code>(exp, exp, exp)</code>) aren't supported.</li>
+</ul>
 
                     </main>
 
@@ -179,7 +182,7 @@ return `Hello, ${yourName}`;
                             <a rel="prev" href="../../Language/choices.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
-                            <a rel="next" href="../../Language/State/variables.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="../../Language/State/data.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
                         <div style="clear: both"></div>
@@ -191,7 +194,7 @@ return `Hello, ${yourName}`;
                     <a rel="prev" href="../../Language/choices.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
-                    <a rel="next" href="../../Language/State/variables.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="../../Language/State/data.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Variables - Storytell guide</title>
+        <title>Data - Storytell guide</title>
         <!-- Custom HTML head -->
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="">
@@ -75,7 +75,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="../../intro.html"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded "><a href="../../Language/index.html"><strong aria-hidden="true">2.</strong> Language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../Language/paths.html"><strong aria-hidden="true">2.1.</strong> Paths</a></li><li class="chapter-item expanded "><a href="../../Language/choices.html"><strong aria-hidden="true">2.2.</strong> Choices</a></li><li class="chapter-item expanded "><a href="../../Language/State/index.html"><strong aria-hidden="true">2.3.</strong> State</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../Language/State/variables.html" class="active"><strong aria-hidden="true">2.3.1.</strong> Variables</a></li><li class="chapter-item expanded "><a href="../../Language/State/conditions.html"><strong aria-hidden="true">2.3.2.</strong> Conditions</a></li></ol></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../../intro.html"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded "><a href="../../Language/index.html"><strong aria-hidden="true">2.</strong> Language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../Language/paths.html"><strong aria-hidden="true">2.1.</strong> Paths</a></li><li class="chapter-item expanded "><a href="../../Language/choices.html"><strong aria-hidden="true">2.2.</strong> Choices</a></li><li class="chapter-item expanded "><a href="../../Language/State/index.html"><strong aria-hidden="true">2.3.</strong> State</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../Language/State/data.html" class="active"><strong aria-hidden="true">2.3.1.</strong> Data</a></li><li class="chapter-item expanded "><a href="../../Language/State/conditions.html"><strong aria-hidden="true">2.3.2.</strong> Conditions</a></li></ol></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -134,25 +134,16 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="variables"><a class="header" href="#variables">Variables</a></h1>
-<p>Your state will usually be saved in <strong>variables</strong>, which are persistent across paths. You can save pretty much anything.</p>
-<pre><code class="language-md">- Choose Ashley
-    {chosen = &quot;Ashley&quot;}
-- Choose Nick
-    {chosen = &quot;Nick&quot;}
-
-{chosen}: Thank you for choosing me.
-</code></pre>
-<p>After the user makes their choice, the <code>chosen</code> variable gets updated to either <code>Ashley</code> or <code>Nick</code>, and the character you chose says &quot;Thank you for choosing me&quot;.</p>
-<p>Here are some other common uses:</p>
-<div class="table-wrapper"><table><thead><tr><th>Code</th><th>What it does</th></tr></thead><tbody>
-<tr><td><code>variable = value</code></td><td>Sets the variable to <code>value</code>.</td></tr>
-<tr><td><code>variable++</code></td><td>Increments the variable. So if it's currently <code>1</code>, after the code is ran it will become 2.</td></tr>
-<tr><td><code>variable--</code></td><td>Decrements the variable.</td></tr>
-<tr><td><code>variable += n</code></td><td>Adds <code>n</code> to the variable.</td></tr>
-<tr><td><code>variable -= n</code></td><td>Subtracts <code>n</code> from the variable.</td></tr>
-<tr><td><code>variable.push(value)</code></td><td>Adds a new value to the <code>variable</code> list.</td></tr>
-<tr><td><code>variable[key] = value</code></td><td>Adds a new key-value pair to the <code>variable</code> table.</td></tr>
+                        <h1 id="data"><a class="header" href="#data">Data</a></h1>
+<p>Your state is <strong>data</strong> that is stored in <strong>variables</strong>. Every data has a <strong>type</strong>. For example, <code>&quot;String&quot;</code> is a <code>string</code> type, <code>123</code> is a <code>number</code> type, etc. There are also types which can hold multiple different types, for example the <code>array</code> type can contain <code>number</code>s, <code>string</code>s, or maybe even other <code>array</code>s.</p>
+<h2 id="initializing-variables"><a class="header" href="#initializing-variables">Initializing variables</a></h2>
+<p>Variables get initialized automatically depending on how you use them.</p>
+<div class="table-wrapper"><table><thead><tr><th>Code</th><th>Initializes to</th></tr></thead><tbody>
+<tr><td><code>variable += 1</code>, <code>variable -= 1</code>, <code>variable *= 1</code>, <code>variable /= 1</code></td><td><code>variable</code> is a number, and gets initialized as <code>0</code>. <br><code>+=</code> - Adds a number to the variable.<br><code>-=</code> - Subtracts a number from the variable.<br><code>*=</code> - Multiplies the variable by the number.<br> <code>/=</code> - Divides the variable by the number.</td></tr>
+<tr><td><code>variable++</code>, <code>variable--</code></td><td><code>variable</code> is a number, and gets initialized as <code>0</code>.<br><code>++</code> - Increments the variable.<br><code>--</code> - Decrements the variable.</td></tr>
+<tr><td><code>variable += &quot;Hello&quot;</code></td><td><code>variable</code> is a string, and gets initialized as <code>&quot;&quot;</code>.<br><code>+=</code> - Appends a string to the variable.</td></tr>
+<tr><td><code>variable.push(value)</code></td><td><code>variable</code> is a list (array) and gets initialized as <code>[]</code>.<br><code>.push(value)</code> pushes the value to the list. The value can be anything. You can also provide multiple values - <code>.push(&quot;Hello&quot;, 123, true, [])</code></td></tr>
+<tr><td><code>variable.key = value</code></td><td><code>variable</code> is a table (object) and gets initialized as <code>{}</code>.<br><code>.key = value</code> adds a new key-value pair to the table. For example, <code>variable.name = &quot;Google&quot;</code> is going to set the <code>name</code> key to <code>&quot;Google&quot;</code>. You can retrive the value inside the key with <code>variable.name</code>.</td></tr>
 </tbody></table>
 </div>
 <p>Here's an example of using a list:</p>
@@ -164,13 +155,19 @@
     You killed Nick.
 </code></pre>
 <h2 id="variables-under-the-hood"><a class="header" href="#variables-under-the-hood">Variables under the hood</a></h2>
-<p>Variables which are used in inline javascript are sort of magic - you don't need to declare them, storytell can automatically detect what the variable is by how you use it and it automatically intializes it. You can use these magic variables in code blocks too, but <strong>you cannot use variables defined in code blocks in inline javascript</strong>. If you'd like to bypass this, you can attach the variable to the <strong>window</strong> object:</p>
+<p>Variables which are used in InlineJS are sort of magic - you don't need to declare them, storytell can automatically detect what the variable is by how you use it and it automatically intialize it. You can use these magic variables in code blocks too, but <strong>you cannot use variables defined in code blocks in inline javascript</strong>. If you'd like to bypass this, you can attach the variable to the <strong>window</strong> object:</p>
 <pre><code>```js
 window.value = 123;
 ```
 
 {window.value}
 </code></pre>
+<p>Even object keys get initialized, so for example doing:</p>
+<pre><code>{object.amount += 2}
+
+{object.amount}
+</code></pre>
+<p>is going to display <code>2</code> to the reader!</p>
 
                     </main>
 

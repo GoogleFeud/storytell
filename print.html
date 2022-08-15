@@ -76,7 +76,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="intro.html"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded "><a href="Language/index.html"><strong aria-hidden="true">2.</strong> Language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="Language/paths.html"><strong aria-hidden="true">2.1.</strong> Paths</a></li><li class="chapter-item expanded "><a href="Language/choices.html"><strong aria-hidden="true">2.2.</strong> Choices</a></li><li class="chapter-item expanded "><a href="Language/State/index.html"><strong aria-hidden="true">2.3.</strong> State</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="Language/State/variables.html"><strong aria-hidden="true">2.3.1.</strong> Variables</a></li><li class="chapter-item expanded "><a href="Language/State/conditions.html"><strong aria-hidden="true">2.3.2.</strong> Conditions</a></li></ol></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="intro.html"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded "><a href="Language/index.html"><strong aria-hidden="true">2.</strong> Language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="Language/paths.html"><strong aria-hidden="true">2.1.</strong> Paths</a></li><li class="chapter-item expanded "><a href="Language/choices.html"><strong aria-hidden="true">2.2.</strong> Choices</a></li><li class="chapter-item expanded "><a href="Language/State/index.html"><strong aria-hidden="true">2.3.</strong> State</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="Language/State/data.html"><strong aria-hidden="true">2.3.1.</strong> Data</a></li><li class="chapter-item expanded "><a href="Language/State/conditions.html"><strong aria-hidden="true">2.3.2.</strong> Conditions</a></li></ol></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -281,34 +281,27 @@ James and Alicia found an open grave!
     -&gt; END
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="state"><a class="header" href="#state">State</a></h1>
-<p>Some choices don't have consequences which change the entire course of the story - they could just change dialogue options, interactions between characters, or possibly what happens in a certain path. We can use <strong>state</strong> for this with <strong>javascript</strong>. <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript">Javascript</a> is a scripting language originally meant for the web, but these days it's used everywhere! 
-Don't worry, you don't need to know javascript to add state to your story.</p>
-<p>Javascript can be used inline by placing it between curly brackets <code>{}</code>, or as a block with 3 backticks:</p>
-<pre><code>{&quot;This is inline javascript&quot;}
+<p>Some choices don't have consequences which change the entire course of the story - they could just change dialogue options, interactions between characters, or possibly what happens in a certain path. </p>
+<p>Storytell allows you to save data via a powerful scripting language called <code>InlineJs</code>, which is almost exactly the same as <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript">JavaScript</a>. You <strong>do not</strong> need to know JavaScript in order to use this feature, storing data is super simple!</p>
+<h2 id="inline-usage"><a class="header" href="#inline-usage">Inline usage</a></h2>
+<p>This scripting language can only be used <strong>inline</strong>, by placing it between curly brackets (<code>{}</code>). Everything in the language evaluates to a value which will show up in your story, except for <strong>variable assignments</strong>, which completely dissapear.</p>
+<pre><code>- Action A
+    {chosen_action = &quot;A&quot;}
+- Action B
+    {chosen_action = &quot;B&quot;}
 
-```
-&quot;This is block javascript&quot;
-```
+You chose {chosen_action}.
 </code></pre>
-<h2 id="inline-javascript"><a class="header" href="#inline-javascript">Inline javascript</a></h2>
-<p>The inline javascript always evaluates to a value. If this value can be represented as text, it'll be embedded into your story. For example:</p>
-<pre><code>{&quot;This is inline javascript&quot;}
-{[1, 2, 3]}
-{3.14}
-{true}
-{myValue = 1}
-{myValue}
+<p>will show up as...</p>
+<pre><code>- Action A
+- Action B
+[Chooses A]
+You chose A.
 </code></pre>
-<p>Will show the following to the reader:</p>
-<pre><code>This is inline javascript
-1, 2, 3
-3.14
-true
-1
-</code></pre>
-<p>By default all value assignment (<code>=</code>, <code>+=</code>, <code>-=</code>, etc.) will be hidden, even if it does evaluate to a value that can be represented as text.</p>
-<h2 id="block-javascript"><a class="header" href="#block-javascript">Block javascript</a></h2>
-<p>By default, block javascript will never embed anything into your story, unless you make it so by using the <code>return</code> keyword, or the <code>document</code> API to modify the DOM.</p>
+<p>In the above example, we save the string <code>&quot;A&quot;</code> to the <code>chosen_action</code> variable if the reader chooses the <code>Action A</code> option, and if they choose the <code>Action B</code> option, <code>chosen_action</code> gets set to <code>&quot;B&quot;</code>. Afterwards, we show which option the user chose by displaying the contents of the variable.</p>
+<h2 id="block-javascript"><a class="header" href="#block-javascript">Block JavaScript</a></h2>
+<p>You can also use regular JavaScript with code blocks, although it should be used only where you can't achieve something with InlineJs, which should be rare.</p>
+<p>By default, block JavaScript will never embed anything into your story, unless you make it so by using the <code>return</code> keyword, or the <code>document</code> API to modify the DOM.</p>
 <pre><code>```js
 const yourName = prompt(&quot;What's your name?&quot;);
 return `Hello, ${yourName}`;
@@ -317,25 +310,26 @@ return `Hello, ${yourName}`;
 <p>Will embed:</p>
 <pre><code>Hello GoogleFeud!
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="variables"><a class="header" href="#variables">Variables</a></h1>
-<p>Your state will usually be saved in <strong>variables</strong>, which are persistent across paths. You can save pretty much anything.</p>
-<pre><code class="language-md">- Choose Ashley
-    {chosen = &quot;Ashley&quot;}
-- Choose Nick
-    {chosen = &quot;Nick&quot;}
-
-{chosen}: Thank you for choosing me.
-</code></pre>
-<p>After the user makes their choice, the <code>chosen</code> variable gets updated to either <code>Ashley</code> or <code>Nick</code>, and the character you chose says &quot;Thank you for choosing me&quot;.</p>
-<p>Here are some other common uses:</p>
-<div class="table-wrapper"><table><thead><tr><th>Code</th><th>What it does</th></tr></thead><tbody>
-<tr><td><code>variable = value</code></td><td>Sets the variable to <code>value</code>.</td></tr>
-<tr><td><code>variable++</code></td><td>Increments the variable. So if it's currently <code>1</code>, after the code is ran it will become 2.</td></tr>
-<tr><td><code>variable--</code></td><td>Decrements the variable.</td></tr>
-<tr><td><code>variable += n</code></td><td>Adds <code>n</code> to the variable.</td></tr>
-<tr><td><code>variable -= n</code></td><td>Subtracts <code>n</code> from the variable.</td></tr>
-<tr><td><code>variable.push(value)</code></td><td>Adds a new value to the <code>variable</code> list.</td></tr>
-<tr><td><code>variable[key] = value</code></td><td>Adds a new key-value pair to the <code>variable</code> table.</td></tr>
+<h2 id="differences-between-inlinejs-and-javascript"><a class="header" href="#differences-between-inlinejs-and-javascript">Differences between InlineJS and JavaScript</a></h2>
+<ul>
+<li>Since InlineJS needs to be wrapped between curly brackets (<code>{}</code>), object literals are not part of the language.</li>
+<li>Function expressions (<code>function() {}</code> and <code>() =&gt; {}</code>) don't exist in InlineJS.</li>
+<li>In string template literals, inserting a literals happens with <code>$()</code>, not <code>${}</code>.</li>
+<li>Bitwise operators aren't supported.</li>
+<li>BigInt literals aren't supported.</li>
+<li>Regex literals aren't supported.</li>
+<li>Expression list expressions (<code>(exp, exp, exp)</code>) aren't supported.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="data"><a class="header" href="#data">Data</a></h1>
+<p>Your state is <strong>data</strong> that is stored in <strong>variables</strong>. Every data has a <strong>type</strong>. For example, <code>&quot;String&quot;</code> is a <code>string</code> type, <code>123</code> is a <code>number</code> type, etc. There are also types which can hold multiple different types, for example the <code>array</code> type can contain <code>number</code>s, <code>string</code>s, or maybe even other <code>array</code>s.</p>
+<h2 id="initializing-variables"><a class="header" href="#initializing-variables">Initializing variables</a></h2>
+<p>Variables get initialized automatically depending on how you use them.</p>
+<div class="table-wrapper"><table><thead><tr><th>Code</th><th>Initializes to</th></tr></thead><tbody>
+<tr><td><code>variable += 1</code>, <code>variable -= 1</code>, <code>variable *= 1</code>, <code>variable /= 1</code></td><td><code>variable</code> is a number, and gets initialized as <code>0</code>. <br><code>+=</code> - Adds a number to the variable.<br><code>-=</code> - Subtracts a number from the variable.<br><code>*=</code> - Multiplies the variable by the number.<br> <code>/=</code> - Divides the variable by the number.</td></tr>
+<tr><td><code>variable++</code>, <code>variable--</code></td><td><code>variable</code> is a number, and gets initialized as <code>0</code>.<br><code>++</code> - Increments the variable.<br><code>--</code> - Decrements the variable.</td></tr>
+<tr><td><code>variable += &quot;Hello&quot;</code></td><td><code>variable</code> is a string, and gets initialized as <code>&quot;&quot;</code>.<br><code>+=</code> - Appends a string to the variable.</td></tr>
+<tr><td><code>variable.push(value)</code></td><td><code>variable</code> is a list (array) and gets initialized as <code>[]</code>.<br><code>.push(value)</code> pushes the value to the list. The value can be anything. You can also provide multiple values - <code>.push(&quot;Hello&quot;, 123, true, [])</code></td></tr>
+<tr><td><code>variable.key = value</code></td><td><code>variable</code> is a table (object) and gets initialized as <code>{}</code>.<br><code>.key = value</code> adds a new key-value pair to the table. For example, <code>variable.name = &quot;Google&quot;</code> is going to set the <code>name</code> key to <code>&quot;Google&quot;</code>. You can retrive the value inside the key with <code>variable.name</code>.</td></tr>
 </tbody></table>
 </div>
 <p>Here's an example of using a list:</p>
@@ -347,13 +341,19 @@ return `Hello, ${yourName}`;
     You killed Nick.
 </code></pre>
 <h2 id="variables-under-the-hood"><a class="header" href="#variables-under-the-hood">Variables under the hood</a></h2>
-<p>Variables which are used in inline javascript are sort of magic - you don't need to declare them, storytell can automatically detect what the variable is by how you use it and it automatically intializes it. You can use these magic variables in code blocks too, but <strong>you cannot use variables defined in code blocks in inline javascript</strong>. If you'd like to bypass this, you can attach the variable to the <strong>window</strong> object:</p>
+<p>Variables which are used in InlineJS are sort of magic - you don't need to declare them, storytell can automatically detect what the variable is by how you use it and it automatically intialize it. You can use these magic variables in code blocks too, but <strong>you cannot use variables defined in code blocks in inline javascript</strong>. If you'd like to bypass this, you can attach the variable to the <strong>window</strong> object:</p>
 <pre><code>```js
 window.value = 123;
 ```
 
 {window.value}
 </code></pre>
+<p>Even object keys get initialized, so for example doing:</p>
+<pre><code>{object.amount += 2}
+
+{object.amount}
+</code></pre>
+<p>is going to display <code>2</code> to the reader!</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="conditions"><a class="header" href="#conditions">Conditions</a></h1>
 <p>You can show text conditionally in two ways:</p>
 <h2 id="javascript"><a class="header" href="#javascript">Javascript</a></h2>
