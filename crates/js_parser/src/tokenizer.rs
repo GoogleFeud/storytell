@@ -87,6 +87,7 @@ pub enum NumberType {
 pub struct Tokenizer<'a> {
     pub input: InputConsumer<'a>,
     pub last_token: Option<Token>,
+    pub last_pos_before_spacing: Option<usize>,
     pub diagnostics: Vec<Diagnostic>
 }
 
@@ -96,6 +97,7 @@ impl<'a> Tokenizer<'a> {
         Self { 
             input: InputConsumer::new(content),
             last_token: None,
+            last_pos_before_spacing: None,
             diagnostics: vec![]
         }
     }
@@ -206,8 +208,18 @@ impl<'a> Tokenizer<'a> {
             return None;
         }
         let start = self.input.pos;
+        let character = self.input.next()?;
+        match character {
+            ' ' | '\n' | '\r' => {
+                if let None = self.last_pos_before_spacing {
+                    self.last_pos_before_spacing = Some(start);
+                }
+                return self.parse()
+            },
+            _ => self.last_pos_before_spacing = None
+        }
         let kind = 
-        match self.input.next()? {
+        match character {
             '`' => TokenKind::StringLitStart,
             ',' => TokenKind::CommaPunc,
             ';' => TokenKind::SemicolonPunc,
@@ -242,7 +254,6 @@ impl<'a> Tokenizer<'a> {
             '>' => TokenKind::GreaterThanOp,
             '<' if self.input.is_next(b'=', 0) => { self.input.skip_chars(1); TokenKind::LessThanEqualsOp },
             '<' => TokenKind::LessThanOp,
-            ' ' | '\n' | '\r' => return self.parse(),
             '"' => return self.parse_string('"'),
             '\'' => return self.parse_string('\''),
             '0'..='9' => return self.parse_number(),
@@ -298,7 +309,7 @@ impl<'a> Tokenizer<'a> {
     }
 
     pub fn range(&self, start: usize) -> Range<usize> {
-        Range { start, end: self.pos() }
+        Range { start, end: self.last_pos_before_spacing.unwrap_or_else(|| self.pos()) }
     }
 
     pub fn is_eof(&self) -> bool {

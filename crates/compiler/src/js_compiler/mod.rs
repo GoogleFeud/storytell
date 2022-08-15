@@ -273,7 +273,7 @@ Hello!
     -> hello_world
 ", BOOTSTRAP_VARS.clone(), 1);
         println!("{} {:?}", result, diagnostics);
-        panic!("AAA");
+        //panic!("AAA");
     }
 
 }

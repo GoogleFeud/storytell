@@ -14,6 +14,13 @@ make_diagnostics!(define [
     "Expected $."
 ]);
 
+#[derive(PartialEq, Copy, Clone)]
+pub enum Associativity {
+    None,
+    LeftToRight,
+    RightToLeft
+}
+
 pub struct JsParser<'a> {
     pub tokens: Tokenizer<'a>
 }
@@ -26,7 +33,7 @@ impl<'a> JsParser<'a> {
         }
     }
 
-    pub fn resolve_prec(token: &TokenKind) -> u8 {
+    pub fn resolve_prec(token: TokenKind) -> u8 {
         match token {
             TokenKind::StarStarOp => 13,
             TokenKind::StarOp | TokenKind::SlashOp | TokenKind::PercentOp => 12,
@@ -40,27 +47,48 @@ impl<'a> JsParser<'a> {
         }
     }
 
-    fn parse_binary(&mut self, left: ASTExpression, left_prec: u8) -> Option<ASTExpression> {
+    pub fn resolve_associativity(token: TokenKind) -> Associativity {
+        match token {
+            TokenKind::PlusEqualsOp | TokenKind::MinusEqualsOp | TokenKind::SlashEqualsOp | TokenKind::StarEqualsOp | TokenKind::EqualsOp => Associativity::RightToLeft,
+            _ => Associativity::LeftToRight
+        }
+    }
+
+    fn parse_binary(&mut self, left: ASTExpression, left_prec: u8, left_associativity: Associativity) -> Option<ASTExpression> {
         let start = left.range().start;
         if let Some(next) = self.tokens.peek() {
-            let right_prec = Self::resolve_prec(&next.kind);
+            let right_prec = Self::resolve_prec(next.kind.clone());
+            let right_associativity = Self::resolve_associativity(next.kind.clone());
             if right_prec == 0 {
-                return Some(left);
-            };
-            if right_prec >= left_prec {
+                Some(left)
+            } else if (left_prec == 0 || left_prec == right_prec) && (left_associativity == Associativity::LeftToRight || left_associativity == Associativity::None) && right_associativity == Associativity::RightToLeft {
                 let op_token = self.tokens.consume().unwrap();
                 let exp = if let Some(exp) = self.parse_single_expression(true) {
                     exp
                 } else { 
                     return Some(left)
                 };
-                let right = self.parse_binary(exp, right_prec)?;
+                let right = self.parse_binary(exp, left_prec, left_associativity)?;
+                Some(ASTExpression::Binary(Box::from(ASTBinary {
+                    left,
+                    right: self.parse_binary(right, right_prec, right_associativity)?,
+                    operator: op_token.kind,
+                    range: self.tokens.range(start)
+                })))
+            } else if right_prec > left_prec {
+                let op_token = self.tokens.consume().unwrap();
+                let exp = if let Some(exp) = self.parse_single_expression(true) {
+                    exp
+                } else { 
+                    return Some(left)
+                };
+                let right = self.parse_binary(exp, right_prec, right_associativity)?;
                 self.parse_binary(ASTExpression::Binary(Box::from(ASTBinary {
                     left,
                     right,
                     operator: op_token.kind,
                     range: self.tokens.range(start)
-                })), left_prec)
+                })), left_prec, left_associativity)
             } else {
                 Some(left)
             }
@@ -208,7 +236,7 @@ impl<'a> JsParser<'a> {
 
     fn parse_full_expression(&mut self) -> Option<ASTExpression> {
         if let Some(exp) = self.parse_single_expression(true) {
-            self.parse_binary(exp, 0)
+            self.parse_binary(exp, 0, Associativity::None)
         } else {
             None
         }
@@ -428,6 +456,30 @@ mod tests {
             }
         } else {
             panic!("Expected new.")
+        }
+    }
+
+    #[test]
+    fn test_associativity() {
+        let (tokens, errors, input) = JsParser::parse("
+            a = b += c + d
+       ");
+        assert_eq!(errors.len(), 0);
+        if let ASTExpression::Binary(binary) = &tokens[0] {
+            assert_eq!(input.from_range(binary.left.range()), "a");
+            if let ASTExpression::Binary(binary) = &binary.right {
+                assert_eq!(input.from_range(binary.left.range()), "b");
+                if let ASTExpression::Binary(binary) = &binary.right {
+                    assert_eq!(input.from_range(binary.left.range()), "c");
+                    assert_eq!(input.from_range(binary.right.range()), "d");
+                } else {
+                    panic!("Expected binary.")
+                }
+            } else {
+                panic!("Expected binary.")
+            }
+        } else {
+            panic!("Expected binary.")
         }
     }
 

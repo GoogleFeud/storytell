@@ -217,12 +217,11 @@ impl<'a> Parser<'a> {
 
     pub fn parse_paragraph(&mut self) -> Option<ASTText> {
         match self.parse_text(resolve_line_endings(self.input.ctx.line_endings), true) {
-            InlineTextParseResult::FoundClosing(text)
-            | InlineTextParseResult::NotFoundOptional(text) => {
+            Some(text) => {
                 self.input.skip_n(self.input.ctx.line_endings);
                 Some(text)
             }
-            InlineTextParseResult::NotFound => None,
+            None => None
         }
     }
 
@@ -322,7 +321,7 @@ impl<'a> Parser<'a> {
         attributes
     }
 
-    pub fn parse_text(&mut self, until: &str, optional: bool) -> InlineTextParseResult {
+    pub fn parse_text(&mut self, until: &str, optional: bool) -> Option<ASTText> {
         let mut parts: Vec<TextPart> = vec![];
         let mut result = String::new();
         let start = self.input.pos;
@@ -334,7 +333,7 @@ impl<'a> Parser<'a> {
             }
         });
         if pos_end == 0 {
-            InlineTextParseResult::NotFound
+            None
         } else {
             while self.input.pos < pos_end {
                 match self.input.force_next() {
@@ -346,9 +345,7 @@ impl<'a> Parser<'a> {
                     '*' if self.input.peek().is('*') => {
                         let start = self.input.pos - 1;
                         self.input.skip();
-                        if let InlineTextParseResult::FoundClosing(text) =
-                            self.parse_text("**", false)
-                        {
+                        if let Some(text) = self.parse_text("**", false) {
                             self.input.skip_n(2);
                             parts.push(TextPart {
                                 before: result.clone(),
@@ -365,9 +362,7 @@ impl<'a> Parser<'a> {
                     // Italics
                     '*' => {
                         let start = self.input.pos - 1;
-                        if let InlineTextParseResult::FoundClosing(text) =
-                            self.parse_text("*", false)
-                        {
+                        if let Some(text) = self.parse_text("*", false) {
                             self.input.skip();
                             parts.push(TextPart {
                                 before: result.clone(),
@@ -429,7 +424,7 @@ impl<'a> Parser<'a> {
                     other => result.push(other),
                 }
             }
-            InlineTextParseResult::FoundClosing(ASTText {
+            Some(ASTText {
                 parts,
                 tail: result,
                 range: self.input.range_here(start),
