@@ -211,7 +211,7 @@ impl<'a> Tokenizer<'a> {
         let character = self.input.next()?;
         match character {
             ' ' | '\n' | '\r' => {
-                if let None = self.last_pos_before_spacing {
+                if self.last_pos_before_spacing.is_none() {
                     self.last_pos_before_spacing = Some(start);
                 }
                 return self.parse()

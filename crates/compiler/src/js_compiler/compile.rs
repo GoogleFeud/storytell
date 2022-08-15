@@ -126,7 +126,7 @@ impl JSCompilable for ASTParagraph {
 impl JSCompilable for ASTCodeBlock {
     fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
         let codeblock_fn = ctx.bootstrap.codeblock_fn;
-        Ok(format!("{}(`{}`,{},{})", codeblock_fn, self.text.replace("`", "\\`"), self.language.safe_compile(), self.attributes.compile(ctx)?))
+        Ok(format!("{}(`{}`,{},{})", codeblock_fn, self.text.replace('`', "\\`"), self.language.safe_compile(), self.attributes.compile(ctx)?))
     }
 }
 
