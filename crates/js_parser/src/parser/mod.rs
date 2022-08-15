@@ -1,6 +1,6 @@
 
 use crate::{tokenizer::{Tokenizer, TokenKind}, input::InputPresenter};
-use storytell_diagnostics::{diagnostic::*, *};
+use storytell_diagnostics::{diagnostic::*, *, location::Range};
 use self::ast::*;
 pub mod ast;
 
@@ -12,6 +12,10 @@ make_diagnostics!(define [
     EXPECTED,
     JSP2002,
     "Expected $."
+], [
+    END_OF_STRING_LITERAL,
+    JSP2003,
+    "Expected end of string literal expression."
 ]);
 
 #[derive(PartialEq, Copy, Clone)]
@@ -222,6 +226,42 @@ impl<'a> JsParser<'a> {
                     range: self.tokens.range(tok_start)
                 }))
             },
+            TokenKind::StringLitStart => {
+                let mut parts: Vec<ASTStringTemplatePart> = vec![];
+                let mut text_counter = self.tokens.pos();
+                loop {
+                    match self.tokens.input.next() {
+                        Some(ch) => {
+                            match ch {
+                                '`' => break,
+                                '$' if self.tokens.input.is_next(b'(', 0) => {
+                                    let start = self.tokens.pos() - 1;
+                                    let before = Range::new(text_counter, start);
+                                    self.tokens.input.skip_chars(1);
+                                    let expression = self.parse_full_expression()?;
+                                    self.tokens.expect(TokenKind::ParanthesisClosePunc, ")");
+                                    parts.push(ASTStringTemplatePart { 
+                                        before,
+                                        expression, 
+                                        range: self.tokens.range(start) 
+                                    });
+                                    text_counter = self.tokens.pos();
+                                }
+                                _ => {}
+                            }
+                        }
+                        None => {
+                            self.tokens.diagnostics.push(dia!(END_OF_STRING_LITERAL, self.tokens.range(tok_start)));
+                            return None;
+                        }
+                    }
+                }
+                ASTExpression::StringTemplate(ASTStringTemplate {
+                    tail: Range::new(text_counter, self.tokens.input.pos - 1),
+                    spans: parts,
+                    range: self.tokens.range(tok_start)
+                })
+            }
             _ => {
                 self.tokens.diagnostics.push(dia!(UNKNOWN_TOKEN, token.range, self.tokens.input.data.from_range(&token.range)));
                 return None

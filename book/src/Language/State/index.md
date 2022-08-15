@@ -1,47 +1,39 @@
 
 # State
 
-Some choices don't have consequences which change the entire course of the story - they could just change dialogue options, interactions between characters, or possibly what happens in a certain path. We can use **state** for this with **javascript**. [Javascript](https://developer.mozilla.org/en-US/docs/Web/JavaScript) is a scripting language originally meant for the web, but these days it's used everywhere! 
-Don't worry, you don't need to know javascript to add state to your story.
+Some choices don't have consequences which change the entire course of the story - they could just change dialogue options, interactions between characters, or possibly what happens in a certain path. 
 
-Javascript can be used inline by placing it between curly brackets `{}`, or as a block with 3 backticks:
+Storytell allows you to save data via a powerful scripting language called `InlineJs`, which is almost exactly the same as [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript). You **do not** need to know JavaScript in order to use this feature, storing data is super simple!
 
-````
-{"This is inline javascript"}
+## Inline usage 
 
-```
-"This is block javascript"
-```
-````
-
-## Inline javascript
-
-The inline javascript always evaluates to a value. If this value can be represented as text, it'll be embedded into your story. For example:
+This scripting language can only be used **inline**, by placing it between curly brackets (`{}`). Everything in the language evaluates to a value which will show up in your story, except for **variable assignments**, which completely dissapear.
 
 ```
-{"This is inline javascript"}
-{[1, 2, 3]}
-{3.14}
-{true}
-{myValue = 1}
-{myValue}
+- Action A
+    {chosen_action = "A"}
+- Action B
+    {chosen_action = "B"}
+
+You chose {chosen_action}.
 ```
 
-Will show the following to the reader:
+will show up as...
 
 ```
-This is inline javascript
-1, 2, 3
-3.14
-true
-1
+- Action A
+- Action B
+[Chooses A]
+You chose A.
 ```
 
-By default all value assignment (`=`, `+=`, `-=`, etc.) will be hidden, even if it does evaluate to a value that can be represented as text.
+In the above example, we save the string `"A"` to the `chosen_action` variable if the reader chooses the `Action A` option, and if they choose the `Action B` option, `chosen_action` gets set to `"B"`. Afterwards, we show which option the user chose by displaying the contents of the variable.
 
-## Block javascript
+## Block JavaScript
 
-By default, block javascript will never embed anything into your story, unless you make it so by using the `return` keyword, or the `document` API to modify the DOM.
+You can also use regular JavaScript with code blocks, although it should be used only where you can't achieve something with InlineJs, which should be rare.
+
+By default, block JavaScript will never embed anything into your story, unless you make it so by using the `return` keyword, or the `document` API to modify the DOM.
 
 ````
 ```js
@@ -55,3 +47,13 @@ Will embed:
 ```
 Hello GoogleFeud!
 ```
+
+## Differences between InlineJS and JavaScript
+
+- Since InlineJS needs to be wrapped between curly brackets (`{}`), object literals are not part of the language.
+- Function expressions (`function() {}` and `() => {}`) don't exist in InlineJS.
+- In string template literals, inserting a literals happens with `$()`, not `${}`.
+- Bitwise operators aren't supported.
+- BigInt literals aren't supported.
+- Regex literals aren't supported.
+- Expression list expressions (`(exp, exp, exp)`) aren't supported.

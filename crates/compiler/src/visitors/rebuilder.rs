@@ -1,5 +1,6 @@
 use storytell_diagnostics::location::Range;
 use storytell_js_parser::{ast::*, input::InputPresenter};
+use std::fmt::Write as _;
 
 pub struct Rebuilder<'a> {
     input: InputPresenter<'a>
@@ -7,19 +8,19 @@ pub struct Rebuilder<'a> {
 
 impl<'a> Rebuilder<'a> {
     pub fn run(input: InputPresenter<'a>, exps: &[ASTExpression]) -> String {
-        let mut rebuilder = Rebuilder { input };
+        let rebuilder = Rebuilder { input };
         let mut output: Vec<String> = vec![];
         for exp in exps {
-           output.push(format!("{}", rebuilder.stringify_exp(exp)));
+           output.push(rebuilder.stringify_exp(exp));
         }
         output.join(";")
     }
 
-    fn stringify_vec_of_expr(&mut self, vector: &[ASTExpression]) -> String {
+    fn stringify_vec_of_expr(&self, vector: &[ASTExpression]) -> String {
         vector.iter().map(|el| self.stringify_exp(el)).collect::<Vec<String>>().join(",")
     }
 
-    fn stringify_exp(&mut self, exp: &ASTExpression) -> String {
+    fn stringify_exp(&self, exp: &ASTExpression) -> String {
         match exp {
             ASTExpression::String(str) => format!("\\\"{}\\\"", self.input.from_range(&Range::new(str.range.start + 1, str.range.end - 1))),
             ASTExpression::Number(num) => self.input.from_range(&num.range).to_string(),
@@ -36,7 +37,14 @@ impl<'a> Rebuilder<'a> {
             ASTExpression::ArrayLit(lit) => format!("[{}]", self.stringify_vec_of_expr(&lit.elements)),
             ASTExpression::New(new) => format!("new {}({})", self.stringify_exp(&new.expression), self.stringify_vec_of_expr(&new.arguments)),
             ASTExpression::Call(call) => format!("{}({})", self.stringify_exp(&call.expression), self.stringify_vec_of_expr(&call.arguments)),
-            ASTExpression::Ternary(ternary) => format!("{}?{}:{}", self.stringify_exp(&ternary.condition), self.stringify_exp(&ternary.left), self.stringify_exp(&ternary.right))
+            ASTExpression::Ternary(ternary) => format!("{}?{}:{}", self.stringify_exp(&ternary.condition), self.stringify_exp(&ternary.left), self.stringify_exp(&ternary.right)),
+            ASTExpression::StringTemplate(temp) => {
+                let mut spans = String::new();
+                for span in &temp.spans {
+                    write!(spans, "{}${{{}}}", self.input.from_range(&span.before), self.stringify_exp(&span.expression)).unwrap();
+                }
+                format!("`{}{}`", spans, self.input.from_range(&temp.tail))
+            }
         }
     }
 

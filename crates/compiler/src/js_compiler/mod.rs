@@ -271,7 +271,7 @@ Hello!
     {saved -= 1}
 - Second choice 
     -> hello_world
-    @{condition}
+    @{`Some magic string $(my_var + 1) and $(my_var + 2)...`}
     - {true}
         This condition is true...
     - {false}

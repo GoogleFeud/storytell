@@ -5,5 +5,5 @@
     - [Paths](./Language/paths.md)
     - [Choices](./Language/choices.md)
     - [State](./Language/State/index.md)
-        - [Variables](./Language/State/variables.md)
+        - [Data](./Language/State/data.md)
         - [Conditions](./Language/State/conditions.md)
