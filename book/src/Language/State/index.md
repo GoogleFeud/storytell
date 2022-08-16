@@ -52,7 +52,7 @@ Hello GoogleFeud!
 
 - Since InlineJS needs to be wrapped between curly brackets (`{}`), object literals are not part of the language.
 - Function expressions (`function() {}` and `() => {}`) don't exist in InlineJS.
-- In string template literals, inserting a literals happens with `$()`, not `${}`.
+- In string template literals, inserting literals happens with `$()`, not `${}`.
 - Bitwise operators aren't supported.
 - BigInt literals aren't supported.
 - Regex literals aren't supported.

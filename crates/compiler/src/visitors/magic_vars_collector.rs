@@ -1,6 +1,15 @@
 use storytell_js_parser::{ast::*, tokenizer::TokenKind, input::InputPresenter};
-use crate::js_compiler::MagicVariableType;
 use std::collections::HashMap;
+
+#[derive(Copy, Clone, Debug)]
+pub enum MagicVariableType {
+    String = 0,
+    Number,
+    Bool,
+    Array,
+    Map,
+    Unknown
+}
 
 pub struct MagicVarCollector<'a> {
     pub input: InputPresenter<'a>,
