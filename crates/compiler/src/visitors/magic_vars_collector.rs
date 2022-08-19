@@ -1,6 +1,5 @@
-use storytell_diagnostics::{diagnostic::Diagnostic, make_diagnostics, dia, location::Range };
+use storytell_diagnostics::{diagnostic::{Diagnostic, DiagnosticMessage}, make_diagnostics, location::Range };
 use storytell_js_parser::{ast::*, tokenizer::TokenKind, input::InputPresenter};
-use crate::visitors::flatten_access::flatten_access;
 use std::{collections::HashMap, fmt::Display};
 
 make_diagnostics!(define [
@@ -17,6 +16,21 @@ pub enum MagicVariableType {
     Array,
     ObjectRef(u32),
     Unknown
+}
+
+#[derive(Clone, Debug)]
+pub enum ResolveChainResult<'a> {
+    Top(&'a str),
+    Nested(u32, &'a str)
+}
+
+impl<'a> ResolveChainResult<'a> {
+    pub fn get(&self, ctx: &'a MagicVariableCollectorContext) -> Option<&MagicVariableType> {
+        match self {
+            Self::Top(name) => ctx.variables.get(*name),
+            Self::Nested(id, name) => ctx.objects.get(id)?.get(*name)
+        }
+    }
 }
 
 impl MagicVariableType {
@@ -70,11 +84,11 @@ impl MagicVariableCollectorContext {
         Self::default()
     }
 
-    pub fn create_obj(&mut self) -> MagicVariableType {
+    pub fn create_obj(&mut self) -> u32 {
         let id = self.counter;
         self.counter += 1;
         self.objects.insert(id, HashMap::new());
-        MagicVariableType::ObjectRef(id)
+        id
     }
 
     pub fn get_obj(&mut self, typ: &MagicVariableType) -> Option<&mut MagicObject> {
@@ -85,19 +99,12 @@ impl MagicVariableCollectorContext {
         }
     }
 
-    pub fn get_or_create_chain(&mut self, chain: &[String]) -> &mut MagicObject {
-        let mut store = &mut self.variables;
-        for name in chain {
-            if let Some(next_store) = store.get_mut(name) {
-                if let MagicVariableType::ObjectRef(id) = next_store {
-                    store = self.objects.get_mut(id)
-                } else {
-                    self.diagnostics.push(dia!(MUST_BE_OBJ, Range::default(), ))
-                }
-            } else {
-                
-            }
-        }
+    pub fn get_obj_id_from_name(&self, name: &str) -> Option<u32> {
+        if let MagicVariableType::ObjectRef(id) = self.variables.get(name)? {
+            Some(id.clone())
+        } else {
+            None
+        } 
     }
 
 }
@@ -105,13 +112,15 @@ impl MagicVariableCollectorContext {
 pub struct MagicVarCollector<'a> {
     pub input: InputPresenter<'a>,
     pub collected: Vec<(String, u8)>,
+    pub start_pos: Range<usize>,
     pub ctx: &'a mut MagicVariableCollectorContext
 }
 
 impl<'a> MagicVarCollector<'a> {
-    pub fn new(input: InputPresenter<'a>, ctx: &'a mut MagicVariableCollectorContext) -> Self {
+    pub fn new(input: InputPresenter<'a>, start_pos: Range<usize>, ctx: &'a mut MagicVariableCollectorContext) -> Self {
         Self {
             collected: vec![],
+            start_pos,
             ctx,
             input
         }
@@ -119,6 +128,54 @@ impl<'a> MagicVarCollector<'a> {
 }
 
 impl<'a> MagicVarCollector<'a> {
+
+    fn get_string_from_accessor(&self, accessor: &ASTAccessContent) -> Option<&str> {
+        match accessor {
+            ASTAccessContent::Identifier(ident) => Some(self.input.from_range(&ident.range)),
+            ASTAccessContent::Expression(exp) => match exp {
+                ASTExpression::String(str) => Some(self.input.from_range(&str.range)),
+                ASTExpression::Number(num) => Some(self.input.from_range(&num.range)),
+                _ => None
+            }
+        }
+    }
+
+    fn resolve_chain(&mut self, chain: &ASTAccess) -> Option<ResolveChainResult> {
+        if let ASTExpression::Access(_) = &chain.expression {
+            let mut result = vec![];
+            let mut left = &chain.expression;
+            while let ASTExpression::Access(acc) = left {
+                left = &acc.expression;
+                result.push(self.get_string_from_accessor(&acc.accessor)?.to_string());
+            }
+            let first_object_name = if let ASTExpression::Identifier(ident) = left {
+                self.input.from_range(&ident.range)
+            } else {
+                return None;
+            };
+            let mut store = if let Some(id) = self.ctx.get_obj_id_from_name(first_object_name) { id } else {
+                let new_obj_id = self.ctx.create_obj();
+                self.ctx.variables.insert(first_object_name.to_string(), MagicVariableType::ObjectRef(new_obj_id));
+                new_obj_id
+            };
+            for object_name in result.iter().rev() {
+                if let Some(obj) = self.ctx.objects.get(&store).unwrap().get(object_name) {
+                    if let MagicVariableType::ObjectRef(id) = obj {
+                        store = id.clone()
+                    } else {
+                        // Report that it's not an object
+                    }
+                } else {
+                    let new_obj_id = self.ctx.create_obj();
+                    self.ctx.objects.get_mut(&store).unwrap().insert(object_name.to_string(), MagicVariableType::ObjectRef(new_obj_id));
+                    store = new_obj_id;
+                }
+            }
+            Some(ResolveChainResult::Nested(store, self.get_string_from_accessor(&chain.accessor)?))
+        } else {
+            Some(ResolveChainResult::Top(self.get_string_from_accessor(&chain.accessor)?))
+        }
+    }
 
     fn process_exp(&mut self, exp: &ASTExpression) -> MagicVariableType {
         match exp {
@@ -147,10 +204,8 @@ impl<'a> MagicVarCollector<'a> {
                         }
                     },
                     ASTExpression::Access(access) => {
-                        if let Some(mut flattened) = flatten_access(&self.input, access) {
-                            let last = flattened.pop().unwrap();
-                            
-                        }
+                        println!("{:?}", self.resolve_chain(access));
+                        MagicVariableType::Unknown
                     }
                     _ => {
                         exp.visit_each_child(self);
@@ -168,23 +223,10 @@ impl<'a> MagicVarCollector<'a> {
                 } else {
                     MagicVariableType::Unknown
                 }
-            },
+            }
             ASTExpression::Access(access) => {
-                if let MagicVariableType::Object(obj) = self.process_exp(&access.expression) {
-                    let right_text = match &access.accessor {
-                        ASTAccessContent::Identifier(ident) => self.input.from_range(&ident.range),
-                        ASTAccessContent::Expression(exp) => {
-                            match exp {
-                                ASTExpression::String(str) => self.input.from_range(&str.range),
-                                ASTExpression::Number(num) => self.input.from_range(&num.range),
-                                _ => return MagicVariableType::Unknown
-                            }
-                        }
-                    };
-                    obj.get(right_text).unwrap_or(&MagicVariableType::Unknown).clone()
-                } else {
-                    MagicVariableType::Unknown
-                }
+                println!("{:?}", self.resolve_chain(access));
+                MagicVariableType::Unknown
             },
             _ => {
                 exp.visit_each_child(self);

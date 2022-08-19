@@ -36,7 +36,7 @@ impl JSCompilable for ASTInline {
                 if !diagnostics.is_empty() {
                     Err(diagnostics)
                 } else {
-                    let mut magic_vars_collector = MagicVarCollector::new(input, &mut ctx.magic_variables);
+                    let mut magic_vars_collector = MagicVarCollector::new(input, self.range.clone(), &mut ctx.magic_variables);
                     expressions.visit_each_child(&mut magic_vars_collector);
                     let gathered_variables = magic_vars_collector.collected.iter().map(|pair| format!("{{name: {}, type: {}}}", pair.0.safe_compile(), pair.1)).collect::<Vec<String>>();
                     let rebuilt_code = Rebuilder::run(magic_vars_collector.input, &expressions);

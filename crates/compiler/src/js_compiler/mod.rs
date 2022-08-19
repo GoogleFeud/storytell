@@ -200,9 +200,10 @@ Hello!
         This condition is false...
 
 {killed_1 = killed}
+{a.b.c.d}
 ", BOOTSTRAP_VARS.clone(), 1);
         println!("{} {:?}", result, diagnostics);
-        //panic!("AAA");
+        panic!("AAA");
     }
 
 }
