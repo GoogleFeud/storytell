@@ -1,11 +1,10 @@
 pub mod compile;
 
 use compile::{JSCompilable};
-use std::collections::{HashMap};
 use storytell_diagnostics::diagnostic::{Diagnostic};
 use storytell_parser::{ast::{model::{ASTHeader, ASTBlock}, Parser}, input::ParsingContext};
 use storytell_fs::file_host::{FileHost, FileDiagnostic, GetFindResult};
-use crate::visitors::MagicVariableType;
+use crate::visitors::{MagicVariableCollectorContext};
 use crate::path::Path;
 
 use self::compile::JSSafeCompilable;
@@ -138,7 +137,7 @@ pub fn compile_str(string: &str, booststrap: JSBootstrapVars, line_endings: usiz
 }
 
 pub struct CompilerContext {
-    pub magic_variables: HashMap<String, MagicVariableType>,
+    pub magic_variables: MagicVariableCollectorContext,
     pub diagnostics: Vec<FileDiagnostic>,
     pub paths: Path,
     pub bootstrap: JSBootstrapVars
@@ -148,7 +147,7 @@ impl CompilerContext {
 
     pub fn new(bootstrap: JSBootstrapVars) -> Self {
         Self { 
-            magic_variables: HashMap::new(), 
+            magic_variables: MagicVariableCollectorContext::new(), 
             diagnostics: vec![], 
             paths: Path::new("global"),
             bootstrap 
@@ -199,9 +198,11 @@ Hello!
         This condition is true...
     - {false}
         This condition is false...
+
+{killed_1 = killed}
 ", BOOTSTRAP_VARS.clone(), 1);
         println!("{} {:?}", result, diagnostics);
-        panic!("AAA");
+        //panic!("AAA");
     }
 
 }
