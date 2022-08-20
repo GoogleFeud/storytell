@@ -177,7 +177,7 @@ mod tests {
 
     #[test]
     fn compile() {
-        let (result, diagnostics, _ctx) = compile_str("
+        let (result, diagnostics, ctx) = compile_str("
 # Hello, World!
 How's it going on this {a += 1} {b += 5; c += 'Hello World!'; v = d = 33}?
 
@@ -200,9 +200,10 @@ Hello!
         This condition is false...
 
 {killed_1 = killed}
+{a.b.c.d += 1}
 {a.b.c.d}
 ", BOOTSTRAP_VARS.clone(), 1);
-        println!("{} {:?}", result, diagnostics);
+        println!("{} {:?} {:?}", result, diagnostics, ctx.magic_variables);
         panic!("AAA");
     }
 
