@@ -179,7 +179,7 @@ mod tests {
     fn compile() {
         let (result, diagnostics, ctx) = compile_str("
 # Hello, World!
-How's it going on this {a += 1} {b += 5; c += 'Hello World!'; v = d = 33}?
+How's it going on this {a += 1} {b += 5; c += 'Hello World!'; v = d = 33}? `Test!`
 
 ```js
 console.log(`Some code ${123}`);
@@ -189,7 +189,7 @@ Hello!
 ## This is a subpath...
 
 - This is a choice group!
-    {killed += 1}
+    {killed += n}
     {saved -= 1}
 - Second choice 
     -> hello_world
@@ -199,10 +199,9 @@ Hello!
     - {false}
         This condition is false...
 
-{killed_1 = killed}
-{a.b.c += 1}
-{a.b.c.d += 1}
-{a.b.c.d}
+{killed = c}
+{e.b.c.d += 1}
+{e.b.c.d}
 ", BOOTSTRAP_VARS.clone(), 1);
         println!("{} {:?} {:?}", result, diagnostics, ctx.magic_variables);
         panic!("AAA");

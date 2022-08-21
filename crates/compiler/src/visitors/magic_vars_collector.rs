@@ -5,7 +5,11 @@ use std::{collections::HashMap, fmt::Display};
 make_diagnostics!(define [
     MUST_BE_OBJ,
     C2001,
-    "Variable $ is a $, not an object."
+    "Variable '$' is a '$', not an object."
+], [
+    DIFFERENT_TYPE,
+    C2002,
+    "Variable '$' is a '$', but '$' is being assigned to it."
 ]);
 
 #[derive(Clone, Debug)]
@@ -228,13 +232,21 @@ impl<'a> MagicVarCollector<'a> {
                         let left_name = self.input.from_range(&left_ident.range).to_string();
                         let var_type = self.resolve_binary(&exp.operator, &exp.right);
                         self.collected.push((left_name.clone(), var_type.get_id()));
-                        self.ctx.variables.insert(left_name, var_type.clone());
+                        if let Some(prev) = self.ctx.variables.insert(left_name.to_string(), var_type.clone()) {
+                            if !matches!(prev, MagicVariableType::Unknown) {
+                                self.diagnostics.push(dia!(DIFFERENT_TYPE, self.range(&exp.range), &left_name, &prev.to_string(), &var_type.to_string()))
+                            }
+                        }
                         var_type
                     },
                     ASTExpression::Access(access) => {
                         let right_type = self.resolve_binary(&exp.operator, &exp.right);
                         if let Some((store, var_name)) = self.resolve_chain(access).get_store(&mut self.ctx) {
-                            store.insert(var_name.clone(), right_type.clone());
+                            if let Some(prev) = store.insert(var_name.clone(), right_type.clone()) {
+                                if !matches!(prev, MagicVariableType::Unknown) {
+                                    self.diagnostics.push(dia!(DIFFERENT_TYPE, self.range(&exp.range), &var_name, &prev.to_string(), &right_type.to_string()))
+                                }
+                            }
                         }
                         right_type
                     }
