@@ -31,7 +31,7 @@ impl JSCompilable for ASTInline {
             ASTInlineKind::Bold(text) => Ok(format!("<b>{}</b>", text.compile(ctx)?)),
             ASTInlineKind::Italics(text) => Ok(format!("<i>{}</i>", text.compile(ctx)?)),
             ASTInlineKind::Underline(text) => Ok(format!("<u>{}</u>", text.compile(ctx)?)),
-            ASTInlineKind::Code(text) => Ok(format!("<code>{}</code>", text.compile(ctx)?)),
+            ASTInlineKind::Code(text) => Ok(format!("\\`{}\\`", text.compile(ctx)?)),
             ASTInlineKind::Javascript(text) => {
                 let (expressions, diagnostics, input) = JsParser::parse(text);
                 if !diagnostics.is_empty() {
@@ -69,7 +69,7 @@ impl JSCompilable for ASTInline {
 impl JSCompilable for ASTText {
     fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
         if self.parts.is_empty() {
-            return Ok(self.tail.clone().safe_compile())
+            return Ok(self.tail.clone())
         }
         let mut result = String::new();
         for part in &self.parts {
@@ -77,7 +77,7 @@ impl JSCompilable for ASTText {
             result.push_str(&part.text.compile(ctx)?)
         }
         result.push_str(&self.tail);
-        Ok(result.safe_compile())
+        Ok(result)
     }
 }
 
@@ -164,7 +164,7 @@ impl JSCompilable for ASTChoiceGroup {
 
 impl JSCompilable for ASTChoice {
     fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
-        Ok(format!("{{text:{},children:{}}}", self.text.compile(ctx)?, self.children.compile(ctx)?))
+        Ok(format!("{{text:{},children:{}}}", self.text.compile(ctx)?.safe_compile(), self.children.compile(ctx)?))
     }
 }
 
