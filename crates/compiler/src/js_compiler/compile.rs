@@ -183,11 +183,9 @@ impl JSCompilable for ASTBlock {
 impl JSCompilable for Vec<ASTAttribute> {
     fn compile(&self, _ctx: &mut CompilerContext) -> StorytellResult<String> {
         Ok(format!("[{}]", 
-        self.iter().map(|i| 
-            format!("{{name:{},params:{}}}", i.name.safe_compile(), i.parameters.iter().map(|i| 
-                i.safe_compile()).collect::<Vec<String>>().join(",")
-            )).collect::<Vec<String>>().join(",")
-        ))
+        self.iter().map(|i|
+            format!("{{name:{},params:[{}]}}", i.name.safe_compile(), i.parameters.iter().map(|i| format!("\"{}\"", i)).collect::<Vec<String>>().join(","))
+        ).collect::<Vec<String>>().join(",")))
     }
 }
 

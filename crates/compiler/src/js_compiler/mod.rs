@@ -188,6 +188,7 @@ Hello!
 
 ## This is a subpath...
 
+#[SomeAttribute(123, 456, 789)]
 - This is a choice group!
     {killed += n}
     {saved -= 1}
