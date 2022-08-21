@@ -1,4 +1,4 @@
-use storytell_diagnostics::{diagnostic::{Diagnostic, DiagnosticMessage}, make_diagnostics, location::Range };
+use storytell_diagnostics::{diagnostic::*, make_diagnostics, location::Range, dia };
 use storytell_js_parser::{ast::*, tokenizer::{TokenKind}, input::InputPresenter};
 use std::{collections::HashMap, fmt::Display};
 
@@ -75,7 +75,6 @@ pub type MagicObject = HashMap<String, MagicVariableType>;
 pub struct MagicVariableCollectorContext {
     pub variables: MagicObject,
     pub objects: HashMap<u32, MagicObject>,
-    pub diagnostics: Vec<Diagnostic>,
     pub counter: u32
 }
 
@@ -84,7 +83,6 @@ impl Default for MagicVariableCollectorContext {
         Self {
             variables: HashMap::new(),
             objects: HashMap::new(),
-            diagnostics: vec![],
             counter: 0
         }
     }
@@ -124,6 +122,7 @@ pub struct MagicVarCollector<'a> {
     pub input: InputPresenter<'a>,
     pub collected: Vec<(String, u8)>,
     pub start_pos: Range<usize>,
+    pub diagnostics: Vec<Diagnostic>,
     pub ctx: &'a mut MagicVariableCollectorContext
 }
 
@@ -131,6 +130,7 @@ impl<'a> MagicVarCollector<'a> {
     pub fn new(input: InputPresenter<'a>, start_pos: Range<usize>, ctx: &'a mut MagicVariableCollectorContext) -> Self {
         Self {
             collected: vec![],
+            diagnostics: vec![],
             start_pos,
             ctx,
             input
@@ -139,6 +139,14 @@ impl<'a> MagicVarCollector<'a> {
 }
 
 impl<'a> MagicVarCollector<'a> {
+
+    fn range(&self, other: &Range<usize>) -> Range<usize> {
+        let start = self.start_pos.start + other.start;
+        Range { 
+            start: start,
+            end: start + other.end
+        }
+    }
 
     fn get_string_from_accessor(&self, accessor: &ASTAccessContent) -> Option<&str> {
         match accessor {
@@ -157,28 +165,35 @@ impl<'a> MagicVarCollector<'a> {
             let mut left = &chain.expression;
             while let ASTExpression::Access(acc) = left {
                 left = &acc.expression;
-                result.push(match self.get_string_from_accessor(&acc.accessor) {
+                result.push((match self.get_string_from_accessor(&acc.accessor) {
                     Some(val) => val.to_string(),
                     None => return ResolveChainResult::None
-                });
+                }, &acc.range));
             }
-            let first_object_name = if let ASTExpression::Identifier(ident) = left {
-                self.input.from_range(&ident.range)
+            let (first_object_name, first_object_name_range) = if let ASTExpression::Identifier(ident) = left {
+                (self.input.from_range(&ident.range), &ident.range)
             } else {
                 return ResolveChainResult::None;
             };
-            let mut store = if let Some(id) = self.ctx.get_obj_id_from_name(first_object_name) { id } else {
+            let mut store = if let Some(var_type) = self.ctx.variables.get(first_object_name) {
+                if let MagicVariableType::ObjectRef(id) = var_type {
+                    *id
+                } else {
+                    self.diagnostics.push(dia!(MUST_BE_OBJ, self.range(first_object_name_range), &first_object_name, &var_type.to_string()));
+                    return ResolveChainResult::None;
+                }
+            } else {
                 let new_obj_id = self.ctx.create_obj();
                 self.ctx.variables.insert(first_object_name.to_string(), MagicVariableType::ObjectRef(new_obj_id));
                 self.collected.push((first_object_name.to_string(), 4));
-                new_obj_id
+                new_obj_id 
             };
-            for object_name in result.iter().rev() {
+            for (object_name, object_range) in result.iter().rev() {
                 if let Some(obj) = self.ctx.objects.get(&store).unwrap().get(object_name) {
                     if let MagicVariableType::ObjectRef(id) = obj {
                         store = id.clone()
                     } else {
-                        // Report that it's not an object
+                        self.diagnostics.push(dia!(MUST_BE_OBJ, self.range(object_range), &object_name, &obj.to_string()))
                     }
                 } else {
                     let new_obj_id = self.ctx.create_obj();

@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter, Result};
-use std::ops::{Add, Sub, Mul, Div};
+use std::cmp::PartialOrd;
 
 /// Both `col` and `line` start from 1. If the location doesn't exist, then
 /// both will be equal to 0.
@@ -59,34 +59,5 @@ impl<T: Position> Range<T> {
 impl<T: Position> Display for Range<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "({} - {})", self.start.pos(), self.end.pos())
-    }
-}
-
-impl<T: Position + Add<Output = T>> Add for Range<T> {
-    type Output = Range<T>;
-    fn add(self, rhs: Self) -> Self::Output {
-        Self::new(self.start + rhs.start, self.end + rhs.end)
-    }
-}
-
-
-impl<T: Position + Sub<Output = T>> Sub for Range<T> {
-    type Output = Range<T>;
-    fn sub(self, rhs: Self) -> Self::Output {
-        Self::new(self.start - rhs.start, self.end - rhs.end)
-    }
-}
-
-impl<T: Position + Div<Output = T>> Div for Range<T> {
-    type Output = Range<T>;
-    fn div(self, rhs: Self) -> Self::Output {
-        Self::new(self.start / rhs.start, self.end / rhs.end)
-    }
-}
-
-impl<T: Position + Mul<Output = T>> Mul for Range<T> {
-    type Output = Range<T>;
-    fn mul(self, rhs: Self) -> Self::Output {
-        Self::new(self.start * rhs.start, self.end * rhs.end)
     }
 }

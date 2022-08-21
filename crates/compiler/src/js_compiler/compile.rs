@@ -1,5 +1,6 @@
 use crate::visitors::{MagicVarCollector, Rebuilder};
 use super::{CompilerContext, Path};
+use storytell_diagnostics::location::Range;
 use storytell_js_parser::ast::Visitable;
 use storytell_parser::ast::model::*;
 use storytell_diagnostics::diagnostic::*;
@@ -36,11 +37,15 @@ impl JSCompilable for ASTInline {
                 if !diagnostics.is_empty() {
                     Err(diagnostics)
                 } else {
-                    let mut magic_vars_collector = MagicVarCollector::new(input, self.range.clone(), &mut ctx.magic_variables);
+                    let mut magic_vars_collector = MagicVarCollector::new(input, Range::new(self.range.start + 1, self.range.end - 1), &mut ctx.magic_variables);
                     expressions.visit_each_child(&mut magic_vars_collector);
-                    let gathered_variables = magic_vars_collector.collected.iter().map(|pair| format!("{{name: {}, type: {}}}", pair.0.safe_compile(), pair.1)).collect::<Vec<String>>();
-                    let rebuilt_code = Rebuilder::run(magic_vars_collector.input, &expressions);
-                    Ok(format!("${{{}({},{})}}", ctx.bootstrap.inline_js_fn, rebuilt_code.safe_compile(), gathered_variables.safe_compile()))
+                    if !magic_vars_collector.diagnostics.is_empty() {
+                        Err(magic_vars_collector.diagnostics)
+                    } else {
+                        let gathered_variables = magic_vars_collector.collected.iter().map(|pair| format!("{{name: {}, type: {}}}", pair.0.safe_compile(), pair.1)).collect::<Vec<String>>();
+                        let rebuilt_code = Rebuilder::run(magic_vars_collector.input, &expressions);
+                        Ok(format!("${{{}({},{})}}", ctx.bootstrap.inline_js_fn, rebuilt_code.safe_compile(), gathered_variables.safe_compile()))
+                    }
                 }
             },
             ASTInlineKind::Divert(thing, is_temp) => {

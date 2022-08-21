@@ -200,6 +200,7 @@ Hello!
         This condition is false...
 
 {killed_1 = killed}
+{a.b.c += 1}
 {a.b.c.d += 1}
 {a.b.c.d}
 ", BOOTSTRAP_VARS.clone(), 1);
