@@ -47,20 +47,6 @@ impl JSCompilable for ASTInline {
                         Ok(format!("${{{}({},{})}}", ctx.bootstrap.inline_js_fn, rebuilt_code.safe_compile(), gathered_variables.safe_compile()))
                     }
                 }
-            },
-            ASTInlineKind::Divert(thing, is_temp) => {
-                match ctx.paths.try_get_child_by_path(thing) {
-                    Ok(_) => {
-                        Ok(format!("${{{}([{}])}}", if *is_temp { ctx.bootstrap.temp_divert_fn } else { ctx.bootstrap.divert_fn }, thing.iter().map(|string| format!("\"{}\"", string)).collect::<Vec<String>>().join(", ")))
-                    },
-                    Err(ind) => {
-                        if ind == 0 {
-                            Err(vec![dia!(UNKNOWN_PATH, self.range.clone(), &thing[ind])])
-                        } else {
-                            Err(vec![dia!(UNKNOWN_CHILD_PATH, self.range.clone(), &thing[ind], &thing[ind - 1])])
-                        }
-                    }
-                }
             }
         }
     }
@@ -134,6 +120,23 @@ impl JSCompilable for ASTCodeBlock {
     }
 }
 
+impl JSCompilable for ASTDivert {
+    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
+        match ctx.paths.try_get_child_by_path(&self.path) {
+            Ok(_) => {
+                Ok(format!("{}([{}])", ctx.bootstrap.divert_fn, self.path.iter().map(|string| format!("\"{}\"", string)).collect::<Vec<String>>().join(", ")))
+            },
+            Err(ind) => {
+                if ind == 0 {
+                    Err(vec![dia!(UNKNOWN_PATH, self.range.clone(), &self.path[ind])])
+                } else {
+                    Err(vec![dia!(UNKNOWN_CHILD_PATH, self.range.clone(), &self.path[ind], &self.path[ind - 1])])
+                }
+            }
+        }
+    }
+}
+
 impl JSCompilable for ASTMatch {
     fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
         let match_fn = ctx.bootstrap.match_fn;
@@ -175,7 +178,8 @@ impl JSCompilable for ASTBlock {
             Self::CodeBlock(block) => block.compile(ctx),
             Self::Header(block) => block.compile(ctx),
             Self::Match(block) => block.compile(ctx),
-            Self::Paragraph(block) => block.compile(ctx)
+            Self::Paragraph(block) => block.compile(ctx),
+            Self::Divert(divert) => divert.compile(ctx)
         }
     }
 }

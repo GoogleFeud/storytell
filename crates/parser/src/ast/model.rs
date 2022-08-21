@@ -76,9 +76,7 @@ pub enum ASTInlineKind {
     // __...__
     Underline(ASTText),
     // `...`
-    Code(ASTText),
-    // -> / <->
-    Divert(Vec<String>, bool)
+    Code(ASTText)
 }
 
 #[derive(Clone, Debug)]
@@ -143,6 +141,10 @@ create_nodes!(
         depth: u8
     }
 
+    ASTDivert {
+        path: Vec<String>
+    }
+
 );
 
 #[derive(Clone, Debug)]
@@ -150,6 +152,7 @@ pub enum ASTBlock {
     Paragraph(ASTParagraph),
     CodeBlock(ASTCodeBlock),
     ChoiceGroup(ASTChoiceGroup),
+    Divert(ASTDivert),
     Match(ASTMatch),
     Header(ASTHeader)
 }
@@ -202,8 +205,7 @@ impl ASTInlineKind {
             Self::Code(text) => text.to_raw(),
             Self::Italics(text) => text.to_raw(),
             Self::Javascript(text) => text.clone(),
-            Self::Underline(text) => text.to_raw(),
-            Self::Divert(paths, _) => paths.join(".")
+            Self::Underline(text) => text.to_raw()
         } 
     }
 }

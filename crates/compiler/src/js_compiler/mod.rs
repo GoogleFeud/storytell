@@ -18,7 +18,6 @@ pub struct JSBootstrapVars {
     /// Name of a funtion which moves the current path,
     /// (path: string[]) => any
     pub divert_fn: &'static str,
-    pub temp_divert_fn: &'static str,
     /// Responsible for creating paragraphs
     /// (text: string, attribues: Array<{name: string, params: string[]}>) => any
     pub paragraph_fn: &'static str,
@@ -166,7 +165,6 @@ mod tests {
 
     const BOOTSTRAP_VARS: JSBootstrapVars = JSBootstrapVars {
         divert_fn: "divert",
-        temp_divert_fn: "tempDivert",
         paragraph_fn: "Paragraph",
         codeblock_fn: "Codeblock",
         match_fn: "Match",

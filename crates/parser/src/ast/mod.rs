@@ -123,9 +123,25 @@ impl<'a> Parser<'a> {
                     kind
                 }))
             },
-            '-' if !self.input.peek_n(1).is('>') => {
-                Some(ASTBlock::ChoiceGroup(self.parse_choice_list(depth, false, true)?))
+            '-' if self.input.peek_n(1).is('>') => {
+                self.input.skip_n(2);
+                    if self.input.peek().is(' ') {
+                        self.input.skip();
+                    }
+                    let path = self.parse_path_access();
+                    Some(ASTBlock::Divert(ASTDivert {
+                        path,
+                        range: {
+                            let range = self.input.range_here(start);
+                            self.input.consume_until_end_of_line();
+                            range
+                        },
+                        attributes: self.collected_attributes.pop_vec()
+                    }))
             },
+            '-' => {
+                Some(ASTBlock::ChoiceGroup(self.parse_choice_list(depth, false, true)?))
+            }
             '/' if self.input.peek_n(1).is('/') => {
                 self.input.skip_until_end_of_line();
                 self.parse_block(depth)
@@ -228,7 +244,7 @@ impl<'a> Parser<'a> {
     pub fn parse_path_access(&mut self) -> Vec<String> {
         let mut paths: Vec<String> = vec![];
         let mut current_path = String::new();
-        while !self.input.is_eof() {
+        while !self.input.is_eol() {
             match self.input.force_next() {
                 ch @ '0'..='9' | ch @ 'a'..='z' | ch @ '_' => {
                     current_path.push(ch)
@@ -393,37 +409,6 @@ impl<'a> Parser<'a> {
                             result.push('`');
                         }
                     },
-                    // Divert
-                    '-' if self.input.peek().is('>') => {
-                        self.input.skip();
-                        if self.input.peek().is(' ') {
-                            self.input.skip()
-                        }
-                        let text = self.parse_path_access();
-                        parts.push(TextPart {
-                            before: result.clone(),
-                            text: ASTInline {
-                                kind: ASTInlineKind::Divert(text, false),
-                                range: self.input.range_here(start)
-                            },
-                        });
-                        result.clear()
-                    },
-                    '<' if self.input.peek().is('-') && self.input.peek_n(1).is('>') => {
-                        self.input.skip_n(2);
-                        if self.input.peek().is(' ') {
-                            self.input.skip()
-                        }
-                        let text = self.parse_path_access();
-                        parts.push(TextPart {
-                            before: result.clone(),
-                            text: ASTInline {
-                                kind: ASTInlineKind::Divert(text, true),
-                                range: self.input.range_here(start)
-                            },
-                        });
-                        result.clear()
-                    },
                     '{' => {
                         if let Some(text) = self.input.consume_until_of_eol("}") {
                             parts.push(TextPart {
@@ -557,21 +542,6 @@ Text...
                 para.parts[1].text.kind,
                 ASTInlineKind::Italics(_)
             ));
-        } else {
-            panic!("Expected paragraph")
-        }
-    }
-
-    #[test]
-    fn parse_inline_divert() {
-        let (input, _) = Parser::new("# This is some header!!!...\n**really** interesting *word...\nAlright, second paragraph -> second_chapter", ParsingContext::new(1)).parse();
-        let children = get_header_children(&input);
-        if let ASTBlock::Paragraph(para) = &children[1] {
-            if let ASTInlineKind::Divert(arrow, _) = &para.parts[0].text.kind {
-                assert_eq!(arrow[0], "second_chapter")
-            } else {
-                panic!("Divert")
-            }
         } else {
             panic!("Expected paragraph")
         }
