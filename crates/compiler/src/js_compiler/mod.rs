@@ -162,6 +162,7 @@ impl CompilerContext {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::{Instant};
 
     const BOOTSTRAP_VARS: JSBootstrapVars = JSBootstrapVars {
         divert_fn: "divert",
@@ -175,6 +176,7 @@ mod tests {
 
     #[test]
     fn compile() {
+        let before = Instant::now();
         let (result, diagnostics, ctx) = compile_str("
 # Hello, World!
 How's it going on this {a += 1} {b += 5; c += 'Hello World!'; v = d = 33}? `Test!`
@@ -202,6 +204,7 @@ Hello!
 {e.b.c.d += 1}
 {e.b.c.d}
 ", BOOTSTRAP_VARS.clone(), 1);
+        println!("Parsing took {} nanoseconds", before.elapsed().as_nanos());
         println!("{} {:?} {:?}", result, diagnostics, ctx.magic_variables);
         panic!("AAA");
     }
