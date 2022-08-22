@@ -75,21 +75,11 @@ impl Display for MagicVariableType {
 
 pub type MagicObject = HashMap<String, MagicVariableType>;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct MagicVariableCollectorContext {
     pub variables: MagicObject,
     pub objects: HashMap<u32, MagicObject>,
     pub counter: u32
-}
-
-impl Default for MagicVariableCollectorContext {
-    fn default() -> Self {
-        Self {
-            variables: HashMap::new(),
-            objects: HashMap::new(),
-            counter: 0
-        }
-    }
 }
 
 impl MagicVariableCollectorContext {
@@ -106,7 +96,7 @@ impl MagicVariableCollectorContext {
 
     pub fn get_obj(&mut self, typ: &MagicVariableType) -> Option<&mut MagicObject> {
         if let MagicVariableType::ObjectRef(id) = typ {
-            self.objects.get_mut(&id)
+            self.objects.get_mut(id)
         } else {
             None
         }
@@ -114,7 +104,7 @@ impl MagicVariableCollectorContext {
 
     pub fn get_obj_id_from_name(&self, name: &str) -> Option<u32> {
         if let MagicVariableType::ObjectRef(id) = self.variables.get(name)? {
-            Some(id.clone())
+            Some(*id)
         } else {
             None
         } 
@@ -147,7 +137,7 @@ impl<'a> MagicVarCollector<'a> {
     fn range(&self, other: &Range<usize>) -> Range<usize> {
         let start = self.start_pos.start + other.start;
         Range { 
-            start: start,
+            start,
             end: start + other.end
         }
     }
@@ -183,7 +173,7 @@ impl<'a> MagicVarCollector<'a> {
                 if let MagicVariableType::ObjectRef(id) = var_type {
                     *id
                 } else {
-                    self.diagnostics.push(dia!(MUST_BE_OBJ, self.range(first_object_name_range), &first_object_name, &var_type.to_string()));
+                    self.diagnostics.push(dia!(MUST_BE_OBJ, self.range(first_object_name_range), first_object_name, &var_type.to_string()));
                     return ResolveChainResult::None;
                 }
             } else {
@@ -195,9 +185,9 @@ impl<'a> MagicVarCollector<'a> {
             for (object_name, object_range) in result.iter().rev() {
                 if let Some(obj) = self.ctx.objects.get(&store).unwrap().get(object_name) {
                     if let MagicVariableType::ObjectRef(id) = obj {
-                        store = id.clone()
+                        store = *id;
                     } else {
-                        self.diagnostics.push(dia!(MUST_BE_OBJ, self.range(object_range), &object_name, &obj.to_string()))
+                        self.diagnostics.push(dia!(MUST_BE_OBJ, self.range(object_range), object_name, &obj.to_string()));
                     }
                 } else {
                     let new_obj_id = self.ctx.create_obj();
@@ -241,10 +231,10 @@ impl<'a> MagicVarCollector<'a> {
                     },
                     ASTExpression::Access(access) => {
                         let right_type = self.resolve_binary(&exp.operator, &exp.right);
-                        if let Some((store, var_name)) = self.resolve_chain(access).get_store(&mut self.ctx) {
+                        if let Some((store, var_name)) = self.resolve_chain(access).get_store(self.ctx) {
                             if let Some(prev) = store.insert(var_name.clone(), right_type.clone()) {
                                 if !matches!(prev, MagicVariableType::Unknown) {
-                                    self.diagnostics.push(dia!(DIFFERENT_TYPE, self.range(&exp.range), &var_name, &prev.to_string(), &right_type.to_string()))
+                                    self.diagnostics.push(dia!(DIFFERENT_TYPE, self.range(&exp.range), var_name, &prev.to_string(), &right_type.to_string()))
                                 }
                             }
                         }
@@ -268,7 +258,7 @@ impl<'a> MagicVarCollector<'a> {
                 }
             }
             ASTExpression::Access(access) => {
-               if let Some(var_type) = self.resolve_chain(access).get(&self.ctx) {
+               if let Some(var_type) = self.resolve_chain(access).get(self.ctx) {
                     var_type.clone()
                } else {
                     MagicVariableType::Unknown
