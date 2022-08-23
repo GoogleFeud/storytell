@@ -3,6 +3,8 @@ use storytell_fs::file_host::FileDiagnostic;
 use storytell_parser::ast::model::ASTHeader;
 use crate::{base::*, visitors::MagicVariableCollectorContext, path::Path};
 
+pub mod compile;
+
 pub struct JSONCompilerProvider;
 
 impl CompilerProvider for JSONCompilerProvider {
