@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use storytell_parser::ast::model::{ASTHeader, ASTBlock};
 
-
 pub struct Path {
     pub name: String,
     pub depth: u8,

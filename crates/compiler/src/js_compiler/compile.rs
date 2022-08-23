@@ -1,24 +1,15 @@
 use crate::visitors::{MagicVarCollector, Rebuilder};
-use super::{CompilerContext, Path};
+use super::{Path, JSCompilerContext};
 use storytell_diagnostics::location::Range;
 use storytell_js_parser::ast::Visitable;
 use storytell_parser::ast::model::*;
 use storytell_diagnostics::diagnostic::*;
-use storytell_diagnostics::{dia, make_diagnostics};
+use storytell_diagnostics::{dia};
 use storytell_js_parser::JsParser;
-
-make_diagnostics!(define [
-    UNKNOWN_CHILD_PATH,
-    C1001,
-    "\"$\" is not a sub-path of \"$\"."
-], [
-    UNKNOWN_PATH,
-    C1002,
-    "\"$\" is not a path."
-]);
+use crate::base::Diagnostics;
 
 pub trait JSCompilable {
-    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String>;
+    fn compile(&self, ctx: &mut JSCompilerContext) -> StorytellResult<String>;
 }
 
 pub trait JSSafeCompilable {
@@ -26,7 +17,7 @@ pub trait JSSafeCompilable {
 }
 
 impl JSCompilable for ASTInline {
-    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
+    fn compile(&self, ctx: &mut JSCompilerContext) -> StorytellResult<String> {
         match &self.kind {
             ASTInlineKind::Bold(text) => Ok(format!("<b>{}</b>", text.compile(ctx)?)),
             ASTInlineKind::Italics(text) => Ok(format!("<i>{}</i>", text.compile(ctx)?)),
@@ -53,7 +44,7 @@ impl JSCompilable for ASTInline {
 }
 
 impl JSCompilable for ASTText {
-    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
+    fn compile(&self, ctx: &mut JSCompilerContext) -> StorytellResult<String> {
         if self.parts.is_empty() {
             return Ok(self.tail.clone())
         }
@@ -76,7 +67,7 @@ impl JSCompilable for ASTHeader {
     ///     childPaths: {self},
     ///     children: []
     /// }
-    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
+    fn compile(&self, ctx: &mut JSCompilerContext) -> StorytellResult<String> {
         let mut header_children: Vec<String> = vec![];
         let mut others: Vec<&ASTBlock> = vec![];
         for child in &self.children {
@@ -98,7 +89,7 @@ impl JSCompilable for ASTHeader {
 }
 
 impl JSCompilable for ASTParagraph {
-    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
+    fn compile(&self, ctx: &mut JSCompilerContext) -> StorytellResult<String> {
         let para = ctx.bootstrap.paragraph_fn;
         if self.parts.is_empty() {
             return Ok(format!("{}(`{}`,{})", para, self.tail, self.attributes.compile(ctx)?))
@@ -114,14 +105,14 @@ impl JSCompilable for ASTParagraph {
 }
 
 impl JSCompilable for ASTCodeBlock {
-    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
+    fn compile(&self, ctx: &mut JSCompilerContext) -> StorytellResult<String> {
         let codeblock_fn = ctx.bootstrap.codeblock_fn;
         Ok(format!("{}(`{}`,{},{})", codeblock_fn, self.text.replace('`', "\\`"), self.language.safe_compile(), self.attributes.compile(ctx)?))
     }
 }
 
 impl JSCompilable for ASTDivert {
-    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
+    fn compile(&self, ctx: &mut JSCompilerContext) -> StorytellResult<String> {
         match ctx.paths.try_get_child_by_path(&self.path) {
             Ok(_) => {
                 Ok(format!("{}([{}])", ctx.bootstrap.divert_fn, self.path.iter().map(|string| format!("\"{}\"", string)).collect::<Vec<String>>().join(", ")))
@@ -138,7 +129,7 @@ impl JSCompilable for ASTDivert {
 }
 
 impl JSCompilable for ASTMatch {
-    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
+    fn compile(&self, ctx: &mut JSCompilerContext) -> StorytellResult<String> {
         let match_fn = ctx.bootstrap.match_fn;
         let mut choices: Vec<String> = vec![];
         for choice in &self.choices {
@@ -155,7 +146,7 @@ impl JSCompilable for ASTMatch {
 }
 
 impl JSCompilable for ASTChoiceGroup {
-    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
+    fn compile(&self, ctx: &mut JSCompilerContext) -> StorytellResult<String> {
         let choice_group_fn = ctx.bootstrap.choice_group_fn;
         Ok(format!("{}({}, {})",
         choice_group_fn,
@@ -166,13 +157,13 @@ impl JSCompilable for ASTChoiceGroup {
 }
 
 impl JSCompilable for ASTChoice {
-    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
+    fn compile(&self, ctx: &mut JSCompilerContext) -> StorytellResult<String> {
         Ok(format!("{{text:{},children:{}}}", self.text.compile(ctx)?.safe_compile(), self.children.compile(ctx)?))
     }
 }
 
 impl JSCompilable for ASTBlock {
-    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
+    fn compile(&self, ctx: &mut JSCompilerContext) -> StorytellResult<String> {
         match self {
             Self::ChoiceGroup(block) => block.compile(ctx),
             Self::CodeBlock(block) => block.compile(ctx),
@@ -185,7 +176,7 @@ impl JSCompilable for ASTBlock {
 }
 
 impl JSCompilable for Vec<ASTAttribute> {
-    fn compile(&self, _ctx: &mut CompilerContext) -> StorytellResult<String> {
+    fn compile(&self, _ctx: &mut JSCompilerContext) -> StorytellResult<String> {
         Ok(format!("[{}]", 
         self.iter().map(|i|
             format!("{{name:{},params:[{}]}}", i.name.safe_compile(), i.parameters.iter().map(|i| format!("\"{}\"", i)).collect::<Vec<String>>().join(","))
@@ -206,7 +197,7 @@ impl JSSafeCompilable for Vec<String> {
 }
 
 impl<T: JSCompilable> JSCompilable for Vec<T> {
-    fn compile(&self, ctx: &mut CompilerContext) -> StorytellResult<String> {
+    fn compile(&self, ctx: &mut JSCompilerContext) -> StorytellResult<String> {
         Ok(format!("[{}]", self.iter().map(|i| i.compile(ctx)).collect::<StorytellResult<Vec<String>>>()?.join(",")))
     }
 }

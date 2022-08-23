@@ -1,13 +1,12 @@
 pub mod compile;
 
 use compile::{JSCompilable};
-use storytell_diagnostics::diagnostic::{Diagnostic};
-use storytell_parser::{ast::{model::{ASTHeader, ASTBlock}, Parser}, input::ParsingContext};
-use storytell_fs::file_host::{FileHost, FileDiagnostic, GetFindResult};
+use storytell_diagnostics::diagnostic::{StorytellResult};
+use storytell_parser::{ast::{model::{ASTHeader}}};
+use storytell_fs::file_host::{FileDiagnostic};
 use crate::visitors::{MagicVariableCollectorContext};
 use crate::path::Path;
-
-use self::compile::JSSafeCompilable;
+use crate::base::*;
 
 /// The compiler just compiles everything to javascript
 /// It doesn't provide a "runtime" which actually keeps
@@ -43,106 +42,35 @@ pub struct JSBootstrapVars {
     pub path_fn: &'static str
 }
 
-pub struct JSCompiler<T: FileHost> {
-    pub cwd: String,
-    pub host: T
+pub struct JSCompilerProvider;
+
+impl CompilerProvider for JSCompilerProvider {
+    type Output = String;
+    type Context = JSCompilerContext;
+
+    fn compile_header(file: &ASTHeader, ctx: &mut Self::Context) -> StorytellResult<Self::Output> {
+        file.compile(ctx)
+    }
 }
 
-impl<T: FileHost> JSCompiler<T> {
-
-    pub fn new(cwd: &str, host: T) -> Self {
-        Self {
-            cwd: cwd.to_string(),
-            host
-        }
-    }
-
-    fn prepare(&mut self, file_name: &str, ctx: &mut CompilerContext) -> Option<Vec<&ASTHeader>> {
-        let file = match self.host.get_or_find(file_name) {
-            GetFindResult::FromCache(file) => file,
-            GetFindResult::Parsed(file, diagnostic) => {
-                if let Some(dia) = diagnostic {
-                    ctx.add_diagnostic(dia);
-                }
-                file
-            }
-            GetFindResult::NotFound => return None
-        };
-        let mut paths: Vec<&ASTHeader> = vec![];
-        for thing in &file.content {
-            if let ASTBlock::Header(header) = thing {
-                ctx.paths.add_child_ast(header);
-                paths.push(header);
-            }
-        }
-        Some(paths)
-    }
-
-    pub fn compile_file(&mut self, ctx: &mut CompilerContext, file_name: &str) -> Option<String> {
-        let mut result: Vec<String> = vec![];
-        for header in self.prepare(file_name, ctx)? {
-            match header.compile(ctx) {
-                Ok(compiled) => result.push(compiled),
-                Err(error) => {
-                    ctx.diagnostics.push(FileDiagnostic {
-                        diagnostics: error,
-                        filename: file_name.to_string()
-                    });
-                    return None
-                }
-            }
-        }
-        Some(result.safe_compile())
-    }
-
-    pub fn compile(&mut self, bootstrap: JSBootstrapVars) -> (String, CompilerContext) {
-        let mut ctx = CompilerContext::new(bootstrap);
-        let mut results: Vec<String> = vec![];
-        for file_path in self.host.get_files_from_directory(&self.cwd) {
-            for header in self.prepare(&file_path, &mut ctx).unwrap() {
-                match header.compile(&mut ctx) {
-                    Ok(compiled) => results.push(compiled),
-                    Err(error) => ctx.diagnostics.push(FileDiagnostic {
-                        diagnostics: error,
-                        filename: file_path.clone()
-                    })
-                }
-            }
-        }
-        (results.safe_compile(), ctx)
-    }
-
-}
-
-pub fn compile_str(string: &str, booststrap: JSBootstrapVars, line_endings: usize) -> (String, Vec<Diagnostic>, CompilerContext) {
-    let (parsed, parsing_ctx) = Parser::new(string, ParsingContext::new(line_endings)).parse();
-    let mut total_errors = parsing_ctx.diagnostics;
-    let mut ctx = CompilerContext::new(booststrap);
-    let mut result: Vec<String> = vec![];
-    let mut headers: Vec<ASTHeader> = vec![];
-    for thing in parsed {
-        if let ASTBlock::Header(header) = thing {
-            ctx.paths.add_child_ast(&header);
-            headers.push(header);
-        }
-    }
-    for header in headers {
-        match header.compile(&mut ctx) {
-            Ok(compiled) => result.push(compiled),
-            Err(mut err) => total_errors.append(&mut err)
-        }
-    }
-    (result.safe_compile(), total_errors, ctx)
-}
-
-pub struct CompilerContext {
+pub struct JSCompilerContext {
     pub magic_variables: MagicVariableCollectorContext,
     pub diagnostics: Vec<FileDiagnostic>,
     pub paths: Path,
     pub bootstrap: JSBootstrapVars
 }
 
-impl CompilerContext {
+impl CompilerContext for JSCompilerContext {
+    fn add_diagnostic(&mut self, dia: FileDiagnostic) {
+        self.diagnostics.push(dia);
+    }
+
+    fn get_global_path(&mut self) -> &mut Path {
+        &mut self.paths
+    }
+}
+
+impl JSCompilerContext {
 
     pub fn new(bootstrap: JSBootstrapVars) -> Self {
         Self { 
@@ -153,14 +81,12 @@ impl CompilerContext {
         }
     }
 
-    pub fn add_diagnostic(&mut self, err: FileDiagnostic) {
-        self.diagnostics.push(err);
-    }
-
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::js_compiler::compile::JSSafeCompilable;
+
     use super::*;
     use std::time::{Instant};
 
@@ -177,7 +103,7 @@ mod tests {
     #[test]
     fn compile() {
         let before = Instant::now();
-        let (result, diagnostics, ctx) = compile_str("
+        let (result, diagnostics, ctx) = compile_str::<JSCompilerProvider>("
 # Hello, World!
 How's it going on this {a += 1} {b += 5; c += 'Hello World!'; v = d = 33}? `Test!`
 
@@ -203,9 +129,9 @@ Hello!
 {killed = c}
 {e.b.c.d += 1}
 {e.b.c.d}
-", BOOTSTRAP_VARS.clone(), 1);
+", JSCompilerContext::new(BOOTSTRAP_VARS.clone()), 1);
         println!("Parsing took {} nanoseconds", before.elapsed().as_nanos());
-        println!("{} {:?} {:?}", result, diagnostics, ctx.magic_variables);
+        println!("{} {:?} {:?}", result.safe_compile(), diagnostics, ctx.magic_variables);
         panic!("AAA");
     }
 
