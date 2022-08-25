@@ -11,12 +11,16 @@ use crate::visitors::{MagicVarCollector, Rebuilder};
 
 
 macro_rules! json {
-    {$($property: ident: $value: expr),+} => {
-        format!(concat!("{{", $("\"", stringify!($property), "\":{},"),+, "}}"), $($value),+)
+    () => {};
+    ($key: ident:$value: expr, $($tail:tt)*) => {
+        concat!("\"", stringify!($key), "\":{},", json!($($tail)*))
     };
-    ($value: expr) => {
-        $value.safe_compile()
-    }
+    ($key: ident:$value: expr) => {
+        concat!("\"", stringify!($key), "\":{}")
+    };
+    ({$($property: ident: $value: expr),+}) => {
+        format!(concat!("{{", json!($($property: $value),+), "}}"), $($value),+)
+    };
 }
 
 pub trait JSONCompilable {
@@ -45,12 +49,13 @@ impl JSONCompilable for ASTHeader {
                 others.push(child)
             }
         }
-        Ok(json!{
+        Ok(json!({
             title: self.title.text.safe_compile(),
             canonicalTitle: Path::canonicalize_name(&self.title.text).safe_compile(),
             childPaths: format!("{{{}}}", header_children.join(",")),
+            range: self.range.safe_compile(),
             children: others.compile(ctx)?
-        })
+        }))
     }
 }
 
@@ -73,22 +78,26 @@ impl JSONCompilable for ASTInline {
     /// Javascript - 4
     fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
         Ok(match &self.kind {
-            ASTInlineKind::Bold(text) => json!{
+            ASTInlineKind::Bold(text) => json!({
                 kind: 0,
-                text: text.compile(ctx)?
-            },
-            ASTInlineKind::Italics(text) => json!{
+                text: text.compile(ctx)?,
+                range: text.range.safe_compile()
+            }),
+            ASTInlineKind::Italics(text) => json!({
                 kind: 1,
-                text: text.compile(ctx)?
-            },
-            ASTInlineKind::Underline(text) => json!{
+                text: text.compile(ctx)?,
+                range: text.range.safe_compile()
+            }),
+            ASTInlineKind::Underline(text) => json!({
                 kind: 2,
-                text: text.compile(ctx)?
-            },
-            ASTInlineKind::Code(text) =>json!{
+                text: text.compile(ctx)?,
+                range: text.range.safe_compile()
+            }),
+            ASTInlineKind::Code(text) =>json!({
                 kind: 3,
-                text: text.compile(ctx)?
-            },
+                text: text.compile(ctx)?,
+                range: text.range.safe_compile()
+            }),
             ASTInlineKind::Javascript(text) => {
                 let (expressions, diagnostics, input) = JsParser::parse(text);
                 if !diagnostics.is_empty() {
@@ -99,13 +108,14 @@ impl JSONCompilable for ASTInline {
                     if !magic_vars_collector.diagnostics.is_empty() {
                         return Err(magic_vars_collector.diagnostics)
                     } else {
-                        let gathered_variables = magic_vars_collector.collected.iter().map(|pair| json!{ name: pair.0.safe_compile(), kind: pair.1 }).collect::<Vec<String>>();
+                        let gathered_variables = magic_vars_collector.collected.iter().map(|pair| json!({ name: pair.0.safe_compile(), kind: pair.1 })).collect::<Vec<String>>();
                         let rebuilt_code = Rebuilder::run(magic_vars_collector.input, &expressions);
-                        json!{
+                        json!({
                             kind: 4,
                             text: format!("\"{}\"", rebuilt_code),
-                            magicVariables: format!("[{}]", gathered_variables.join(","))
-                        }
+                            magicVariables: format!("[{}]", gathered_variables.join(",")),
+                            range: self.range.safe_compile()
+                        })
                     }
                 }
             }
@@ -120,10 +130,11 @@ impl JSONCompilable for ASTText {
     ///     tail: string
     /// }
     fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
-        Ok(json!{
+        Ok(json!({
             parts: self.parts.compile(ctx)?,
-            tail: self.tail.safe_compile()
-        })
+            tail: self.tail.safe_compile(),
+            range: self.range.safe_compile()
+        }))
     }
 }
 
@@ -134,10 +145,12 @@ impl JSONCompilable for ASTParagraph {
     ///     tail: string
     /// }
     fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
-        Ok(json!{
+        Ok(json!({
             parts: self.parts.compile(ctx)?,
-            tail: self.tail.safe_compile()
-        })
+            tail: self.tail.safe_compile(),
+            range: self.range.safe_compile(),
+            attributes: self.attributes.safe_compile()
+        }))
     }
 }
 
@@ -148,19 +161,69 @@ impl JSONCompilable for TextPart {
     ///     text: Inline
     /// }
     fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
-        Ok(json!{
+        Ok(json!({
             before: self.before.safe_compile(),
             text: self.text.compile(ctx)?
-        })
+        }))
+    }
+}
+
+impl JSONCompilable for ASTCodeBlock {
+    /// `CodeBlock` type
+    /// {
+    ///     code: string,
+    ///     language: string
+    /// }
+    fn compile(&self, _ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
+        Ok(json!({
+            code: self.text.safe_compile(),
+            language: self.language.safe_compile(),
+            range: self.range.safe_compile(),
+            attributes: self.attributes.safe_compile()
+        }))
+    }
+}
+
+impl JSONCompilable for ASTChoice {
+    /// `Choice` type
+    /// {
+    ///     text: Text,
+    ///     children: Block[]
+    /// }
+    /// 
+    fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
+        Ok(json!({
+            text: self.text.compile(ctx)?,
+            children: self.children.compile(ctx)?,
+            range: self.range.safe_compile(),
+            attributes: self.attributes.safe_compile()
+        }))
+    }
+}
+
+impl JSONCompilable for ASTChoiceGroup {
+    /// `ChoiceGroup` type
+    /// {
+    ///     choices: Choice[]
+    /// }
+    fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
+        Ok(json!({
+            text: self.choices.compile(ctx)?,
+            range: self.range.safe_compile(),
+            attributes: self.attributes.safe_compile()
+        }))
     }
 }
 
 impl JSONCompilable for ASTBlock {
+    /// `Block` enum type
     fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
         match self {
             Self::Header(header) => header.compile(ctx),
             Self::Paragraph(paragraph) => paragraph.compile(ctx),
-            _ => Ok(String::new())
+            Self::CodeBlock(code) => code.compile(ctx),
+            Self::ChoiceGroup(group) => group.compile(ctx),
+            _ => Ok(String::from("\"\""))
         }
     }
 }
@@ -170,8 +233,29 @@ impl JSONCompilable for &ASTBlock {
         match self {
             ASTBlock::Header(header) => header.compile(ctx),
             ASTBlock::Paragraph(paragraph) => paragraph.compile(ctx),
-            _ => Ok(String::new())
+            ASTBlock::CodeBlock(code) => code.compile(ctx),
+            ASTBlock::ChoiceGroup(group) => group.compile(ctx),
+            _ => Ok(String::from("\"\""))
         }
+    }
+}
+
+impl JSONSafeCompilable for ASTAttribute {
+    fn safe_compile(&self) -> String {
+        json!({
+            name: self.name.safe_compile(),
+            parameters: self.parameters.safe_compile(),
+            range: self.range.safe_compile()
+        })
+    }
+}
+
+impl JSONSafeCompilable for Range<usize> {
+    fn safe_compile(&self) -> String {
+        json!({
+            start: self.start,
+            end: self.end
+        })
     }
 }
 

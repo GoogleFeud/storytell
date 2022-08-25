@@ -1,5 +1,5 @@
-use storytell_diagnostics::location::Range;
-use storytell_js_parser::{ast::*, input::InputPresenter};
+use storytell_diagnostics::{location::Range, diagnostic::StorytellResult};
+use storytell_js_parser::{ast::*, input::InputPresenter, JsParser};
 use std::fmt::Write as _;
 
 pub struct Rebuilder<'a> {
@@ -48,4 +48,13 @@ impl<'a> Rebuilder<'a> {
         }
     }
 
+}
+
+pub fn transform_js(input: &str) -> StorytellResult<String> {
+    let (result, diagnostics, input) = JsParser::parse(input);
+    if diagnostics.is_empty() {
+        Ok(Rebuilder::run(input, &result))
+    } else {
+        Err(diagnostics)
+    }
 }

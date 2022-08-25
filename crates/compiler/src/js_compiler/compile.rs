@@ -1,4 +1,4 @@
-use crate::visitors::{MagicVarCollector, Rebuilder};
+use crate::visitors::{MagicVarCollector, Rebuilder, transform_js};
 use super::{Path, JSCompilerContext};
 use storytell_diagnostics::location::Range;
 use storytell_js_parser::ast::Visitable;
@@ -199,14 +199,5 @@ impl JSSafeCompilable for Vec<String> {
 impl<T: JSCompilable> JSCompilable for Vec<T> {
     fn compile(&self, ctx: &mut JSCompilerContext) -> StorytellResult<String> {
         Ok(format!("[{}]", self.iter().map(|i| i.compile(ctx)).collect::<StorytellResult<Vec<String>>>()?.join(",")))
-    }
-}
-
-fn transform_js(input: &str) -> StorytellResult<String> {
-    let (result, diagnostics, input) = JsParser::parse(input);
-    if diagnostics.is_empty() {
-        Ok(Rebuilder::run(input, &result))
-    } else {
-        Err(diagnostics)
     }
 }
