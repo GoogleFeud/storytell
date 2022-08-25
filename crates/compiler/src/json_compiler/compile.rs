@@ -7,7 +7,7 @@ use std::{stringify, concat};
 
 use crate::json_compiler::JSONCompilerContext;
 use crate::path::Path;
-use crate::visitors::{MagicVarCollector, Rebuilder};
+use crate::visitors::{MagicVarCollector, Rebuilder, transform_js};
 
 
 macro_rules! json {
@@ -141,11 +141,13 @@ impl JSONCompilable for ASTText {
 impl JSONCompilable for ASTParagraph {
     /// `Paragraph` type
     /// {
+    ///     kind: 0,
     ///     parts: TextPart[],
     ///     tail: string
     /// }
     fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
         Ok(json!({
+            kind: 0,
             parts: self.parts.compile(ctx)?,
             tail: self.tail.safe_compile(),
             range: self.range.safe_compile(),
@@ -171,11 +173,13 @@ impl JSONCompilable for TextPart {
 impl JSONCompilable for ASTCodeBlock {
     /// `CodeBlock` type
     /// {
+    ///     kind: 1,
     ///     code: string,
     ///     language: string
     /// }
     fn compile(&self, _ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
         Ok(json!({
+            kind: 1,
             code: self.text.safe_compile(),
             language: self.language.safe_compile(),
             range: self.range.safe_compile(),
@@ -204,10 +208,12 @@ impl JSONCompilable for ASTChoice {
 impl JSONCompilable for ASTChoiceGroup {
     /// `ChoiceGroup` type
     /// {
+    ///     kind: 2,
     ///     choices: Choice[]
     /// }
     fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
         Ok(json!({
+            kind: 2,
             text: self.choices.compile(ctx)?,
             range: self.range.safe_compile(),
             attributes: self.attributes.safe_compile()
@@ -215,15 +221,68 @@ impl JSONCompilable for ASTChoiceGroup {
     }
 }
 
+impl JSONCompilable for ASTDivert {
+    /// `Divert` type
+    /// {
+    ///     kind: 3,
+    ///     path: string[]
+    /// }
+    /// 
+    fn compile(&self, _ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
+        Ok(json!({
+            kind: 3,
+            path: self.path.safe_compile(),
+            range: self.range.safe_compile(),
+            attributes: self.attributes.safe_compile()
+        }))
+    }
+}
+
+impl JSONCompilable for ASTMatch {
+    /// `Match` type
+    /// {
+    ///     kind: 4,
+    ///     condition: string,
+    ///     modifier?: string,
+    ///     arms: Choice[],
+    ///     children: Block[]
+    /// }
+    fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
+        let mut choices: Vec<String> = vec![];
+        for choice in &self.choices {
+            choices.push(json!({ 
+                text: format!("\"{}\"", transform_js(&choice.text.parts[0].text.to_raw())?),
+                children: choice.children.compile(ctx)?,
+                range: choice.range.safe_compile(),
+                attributes: choice.attributes.safe_compile()
+            }));
+        }
+        Ok(json!({
+            kind: 4,
+            condition: format!("\"{}\"", transform_js(&self.matched)?),
+            modifier: self.kind.safe_compile(),
+            arms: format!("[{}]", choices.join(","))
+        }))
+    }
+}
+
 impl JSONCompilable for ASTBlock {
     /// `Block` enum type
+    /// 
+    /// `BlockKind` enum
+    /// Paragraph - 0
+    /// CodeBlock - 1
+    /// ChoiceGroup - 2
+    /// Divert - 3
+    /// Match - 4
     fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
         match self {
             Self::Header(header) => header.compile(ctx),
             Self::Paragraph(paragraph) => paragraph.compile(ctx),
             Self::CodeBlock(code) => code.compile(ctx),
             Self::ChoiceGroup(group) => group.compile(ctx),
-            _ => Ok(String::from("\"\""))
+            Self::Divert(divert) => divert.compile(ctx),
+            Self::Match(match_exp) => match_exp.compile(ctx)
         }
     }
 }
@@ -235,7 +294,8 @@ impl JSONCompilable for &ASTBlock {
             ASTBlock::Paragraph(paragraph) => paragraph.compile(ctx),
             ASTBlock::CodeBlock(code) => code.compile(ctx),
             ASTBlock::ChoiceGroup(group) => group.compile(ctx),
-            _ => Ok(String::from("\"\""))
+            ASTBlock::Divert(divert) => divert.compile(ctx),
+            ASTBlock::Match(match_exp) => match_exp.compile(ctx)
         }
     }
 }
@@ -262,6 +322,16 @@ impl JSONSafeCompilable for Range<usize> {
 impl JSONSafeCompilable for String {
     fn safe_compile(&self) -> String {
         format!("\"{}\"", self.replace('"', "\\\"").replace('\n', "\\\\n"))
+    }
+}
+
+impl<T: JSONSafeCompilable> JSONSafeCompilable for Option<T> {
+    fn safe_compile(&self) -> String {
+        if let Some(value) = self {
+            value.safe_compile()
+        } else {
+            String::from("null")
+        }
     }
 }
 
