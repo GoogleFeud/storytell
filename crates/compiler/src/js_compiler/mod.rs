@@ -132,7 +132,7 @@ Hello!
 ", JSCompilerContext::new(BOOTSTRAP_VARS.clone()), 1);
         println!("Parsing took {} nanoseconds", before.elapsed().as_nanos());
         println!("{} {:?} {:?}", result.safe_compile(), diagnostics, ctx.magic_variables);
-        panic!("AAA");
+    //    panic!("AAA");
     }
 
 }
