@@ -1,5 +1,7 @@
 import { For, onMount } from "solid-js";
+import { setModal } from "../../state";
 import { createProject, loadProjects, state } from "../../state";
+import { ErrorModal } from "../utils/ErrorModal";
 import { ProjectPanel } from "./ProjectPanel";
 
 export const TitleScreen = () => {
@@ -28,8 +30,9 @@ export const TitleScreen = () => {
         </div>
         <div class="w-full pt-[24px] pl-[32px] flex flex-col gap-28">
             <div class="flex gap-8">
-                <div class="rounded-lg bg-[#7D9D9C] shadow-md text-[20px] text-white px-[26px] py-[11px] h-[46px] flex justify-center items-center cursor-pointer hover:scale-[1.008] transition" onClick={() => {
-                    createProject("Untitled", "Some description!");
+                <div class="rounded-lg bg-[#7D9D9C] shadow-md text-[20px] text-white px-[26px] py-[11px] h-[46px] flex justify-center items-center cursor-pointer hover:scale-[1.008] transition" onClick={async () => {
+                    const created = await createProject("Untitled", "Some description!");
+                    if (!created) setModal(<ErrorModal msg="Project with that name already exists." />);
                 }}>
                     <p>Create</p>
                 </div>
