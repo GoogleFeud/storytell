@@ -11,6 +11,7 @@ pub struct ProjectMetadata {
     pub description: String
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Project {
     pub metadata: ProjectMetadata,
     pub directory: PathBuf,
@@ -54,9 +55,9 @@ impl Projects {
         }
     }
 
-    pub fn create_project(&mut self, name: String, description: String) -> bool {
+    pub fn create_project(&mut self, name: String, description: String) -> Option<&Project> {
         if self.projects.contains_key(&name) {
-            false
+            None
         } else {
             let project_dir = self.storytell_dir.join(name.clone());
             fs::create_dir(&project_dir).expect("Failed to create directory.");
@@ -67,12 +68,12 @@ impl Projects {
                 description
             };
             fs::write(project_dir.join("./metadata.json"), to_string(&project_info).unwrap()).expect("Couldn't create file.");
-            self.projects.insert(name, Project {
+            self.projects.insert(name.clone(), Project {
                 metadata: project_info,
                 files_directory: files_dir,
                 directory: project_dir
             });
-            true
+            self.projects.get(&name)
         }
     }
 
