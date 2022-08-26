@@ -14,3 +14,9 @@ pub fn create_project(state: State<StorytellState>, name: String, description: S
     let mut inner_state = state.lock().unwrap();
     to_string::<Option<&Project>>(&inner_state.projects.create_project(name, description)).unwrap()
 }
+
+#[tauri::command]
+pub fn delete_project(state: State<StorytellState>, name: String) {
+    let mut inner_state = state.lock().unwrap();
+    inner_state.projects.delete_project(&name);
+}

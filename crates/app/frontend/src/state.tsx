@@ -14,8 +14,14 @@ export const loadProjects = async (): Promise<Project[]> => {
     return state.projects;
 };
 
-export const createProject = async (name: string, description: string): Promise<Project> => {
+export const createProject = async (name: string, description: string): Promise<Project|undefined> => {
     const project = JSON.parse(await invoke<string>("create_project", {name, description}));
+    if (!project) return;
     setState("projects", (p) => [...p, project]);
     return project;
+};
+
+export const deleteProject = async (name: string) => {
+    setState("projects", (p) => p.filter(p => p.metadata.name !== name));
+    await invoke<string>("delete_project", {name});
 };

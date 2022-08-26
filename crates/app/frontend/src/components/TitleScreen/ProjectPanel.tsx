@@ -1,3 +1,4 @@
+import { deleteProject } from "../../state";
 import { Project } from "../../types";
 import { DownloadIcon } from "../Icons/download";
 import { GearIcon } from "../Icons/gear";
@@ -13,7 +14,7 @@ export const ProjectPanel = (props: {
             <div class="flex gap-4">
                 <GearIcon />
                 <DownloadIcon />
-                <TrashIcon />
+                <div onClick={() => deleteProject(props.project.metadata.name)}><TrashIcon /></div>
             </div>
         </div>
         <div>

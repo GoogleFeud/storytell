@@ -51,7 +51,7 @@ impl Projects {
         }
         Self { 
             storytell_dir,
-            projects: HashMap::new()
+            projects
         }
     }
 
@@ -79,7 +79,7 @@ impl Projects {
 
     pub fn delete_project(&mut self, name: &str) -> bool {
         if let Some(project) = self.projects.remove(name) {
-            fs::remove_dir(project.directory).expect("Failed to delete directory.");
+            fs::remove_dir_all(project.directory).expect("Failed to delete directory.");
             true
         } else {
             false

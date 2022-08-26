@@ -5,8 +5,7 @@ import { ProjectPanel } from "./ProjectPanel";
 export const TitleScreen = () => {
     
     onMount(async () => {
-        const projects = await loadProjects();
-        console.log(projects);
+        await loadProjects();
     });
 
     return <div class="flex min-h-full">
