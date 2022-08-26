@@ -3,9 +3,16 @@
   windows_subsystem = "windows"
 )]
 
+pub mod projects;
+pub mod state;
+
+use state::create_storytell_state;
+
 fn main() {
+  let state = create_storytell_state();
   let context = tauri::generate_context!();
   tauri::Builder::default()
+    .manage(state)
     .menu(if cfg!(target_os = "macos") {
       tauri::Menu::os_default(&context.package_info().name)
     } else {

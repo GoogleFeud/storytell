@@ -84,7 +84,6 @@ Hello!
 ", JSONCompilerContext::new(true), 1);
         println!("Parsing took {} nanoseconds", before.elapsed().as_nanos());
         println!("[{}] {:?} {:?}", result.join(","), diagnostics, ctx.magic_variables);
-        panic!("AAA");
     }
 
 }
