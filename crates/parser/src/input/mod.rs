@@ -227,6 +227,13 @@ impl<'a> InputConsumer<'a> {
         }
     }
 
+    pub fn range_single(&self) -> Range<usize> {
+        Range {
+            start: self.pos,
+            end: self.pos + 1
+        }
+    }
+
     pub fn is_eof(&self) -> bool {
         self.pos >= self.data.len()
     }

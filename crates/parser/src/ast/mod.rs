@@ -22,6 +22,10 @@ make_diagnostics!(define [
     INCORRECT_HEADER_SIZE,
     P1004,
     "Path should be one ($) level deeper than it's parent."
+], [
+    NO_CONDITION,
+    P1005,
+    "Match options cannot have conditions."
 ]);
 
 pub enum InlineTextParseResult {
@@ -189,6 +193,9 @@ impl<'a> Parser<'a> {
                         self.parse_attributes()
                     } else { vec![] };
                     let condition = if self.input.peek().is('{') && self.input.peek_n(1).is(':') {
+                        if require_js {
+                            self.input.ctx.diagnostics.push(dia!(NO_CONDITION, self.input.range_single()));
+                        }
                         self.input.skip_n(2);
                         let kind = self.input.consume_until(" ")?.to_string();
                         Some((kind, self.input.consume_until("}")?.to_string()))
@@ -562,7 +569,7 @@ Text...
 This is a **paragraph**...
 
 @{match_condition}
-- {true}
+- {:if condition} {true}
     ```js
     This is a language!
     ```
@@ -592,7 +599,8 @@ ParsingContext::new(1),
         )
         .parse();
         let children = get_header_children(&input);
-        assert_eq!(ctx.diagnostics.len(), 1);
+        println!("{:?}", ctx.diagnostics);
+        assert_eq!(ctx.diagnostics.len(), 2);
         if let ASTBlock::Match(matcher) = &children[1] {
             assert_eq!(matcher.matched, "match_condition");
             // 3 because "Third option..." doesn't get included because JS is required
