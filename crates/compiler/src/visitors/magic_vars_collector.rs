@@ -12,6 +12,15 @@ make_diagnostics!(define [
     "Variable '$' is a '$', but '$' is being assigned to it."
 ]);
 
+macro_rules! match_str {
+    ($s: expr, $($strs: expr),*) => {
+        match $s {
+            $($strs)|+ => true,
+            _ => false
+        }
+    };
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum MagicVariableType {
     String,
@@ -45,6 +54,17 @@ impl ResolveChainResult {
             Self::None => None
         }
     }
+
+    pub fn set_value<'a>(&self, val_type: MagicVariableType, collector: &'a mut MagicVarCollector, err_range: Range<usize>) {
+        if let Some((store, var_name)) = self.get_store(collector.ctx) {
+            if let Some(prev) = store.insert(var_name.clone(), val_type.clone()) {
+                if prev != val_type && !matches!(prev, MagicVariableType::Unknown) {
+                    collector.diagnostics.push(dia!(DIFFERENT_TYPE, err_range, var_name, &prev.to_string(), &val_type.to_string()))
+                }
+            }
+        }
+    }
+
 }
 
 impl MagicVariableType {
@@ -153,6 +173,14 @@ impl<'a> MagicVarCollector<'a> {
         }
     }
 
+    fn resolve_exp_store(&mut self, exp: &ASTExpression) -> ResolveChainResult {
+        match exp {
+            ASTExpression::Access(acc) => self.resolve_chain(acc),
+            ASTExpression::Identifier(ident) => ResolveChainResult::Top(self.input.from_range(&ident.range).to_string()),
+            _ => ResolveChainResult::None
+        }
+    }
+
     fn resolve_chain(&mut self, chain: &ASTAccess) -> ResolveChainResult {
         if let ASTExpression::Access(_) = &chain.expression {
             let mut result = vec![];
@@ -231,15 +259,9 @@ impl<'a> MagicVarCollector<'a> {
                     },
                     ASTExpression::Access(access) => {
                         let right_type = self.resolve_binary(&exp.operator, &exp.right);
-                        if let Some((store, var_name)) = self.resolve_chain(access).get_store(self.ctx) {
-                            if let Some(prev) = store.insert(var_name.clone(), right_type.clone()) {
-                                if prev != right_type && !matches!(prev, MagicVariableType::Unknown) {
-                                    self.diagnostics.push(dia!(DIFFERENT_TYPE, self.range(&exp.range), var_name, &prev.to_string(), &right_type.to_string()))
-                                }
-                            }
-                        }
+                        self.resolve_chain(access).set_value(right_type.clone(), self, exp.range.clone());
                         right_type
-                    }
+                    },
                     _ => {
                         exp.visit_each_child(self);
                         MagicVariableType::Unknown
@@ -263,6 +285,16 @@ impl<'a> MagicVarCollector<'a> {
                } else {
                     MagicVariableType::Unknown
                }
+            },
+            ASTExpression::Call(call) => {
+                if let ASTExpression::Access(access) = &call.expression {
+                    if let Some(access_text) = self.get_string_from_accessor(&access.accessor) {
+                        if match_str!(access_text, "push", "pop", "join", "slice", "splice") {
+                            self.resolve_exp_store(&access.expression).set_value(MagicVariableType::Array, self, exp.range().clone());
+                        }
+                    }
+                }
+                MagicVariableType::Unknown
             },
             _ => {
                 exp.visit_each_child(self);

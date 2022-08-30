@@ -57,7 +57,7 @@ mod tests {
         let before = Instant::now();
         let (result, diagnostics, ctx) = compile_str::<JSONCompilerProvider>("
 # Hello, World!
-How's it going on this {a += 1} {b += 5; c += 'Hello World!'; v = d = 33}? `Test!`
+How's it going on this {a += 1} {b += 5; c.push(123); v = d = 33}? `Test!`
 
 ```js
 console.log(`Some code ${123}`);
