@@ -121,7 +121,8 @@ create_nodes!(
 
     ASTChoice {
         text: ASTText,
-        children: Vec<ASTBlock>
+        children: Vec<ASTBlock>,
+        condition: Option<(String, String)>
     }
 
     ASTChoiceGroup {

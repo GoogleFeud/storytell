@@ -192,7 +192,11 @@ impl JSONCompilable for ASTChoice {
     /// `Choice` type
     /// {
     ///     text: Text,
-    ///     children: Block[]
+    ///     children: Block[],
+    ///     condition?: {
+    ///         modifier: string,
+    ///         text: string
+    ///     }
     /// }
     /// 
     fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
@@ -200,7 +204,11 @@ impl JSONCompilable for ASTChoice {
             text: self.text.compile(ctx)?,
             children: self.children.compile(ctx)?,
             range: self.range.safe_compile(),
-            attributes: self.attributes.safe_compile()
+            attributes: self.attributes.safe_compile(),
+            condition: self.condition.as_ref().map(|c| json!({
+                modifier: c.0,
+                text: c.1
+            })).safe_compile()
         }))
     }
 }

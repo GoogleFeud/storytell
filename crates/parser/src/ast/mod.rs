@@ -188,6 +188,11 @@ impl<'a> Parser<'a> {
                         self.input.skip_n(2);
                         self.parse_attributes()
                     } else { vec![] };
+                    let condition = if self.input.peek().is('{') && self.input.peek_n(1).is(':') {
+                        self.input.skip_n(2);
+                        let kind = self.input.consume_until(" ")?.to_string();
+                        Some((kind, self.input.consume_until("}")?.to_string()))
+                    } else { None };
                     if self.input.peek().is(' ') { self.input.skip() };
                     let start = self.input.pos;
                     choices.push(ASTChoice {
@@ -201,6 +206,7 @@ impl<'a> Parser<'a> {
                         },
                         children: self.parse_children(current_depth + 1),
                         attributes,
+                        condition,
                         range: self.input.range_here(start),
                     })
                 }
@@ -655,7 +661,7 @@ It's time to choose...
 - Option A, ooor..
 - Option B...
     So you chose option B, **now* it's time...
-    - Option C
+    - {:if a == b} Option C
         You chose option C
     - #[SomeAttribute] Option D
         You chose option D
@@ -669,6 +675,7 @@ It's time to choose...
             assert_eq!(para.choices[1].children.len(), 2);
             if let ASTBlock::ChoiceGroup(nested) = &para.choices[1].children[1] {
                 assert_eq!(nested.choices[0].text.to_raw(), "Option C");
+                assert_eq!(nested.choices[0].condition, Some(("if".to_string(), "a == b".to_string())));
                 assert_eq!(nested.choices[0].children.len(), 1);
                 assert_eq!(nested.choices[1].text.to_raw(), "Option D");
                 assert_eq!(nested.choices[1].children.len(), 1);
