@@ -75,7 +75,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="../intro.html"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded "><a href="../Language/index.html"><strong aria-hidden="true">2.</strong> Language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../Language/paths.html"><strong aria-hidden="true">2.1.</strong> Paths</a></li><li class="chapter-item expanded "><a href="../Language/choices.html" class="active"><strong aria-hidden="true">2.2.</strong> Choices</a></li><li class="chapter-item expanded "><a href="../Language/State/index.html"><strong aria-hidden="true">2.3.</strong> State</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../Language/State/data.html"><strong aria-hidden="true">2.3.1.</strong> Data</a></li><li class="chapter-item expanded "><a href="../Language/State/conditions.html"><strong aria-hidden="true">2.3.2.</strong> Conditions</a></li></ol></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../intro.html"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded "><a href="../Language/index.html"><strong aria-hidden="true">2.</strong> Language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../Language/paths.html"><strong aria-hidden="true">2.1.</strong> Paths</a></li><li class="chapter-item expanded "><a href="../Language/choices.html" class="active"><strong aria-hidden="true">2.2.</strong> Choices</a></li><li class="chapter-item expanded "><a href="../Language/State/index.html"><strong aria-hidden="true">2.3.</strong> State</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../Language/State/data.html"><strong aria-hidden="true">2.3.1.</strong> Data</a></li><li class="chapter-item expanded "><a href="../Language/State/conditions.html"><strong aria-hidden="true">2.3.2.</strong> Conditions</a></li></ol></li><li class="chapter-item expanded "><a href="../Language/labels.html"><strong aria-hidden="true">2.4.</strong> Labels</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -170,6 +170,28 @@ James and Alicia found an open grave!
         They looked inside the grave, and saw the unthinkable.
     - Move on
         Too afraid to look what's inside the grave, they moved on.
+</code></pre>
+<h2 id="labeling-choices-and-choice-groups"><a class="header" href="#labeling-choices-and-choice-groups">Labeling choices and choice groups</a></h2>
+<p>Just how you can divert to paths, you can also divert to specific choices and choice groups. You can give them a <strong>label</strong> via attributes. Then, you can use the divert syntax (<code>-&gt;</code>) to go to that specific choice group or choice.</p>
+<p>If you divert to a choice, the content below the choice will be shown. If you divert to a choice group, the reader will have to make the choice. After the divert, the flow goes back to the content <strong>after</strong> the divert, <strong>not</strong> after the choice.</p>
+<pre><code class="language-md">What's 2 + 2?
+
+#[Label(MyChoice)]
+- #[Label(Choice1)] 4
+    That's correct.
+- #[Label(Choice2)] 5
+    That's incorrect. Let's try again.
+    -&gt; MyChoice
+</code></pre>
+<p>You can also check how many times a labeled choice got selected in inline JS and do stuff based on that:</p>
+<pre><code class="language-md">Welcome back! ++
+
+@{!!label_count(&quot;Choice1&quot;)}
+- {true}
+    You got the right answer! Congrats!
+- {false}
+    You did not get the right answer. Let's try again.
+    -&gt; MyChoice
 </code></pre>
 <h2 id="option-attributes"><a class="header" href="#option-attributes">Option attributes</a></h2>
 <p><strong>Attributes</strong> can change how an option or an option group behaves.</p>

@@ -76,7 +76,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="intro.html"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded "><a href="Language/index.html"><strong aria-hidden="true">2.</strong> Language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="Language/paths.html"><strong aria-hidden="true">2.1.</strong> Paths</a></li><li class="chapter-item expanded "><a href="Language/choices.html"><strong aria-hidden="true">2.2.</strong> Choices</a></li><li class="chapter-item expanded "><a href="Language/State/index.html"><strong aria-hidden="true">2.3.</strong> State</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="Language/State/data.html"><strong aria-hidden="true">2.3.1.</strong> Data</a></li><li class="chapter-item expanded "><a href="Language/State/conditions.html"><strong aria-hidden="true">2.3.2.</strong> Conditions</a></li></ol></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="intro.html"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded "><a href="Language/index.html"><strong aria-hidden="true">2.</strong> Language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="Language/paths.html"><strong aria-hidden="true">2.1.</strong> Paths</a></li><li class="chapter-item expanded "><a href="Language/choices.html"><strong aria-hidden="true">2.2.</strong> Choices</a></li><li class="chapter-item expanded "><a href="Language/State/index.html"><strong aria-hidden="true">2.3.</strong> State</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="Language/State/data.html"><strong aria-hidden="true">2.3.1.</strong> Data</a></li><li class="chapter-item expanded "><a href="Language/State/conditions.html"><strong aria-hidden="true">2.3.2.</strong> Conditions</a></li></ol></li><li class="chapter-item expanded "><a href="Language/labels.html"><strong aria-hidden="true">2.4.</strong> Labels</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -257,6 +257,28 @@ James and Alicia found an open grave!
     - Move on
         Too afraid to look what's inside the grave, they moved on.
 </code></pre>
+<h2 id="labeling-choices-and-choice-groups"><a class="header" href="#labeling-choices-and-choice-groups">Labeling choices and choice groups</a></h2>
+<p>Just how you can divert to paths, you can also divert to specific choices and choice groups. You can give them a <strong>label</strong> via attributes. Then, you can use the divert syntax (<code>-&gt;</code>) to go to that specific choice group or choice.</p>
+<p>If you divert to a choice, the content below the choice will be shown. If you divert to a choice group, the reader will have to make the choice. After the divert, the flow goes back to the content <strong>after</strong> the divert, <strong>not</strong> after the choice.</p>
+<pre><code class="language-md">What's 2 + 2?
+
+#[Label(MyChoice)]
+- #[Label(Choice1)] 4
+    That's correct.
+- #[Label(Choice2)] 5
+    That's incorrect. Let's try again.
+    -&gt; MyChoice
+</code></pre>
+<p>You can also check how many times a labeled choice got selected in inline JS and do stuff based on that:</p>
+<pre><code class="language-md">Welcome back! ++
+
+@{!!label_count(&quot;Choice1&quot;)}
+- {true}
+    You got the right answer! Congrats!
+- {false}
+    You did not get the right answer. Let's try again.
+    -&gt; MyChoice
+</code></pre>
 <h2 id="option-attributes"><a class="header" href="#option-attributes">Option attributes</a></h2>
 <p><strong>Attributes</strong> can change how an option or an option group behaves.</p>
 <h3 id="once"><a class="header" href="#once">once</a></h3>
@@ -385,6 +407,45 @@ window.value = 123;
     - We need to find the treasure...
         Nick: I don't think such a treasure could be hidden in a such a hideous place...
     - Shut up Nick.
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="labels"><a class="header" href="#labels">Labels</a></h1>
+<p>Almost all blocks in storytell (paragraphs, choices, choice groups, match, javascript block) can be labeled. Just how you can divert to paths, you can also divert to specific blocks. You can give them a <strong>label</strong> via attributes. Then, you can use the divert syntax (<code>-&gt;</code>) to go to that specific block.</p>
+<pre><code class="language-md">
+#[Label(TheParagraph)]
+This is a paragraph, it's label is &quot;TheParagraph&quot;.
+
+// Diverting to the paragraph will show it again!
+-&gt; TheParagraph
+
+You saw the paragraph twice!
+</code></pre>
+<p>After the divert, the flow goes back to the content <strong>after</strong> the divert, <strong>not</strong> after the block. So, in the above example, the reader will see the labeled paragraph twice, and then they'll see <code>You saw the paragraph twice!</code>.</p>
+<ul>
+<li>If you divert to a <code>paragraph</code>, the paragraph will be shown.</li>
+<li>If you divert to a <code>choice group</code>, the reader will be made to make the choice again.</li>
+<li>If you divert to a <code>single choice</code>, the choice's children will be shown, as if the choice was picked by the reader.</li>
+<li>If you divert to a <code>match</code>, the condition will be matched again.</li>
+<li>If you divert to a <code>javascript block</code>, the code will be executed.</li>
+</ul>
+<h2 id="using-labels-in-inlinejs"><a class="header" href="#using-labels-in-inlinejs">Using labels in InlineJs</a></h2>
+<p>Labeling blocks has another advantage - you'll be able to gather information you can use in your story. You don't need to use variables to check which choice has been chosen - you can put a label on it and call the <code>count</code> function to see how many times it's children have been shown to the reader. Generally, you should only do this for minor branching in the dialogue.</p>
+<pre><code class="language-md">What's 2 + 2?
+
+#[Label(MyChoice)]
+- #[Label(Choice1)] 4
+    That's correct.
+- #[Label(Choice2)] 5
+    That's incorrect.
+
+// Later on...
+Oh yeah, I found out ++
+
+@{!!count(&quot;Choice1&quot;)}
+- {true}
+    you got the answer! Nice.
+- {false}
+    you couldn't get the answer... That's a bummer. Maybe you can try again?
+    -&gt; MyChoice
 </code></pre>
 
                     </main>
