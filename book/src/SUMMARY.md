@@ -7,3 +7,4 @@
     - [State](./Language/State/index.md)
         - [Data](./Language/State/data.md)
         - [Conditions](./Language/State/conditions.md)
+    - [Labels](./Language/labels.md)

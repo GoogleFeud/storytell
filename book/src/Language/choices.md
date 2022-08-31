@@ -50,6 +50,36 @@ Here's what it would look like with nested choices:
         Too afraid to look what's inside the grave, they moved on.
 ```
 
+## Labeling choices and choice groups
+
+Just how you can divert to paths, you can also divert to specific choices and choice groups. You can give them a **label** via attributes. Then, you can use the divert syntax (`->`) to go to that specific choice group or choice.
+
+If you divert to a choice, the content below the choice will be shown. If you divert to a choice group, the reader will have to make the choice. After the divert, the flow goes back to the content **after** the divert, **not** after the choice.
+
+```md
+What's 2 + 2?
+
+#[Label(MyChoice)]
+- #[Label(Choice1)] 4
+    That's correct.
+- #[Label(Choice2)] 5
+    That's incorrect. Let's try again.
+    -> MyChoice
+```
+
+You can also check how many times a labeled choice got selected in inline JS and do stuff based on that:
+
+```md
+Welcome back! ++
+
+@{!!label_count("Choice1")}
+- {true}
+    You got the right answer! Congrats!
+- {false}
+    You did not get the right answer. Let's try again.
+    -> MyChoice
+```
+
 ## Option attributes
 
 **Attributes** can change how an option or an option group behaves.
