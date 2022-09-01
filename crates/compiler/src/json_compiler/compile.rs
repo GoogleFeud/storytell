@@ -63,7 +63,7 @@ impl JSONCompilable for ASTInline {
     /// `Inline` type
     /// {
     ///   "kind": InlineKind,
-    ///   "text": Text,
+    ///   "text"?: Text,
     ///   "magicVariables"?: {
     ///     "name": string,
     ///     "kind": number
@@ -75,7 +75,8 @@ impl JSONCompilable for ASTInline {
     /// Italics - 1
     /// Underline - 2
     /// Code - 3
-    /// Javascript - 4
+    /// Join - 4
+    /// Javascript - 5
     fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
         Ok(match &self.kind {
             ASTInlineKind::Bold(text) => json!({
@@ -98,6 +99,10 @@ impl JSONCompilable for ASTInline {
                 text: text.compile(ctx)?,
                 range: text.range.safe_compile()
             }),
+            ASTInlineKind::Join => json!({
+                kind: 4,
+                range: self.range.safe_compile()
+            }),
             ASTInlineKind::Javascript(text) => {
                 let (expressions, diagnostics, input) = JsParser::parse(text);
                 if !diagnostics.is_empty() {
@@ -111,7 +116,7 @@ impl JSONCompilable for ASTInline {
                         let gathered_variables = magic_vars_collector.collected.iter().map(|pair| json!({ name: pair.0.safe_compile(), kind: pair.1 })).collect::<Vec<String>>();
                         let rebuilt_code = Rebuilder::run(magic_vars_collector.input, &expressions);
                         json!({
-                            kind: 4,
+                            kind: 5,
                             text: format!("\"{}\"", rebuilt_code),
                             magicVariables: format!("[{}]", gathered_variables.join(",")),
                             range: self.range.safe_compile()

@@ -76,7 +76,8 @@ pub enum ASTInlineKind {
     // __...__
     Underline(ASTText),
     // `...`
-    Code(ASTText)
+    Code(ASTText),
+    Join
 }
 
 #[derive(Clone, Debug)]
@@ -206,7 +207,8 @@ impl ASTInlineKind {
             Self::Code(text) => text.to_raw(),
             Self::Italics(text) => text.to_raw(),
             Self::Javascript(text) => text.clone(),
-            Self::Underline(text) => text.to_raw()
-        } 
+            Self::Underline(text) => text.to_raw(),
+            Self::Join => "++".to_string()
+        }
     }
 }

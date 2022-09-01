@@ -145,7 +145,7 @@ impl<'a> Parser<'a> {
             },
             '-' => {
                 Some(ASTBlock::ChoiceGroup(self.parse_choice_list(depth, false, true)?))
-            }
+            },
             '/' if self.input.peek_n(1).is('/') => {
                 self.input.skip_until_end_of_line();
                 self.parse_block(depth)
@@ -387,6 +387,17 @@ impl<'a> Parser<'a> {
                         } else {
                             result.push_str("**");
                         }
+                    }
+                    '+' if self.input.peek().is('+') => {
+                        self.input.skip();
+                        parts.push(TextPart { 
+                            before: result.clone(), 
+                            text: ASTInline {
+                                kind: ASTInlineKind::Join,
+                                range: self.input.range_here(start)
+                            }
+                        });
+                        result.clear()
                     }
                     // Italics
                     '*' => {
