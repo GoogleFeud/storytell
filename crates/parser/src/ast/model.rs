@@ -5,6 +5,7 @@ use std::fmt;
 pub trait WithAttributes {
     fn has_attribute(&self, attribute: &str) -> bool;
     fn get_attribute_params(&self, attribute: &str) -> Option<&Vec<String>>;
+    fn get_attribute_nth_param(&self, attribute: &str, param: usize) -> Option<&str>;
 }
 
 macro_rules! create_nodes {
@@ -39,6 +40,15 @@ macro_rules! create_nodes {
                     for item in &self.attributes {
                         if item.name == attribute {
                             return Some(&item.parameters);
+                        }
+                    }
+                    return None;
+                }
+
+                fn get_attribute_nth_param(&self, attribute: &str, param: usize) -> Option<&str> {
+                    for item in &self.attributes {
+                        if item.name == attribute {
+                            return Some(&item.parameters[param])
                         }
                     }
                     return None;
@@ -139,8 +149,10 @@ create_nodes!(
 
     ASTHeader {
         title: ASTPlainText,
+        canonical_title: String,
         children: Vec<ASTBlock>,
-        depth: u8
+        depth: u8,
+        id: u32
     }
 
     ASTDivert {
@@ -157,6 +169,40 @@ pub enum ASTBlock {
     Divert(ASTDivert),
     Match(ASTMatch),
     Header(ASTHeader)
+}
+
+impl ASTBlock {
+
+    pub fn get_label(&self) -> Option<&str> {
+        match self {
+            Self::Paragraph(p) => p.get_attribute_nth_param("Label", 0),
+            Self::CodeBlock(c) => c.get_attribute_nth_param("Label", 0),
+            Self::Divert(d) => d.get_attribute_nth_param("Label", 0),
+            Self::ChoiceGroup(c) => c.get_attribute_nth_param("Label", 0),
+            Self::Header(h) => h.get_attribute_nth_param("Label", 0),
+            Self::Match(m) => m.get_attribute_nth_param("Label", 0),
+        }
+    }
+}
+
+impl ASTHeader {
+
+    /// Path names can only contain lowercase letters, digits and underscores.
+    /// Empty spaces are replaced with underscores.
+    /// Capital letters are replaced with their lowercase variants.
+    /// Any other character gets erased.
+    pub fn canonicalize_name(name: &str) -> String {
+        let mut canonical = String::new();
+        for character in name.chars() {
+            match character {
+                ' ' => canonical.push('_'),
+                '_' | 'a'..='z' | '0'..='9' => canonical.push(character),
+                'A'..='Z' => canonical.push(character.to_lowercase().next().unwrap()),
+                _ => {}
+            }
+        }
+        canonical
+    }
 }
 
 impl ASTText {

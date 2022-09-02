@@ -21,7 +21,7 @@ macro_rules! match_str {
     };
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MagicVariableType {
     String,
     Number,

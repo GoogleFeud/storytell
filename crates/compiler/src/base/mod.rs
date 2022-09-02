@@ -3,7 +3,6 @@ use std::marker::PhantomData;
 use storytell_diagnostics::{diagnostic::{StorytellResult, Diagnostic, DiagnosticMessage}, make_diagnostics};
 use storytell_fs::{file_host::{FileDiagnostic, FileHost, GetFindResult}};
 use storytell_parser::{ast::{model::{ASTHeader, ASTBlock}, Parser}, input::ParsingContext};
-use crate::path::Path;
 
 make_diagnostics!(define [
     UNKNOWN_CHILD_PATH,
@@ -16,7 +15,7 @@ make_diagnostics!(define [
 ]);
 
 pub trait CompilerContext {
-    fn get_global_path(&mut self) -> &mut Path;
+    fn add_main_path(&mut self, ast: &ASTHeader) -> Result<(), Diagnostic>;
     fn add_diagnostic(&mut self, dia: FileDiagnostic);
 }
 
@@ -43,11 +42,12 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
     }
 
     pub fn prepare_file<C: CompilerContext>(&mut self, file_name: &str, ctx: &mut C) -> Option<Vec<&ASTHeader>> {
+        let mut total_diagnostics = vec![];
         let file = match self.host.get_or_find(file_name) {
             GetFindResult::FromCache(file) => file,
             GetFindResult::Parsed(file, diagnostic) => {
-                if let Some(dia) = diagnostic {
-                    ctx.add_diagnostic(dia);
+                if let Some(mut dia) = diagnostic {
+                    total_diagnostics.append(&mut dia);
                 }
                 file
             }
@@ -56,9 +56,17 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
         let mut paths: Vec<&ASTHeader> = vec![];
         for thing in &file.content {
             if let ASTBlock::Header(header) = thing {
-                ctx.get_global_path().add_child_ast(header);
+                if let Err(err) = ctx.add_main_path(header) {
+                    total_diagnostics.push(err);
+                }
                 paths.push(header);
             }
+        }
+        if !total_diagnostics.is_empty() {
+            ctx.add_diagnostic(FileDiagnostic {
+                diagnostics: total_diagnostics,
+                filename: file_name.to_string()
+            })
         }
         Some(paths)
     }
@@ -106,7 +114,9 @@ pub fn compile_str<P: CompilerProvider>(string: &str, mut ctx: P::Context, line_
     let mut headers: Vec<ASTHeader> = vec![];
     for thing in parsed {
         if let ASTBlock::Header(header) = thing {
-            ctx.get_global_path().add_child_ast(&header);
+            if let Err(dia) = ctx.add_main_path(&header) {
+                total_errors.push(dia);
+            }
             headers.push(header);
         }
     }

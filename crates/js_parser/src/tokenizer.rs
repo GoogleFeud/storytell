@@ -25,7 +25,7 @@ make_diagnostics!(define [
     "Expected token '$'."
 ]);
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TokenKind {
     String,
     Number,
@@ -76,7 +76,7 @@ pub struct Token {
     pub range: Range<usize>
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub enum NumberType {
     Binary, // 0b
     Octal, // 0o

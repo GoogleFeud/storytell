@@ -36,14 +36,16 @@ pub enum InlineTextParseResult {
 
 pub struct Parser<'a> {
     input: InputConsumer<'a>,
-    collected_attributes: VecStack<ASTAttribute>
+    collected_attributes: VecStack<ASTAttribute>,
+    header_counter: u32
 }
 
 impl<'a> Parser<'a> {
     pub fn new(text: &'a str, ctx: ParsingContext) -> Self {
         Self {
             input: InputConsumer::new(text, ctx),
-            collected_attributes: VecStack::new()
+            collected_attributes: VecStack::new(),
+            header_counter: 0
         }
     }
 
@@ -63,9 +65,13 @@ impl<'a> Parser<'a> {
                     self.input.ctx.diagnostics.push(dia!(NESTED_HEADER, self.input.range_here(start)));
                 }
                 let header_depth = 1 + self.input.count_while('#');
+                let header_id = self.header_counter;
+                self.header_counter += 1;
+                let header_text = self.input.consume_until_end_of_line().trim().to_string();
                 Some(ASTBlock::Header(ASTHeader {
+                    canonical_title: ASTHeader::canonicalize_name(&header_text),
                     title: ASTPlainText {
-                        text: self.input.consume_until_end_of_line().trim().to_string(),
+                        text: header_text,
                         range: self.input.range_here(start)
                     },
                     depth: header_depth as u8,
@@ -79,7 +85,7 @@ impl<'a> Parser<'a> {
                             }
                             else if let Some(block) = self.parse_block(depth) {
                                 if let ASTBlock::Header(header) = &block {
-                                    if (header.depth - 1) != (header_depth as u8) {
+                                    if (header.depth - 1) > (header_depth as u8) {
                                         self.input.ctx.diagnostics.push(dia!(INCORRECT_HEADER_SIZE, header.title.range.clone(), &(header.depth - 1).to_string()));
                                     }
                                 }
@@ -91,6 +97,7 @@ impl<'a> Parser<'a> {
                         res
                     },
                     range: self.input.range_here(start),
+                    id: header_id
                 }))
             }
             '`' if self.input.peek_n(1).is('`') && self.input.peek_n(2).is('`') => {

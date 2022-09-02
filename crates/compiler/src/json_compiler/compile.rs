@@ -1,14 +1,12 @@
-use storytell_diagnostics::diagnostic::StorytellResult;
-use storytell_diagnostics::location::Range;
+use storytell_diagnostics::{dia, diagnostic::*, location::Range};
 use storytell_js_parser::JsParser;
 use storytell_js_parser::ast::Visitable;
 use storytell_parser::ast::model::*;
 use std::{stringify, concat};
 
 use crate::json_compiler::JSONCompilerContext;
-use crate::path::Path;
 use crate::visitors::{MagicVarCollector, Rebuilder, transform_js};
-
+use crate::base::Diagnostics;
 
 macro_rules! json {
     () => {};
@@ -41,20 +39,22 @@ impl JSONCompilable for ASTHeader {
     /// }
     fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
         let mut header_children: Vec<String> = vec![];
-        let mut others: Vec<&ASTBlock> = vec![];
+        let mut others: Vec<String> = vec![];
+        println!("{} {}", self.canonical_title, self.id);
+        ctx.paths.current_path = self.id;
         for child in &self.children {
             if let ASTBlock::Header(header) = &child {
-                header_children.push(format!("\"{}\": {}", Path::canonicalize_name(&header.title.text), header.compile(ctx)?));
+                header_children.push(format!("\"{}\": {}", header.canonical_title, header.compile(ctx)?));
             } else {
-                others.push(child)
+                others.push(child.compile(ctx)?)
             }
         }
         Ok(json!({
             title: self.title.text.safe_compile(),
-            canonicalTitle: Path::canonicalize_name(&self.title.text).safe_compile(),
+            canonicalTitle: self.canonical_title.safe_compile(),
             childPaths: format!("{{{}}}", header_children.join(",")),
             range: self.range.safe_compile(),
-            children: others.compile(ctx)?
+            children: format!("[{}]", others.join(","))
         }))
     }
 }
@@ -241,13 +241,21 @@ impl JSONCompilable for ASTDivert {
     ///     path: string[]
     /// }
     /// 
-    fn compile(&self, _ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
-        Ok(json!({
-            kind: 3,
-            path: self.path.safe_compile(),
-            range: self.range.safe_compile(),
-            attributes: self.attributes.safe_compile()
-        }))
+    fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
+        if let Err(ind) = ctx.paths.search_path(&self.path) {
+            if ind == 0 {
+                Err(vec![dia!(UNKNOWN_PATH, self.range.clone(), &self.path[0])])
+            } else {
+                Err(vec![dia!(UNKNOWN_CHILD_PATH, self.range.clone(), &self.path[ind], &self.path[ind - 1])])
+            }
+        } else {
+            Ok(json!({
+                kind: 3,
+                path: self.path.safe_compile(),
+                range: self.range.safe_compile(),
+                attributes: self.attributes.safe_compile()
+            }))
+        }
     }
 }
 

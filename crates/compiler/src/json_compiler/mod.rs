@@ -1,7 +1,7 @@
-use storytell_diagnostics::diagnostic::StorytellResult;
+use storytell_diagnostics::diagnostic::{StorytellResult, Diagnostic};
 use storytell_fs::file_host::FileDiagnostic;
 use storytell_parser::ast::model::ASTHeader;
-use crate::{base::*, visitors::MagicVariableCollectorContext, path::Path};
+use crate::{base::*, visitors::MagicVariableCollectorContext, path::{PathCollector}};
 use self::compile::JSONCompilable;
 
 pub mod compile;
@@ -20,7 +20,7 @@ impl CompilerProvider for JSONCompilerProvider {
 pub struct JSONCompilerContext {
     pub magic_variables: MagicVariableCollectorContext,
     pub diagnostics: Vec<FileDiagnostic>,
-    pub paths: Path,
+    pub paths: PathCollector,
     pub include_details: bool
 }
 
@@ -29,8 +29,8 @@ impl CompilerContext for JSONCompilerContext {
         self.diagnostics.push(dia);
     }
 
-    fn get_global_path(&mut self) -> &mut Path {
-        &mut self.paths
+    fn add_main_path(&mut self, ast: &ASTHeader) -> Result<(), Diagnostic> {
+        self.paths.add_main_path(ast)
     }
 }
 
@@ -40,7 +40,7 @@ impl JSONCompilerContext {
         Self { 
             magic_variables: MagicVariableCollectorContext::new(),
             diagnostics: vec![],
-            paths: Path::new("global"),
+            paths: PathCollector::new(),
             include_details
         }
     }
@@ -85,5 +85,33 @@ Hello!
         println!("Parsing took {} nanoseconds", before.elapsed().as_nanos());
         println!("[{}] {:?} {:?}", result.join(","), diagnostics, ctx.magic_variables);
     }
+    
+    #[test]
+    fn path_test() {
+        let (_, dia, _) = compile_str::<JSONCompilerProvider>("
+# This is a main path
 
+This is some main path content...
+Let's go to a sub-path...
+-> my_sub_path
+
+## My Sub Path
+
+This is my sub-path.
+-> this_is_a_main_path.second_sub_path
+
+## Second Sub Path
+
+This is the second sub-path.
+-> first_sub_sub_path
+
+## Second Sub Path
+
+### First sub sub path!!!!
+
+## Wo
+
+", JSONCompilerContext::new(true), 1);
+        panic!("{:?}",dia )
+    }
 }

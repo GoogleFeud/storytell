@@ -12,7 +12,7 @@ pub struct FileDiagnostic {
 pub enum GetFindResult<'a> {
     NotFound,
     FromCache(&'a File),
-    Parsed(&'a File, Option<FileDiagnostic>)
+    Parsed(&'a File, Option<Vec<Diagnostic>>)
 }
 
 pub trait FileHost {
@@ -56,10 +56,7 @@ impl FileHost for VirtualFileHost {
                 GetFindResult::Parsed(self.files.get(path).unwrap(), if diagnostics.is_empty() {
                     None
                 } else {
-                    Some(FileDiagnostic {
-                        filename: path.to_string(),
-                        diagnostics
-                    })
+                    Some(diagnostics)
                 })
             } else {
             GetFindResult::NotFound
@@ -103,10 +100,7 @@ impl FileHost for SysFileHost {
             GetFindResult::Parsed(self.files.get(path).unwrap(), if dia.is_empty() {
                 None
             } else {
-                Some(FileDiagnostic {
-                    diagnostics: dia,
-                    filename: path.to_string()
-                })
+                Some(dia)
             })
         } else {
             GetFindResult::NotFound

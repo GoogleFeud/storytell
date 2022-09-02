@@ -18,7 +18,7 @@ make_diagnostics!(define [
     "Expected end of string literal expression."
 ]);
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Eq)]
 pub enum Associativity {
     None,
     LeftToRight,
