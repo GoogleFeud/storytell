@@ -1,16 +1,16 @@
 
 # Paths
 
-The main construct of the language are **paths** - they're like different sections of your story which can play out differently, depending on the choices the reader makes. Each story starts at a path and ends at another. Each path can also have **deviations**, which can also be used as sub-paths. 
+The main construct of the language are **paths** - they're like different sections of your story which can play out differently, depending on the choices the reader makes. Each story starts at a path and ends at another. Paths contain children called **blocks** which do different things - one kind of block for example is the paragraph, which just shows text to the reader. Each path can also have other paths as children, which can be used for different versions or different sections of the path.
 
 Here is an example:
 
 ```md
 # Chapter 1, Part 2
 
-This text is shown when the reader arrives at this path. You **can** *use*  __markdown__ to style your text.
+This is a paragraph, and it's shown when the reader arrives at this path. You **can** *use*  __markdown__ to style your text.
 
-// This is a comment, the arrow below will divert the reader to the "Diversion 1" path
+// This is a comment, the arrow below will divert the reader to the "Diversion 1" path, which is a children of this path
 -> diversion_1
 
 ## Diversion 1
@@ -20,54 +20,46 @@ This is a diversion from the main path. The reader can come here from anywhere, 
 
 ## Diversions
 
-Paths can divert you to other paths with the following symbols:
-
-- `->` - Direct diversion. The path transfers the control flow to another path. The reader never returns to this path unless another path specifically divers the reader to it.
-- `<->` - Temporary diversion. After the path ends, the reader continues from the old path.
+Paths can divert you to other paths with the `->` syntax. The path transfers the control flow to another path. The reader never returns to this path unless another path specifically diverts the reader to it.
 
 A path is considered to "end" when:
 
-- It diverts to the `END` path.
+- It diverts to the `end` path.
 - There's no more content to be shown.
 
-So if the path diverts to another path, the temporary diversion will wait for that path to end, too! Things can get a little confusing with temporary diversion so use it sparingly!
+### Diverting to children paths
+
+Main paths (Those which are created with the `#` symbol) have to be unique - there can't be multiple paths with the same name, however, path children can!
+
+A path can divert to it's children directly:
 
 ```md
-# Graveyard
+# Main Path
 
-Zach and Betty finally reached the graveyard. 
+## Child 1
 
-<-> Left
--> Right
+// Works!
+-> child_of_child
 
-This will never be seen...
+### Child of child
 
-## Left
-
-Zach and Betty decided to visit the left section of the graveyard first. They didn't find anything interesting.
-
-## Right
-
-Then they visited the rest of the graveyard. There, they found the unthinkable...
+## Child 2
 ```
 
-This would result in the following:
+However, if the path you want to divert to is not a **direct** child of the current path, you have to use the **access** syntax to reach it:
 
-```
-Zach and Betty finally reached the graveyard. 
-Zach and Betty decided to visit the left section of the graveyard first. They didn't find anything interesting.
-Then they visited the rest of the graveyard. There, they found the unthinkable...
-```
+```md
+# Main Path
 
-### Diverting to sub-paths outside the main path
+## Child 1
 
-Main paths (Those which are created with the `#` symbol) have to be unique - there can't be multiple paths with the same name, however, deviations can!
+// Doesn't work
+-> child_2
 
-So, let's say the reader is in another path, not `Graveyard`, but we want them to see the contents of the `Left` chapter, which **is** inside Graveyard. We can use a dot `.` to connect both names so Storytell knows where to find the `Left` path:
+// Works!
+-> main_path.child_2
 
-```
--> Graveyard.Left
-// or
--> graveyard.left
-// path names are case insensitive!
+### Child of child
+
+## Child 2
 ```

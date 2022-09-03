@@ -44,3 +44,45 @@ Oh yeah, I found out ++
     you couldn't get the answer... That's a bummer. Maybe you can try again?
     -> MyChoice
 ```
+
+## Label scopes
+
+By default, labels can only be diverted to if they are in the same (or parent) path as the divertion itself. You have to specify a **scope** if you want to divert to labels outside of the current path. The scope can be either `global`, `local`, or a number which specifies how many levels above the current path the label can be accessed. The default value is `local`.
+
+Scopes are needed because label names are **unique**.
+
+```md
+# Main path
+
+// Doesn't work, first_para is in "Second Path"
+-> first_para
+
+// Works!
+-> second_para
+
+// Works!
+-> third_para
+
+## Second Path
+
+#[Label(First Para)]
+This is a labeled paragraph.
+
+// Puts the label in the global context
+#[Label(Second Para, global)]
+This is the second paragraph.
+
+// Puts the label in the "Main path"
+#[Label(Third Para, 1)]
+This is the third paragraph.
+
+### Nested Path
+
+// Works! All 3 work!
+-> first_para
+
+## Third Path
+
+// Doesn't work
+-> first_para 
+```

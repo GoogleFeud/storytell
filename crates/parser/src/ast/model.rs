@@ -3,8 +3,7 @@ use storytell_diagnostics::location::*;
 use std::fmt;
 
 pub trait WithAttributes {
-    fn has_attribute(&self, attribute: &str) -> bool;
-    fn get_attribute_params(&self, attribute: &str) -> Option<&Vec<String>>;
+    fn get_attribute_n(&self, att: &str, ind: usize) -> Option<&str>;
 }
 
 macro_rules! create_nodes {
@@ -26,19 +25,10 @@ macro_rules! create_nodes {
             }
 
             impl WithAttributes for $name {
-                fn has_attribute(&self, attribute: &str) -> bool {
+                fn get_attribute_n(&self, att: &str, ind: usize) -> Option<&str> {
                     for item in &self.attributes {
-                        if item.name == attribute {
-                            return true;
-                        }
-                    }
-                    return false;
-                }
-
-                fn get_attribute_params(&self, attribute: &str) -> Option<&Vec<String>> {
-                    for item in &self.attributes {
-                        if item.name == attribute {
-                            return Some(&item.parameters);
+                        if item.name == att {
+                            return Some(&item.parameters[ind]);
                         }
                     }
                     return None;
@@ -157,6 +147,19 @@ pub enum ASTBlock {
     Divert(ASTDivert),
     Match(ASTMatch),
     Header(ASTHeader)
+}
+
+impl WithAttributes for ASTBlock {
+    fn get_attribute_n(&self, att: &str, ind: usize) -> Option<&str> {
+        match self {
+            Self::ChoiceGroup(ch) => ch.get_attribute_n(att, ind),
+            Self::CodeBlock(code) => code.get_attribute_n(att, ind),
+            Self::Divert(div) => div.get_attribute_n(att, ind),
+            Self::Header(h) => h.get_attribute_n(att, ind),
+            Self::Match(m) => m.get_attribute_n(att, ind),
+            Self::Paragraph(p) => p.get_attribute_n(att, ind)
+        }
+    }
 }
 
 impl ASTText {
