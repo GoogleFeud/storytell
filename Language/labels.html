@@ -173,6 +173,43 @@ Oh yeah, I found out ++
     you couldn't get the answer... That's a bummer. Maybe you can try again?
     -&gt; MyChoice
 </code></pre>
+<h2 id="label-scopes"><a class="header" href="#label-scopes">Label scopes</a></h2>
+<p>By default, labels can only be diverted to if they are in the same (or parent) path as the divertion itself. You have to specify a <strong>scope</strong> if you want to divert to labels outside of the current path. The scope can be either <code>global</code>, <code>local</code>, or a number which specifies how many levels above the current path the label can be accessed. The default value is <code>local</code>.</p>
+<p>Scopes are needed because label names are <strong>unique</strong>.</p>
+<pre><code class="language-md"># Main path
+
+// Doesn't work, first_para is in &quot;Second Path&quot;
+-&gt; first_para
+
+// Works!
+-&gt; second_para
+
+// Works!
+-&gt; third_para
+
+## Second Path
+
+#[Label(First Para)]
+This is a labeled paragraph.
+
+// Puts the label in the global context
+#[Label(Second Para, global)]
+This is the second paragraph.
+
+// Puts the label in the &quot;Main path&quot;
+#[Label(Third Para, 1)]
+This is the third paragraph.
+
+### Nested Path
+
+// Works! All 3 work!
+-&gt; first_para
+
+## Third Path
+
+// Doesn't work
+-&gt; first_para 
+</code></pre>
 
                     </main>
 

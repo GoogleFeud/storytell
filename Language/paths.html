@@ -135,13 +135,13 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="paths"><a class="header" href="#paths">Paths</a></h1>
-<p>The main construct of the language are <strong>paths</strong> - they're like different sections of your story which can play out differently, depending on the choices the reader makes. Each story starts at a path and ends at another. Each path can also have <strong>deviations</strong>, which can also be used as sub-paths. </p>
+<p>The main construct of the language are <strong>paths</strong> - they're like different sections of your story which can play out differently, depending on the choices the reader makes. Each story starts at a path and ends at another. Paths contain children called <strong>blocks</strong> which do different things - one kind of block for example is the paragraph, which just shows text to the reader. Each path can also have other paths as children, which can be used for different versions or different sections of the path.</p>
 <p>Here is an example:</p>
 <pre><code class="language-md"># Chapter 1, Part 2
 
-This text is shown when the reader arrives at this path. You **can** *use*  __markdown__ to style your text.
+This is a paragraph, and it's shown when the reader arrives at this path. You **can** *use*  __markdown__ to style your text.
 
-// This is a comment, the arrow below will divert the reader to the &quot;Diversion 1&quot; path
+// This is a comment, the arrow below will divert the reader to the &quot;Diversion 1&quot; path, which is a children of this path
 -&gt; diversion_1
 
 ## Diversion 1
@@ -149,46 +149,40 @@ This text is shown when the reader arrives at this path. You **can** *use*  __ma
 This is a diversion from the main path. The reader can come here from anywhere, inclduding from the main path.
 </code></pre>
 <h2 id="diversions"><a class="header" href="#diversions">Diversions</a></h2>
-<p>Paths can divert you to other paths with the following symbols:</p>
-<ul>
-<li><code>-&gt;</code> - Direct diversion. The path transfers the control flow to another path. The reader never returns to this path unless another path specifically divers the reader to it.</li>
-<li><code>&lt;-&gt;</code> - Temporary diversion. After the path ends, the reader continues from the old path.</li>
-</ul>
+<p>Paths can divert you to other paths with the <code>-&gt;</code> syntax. The path transfers the control flow to another path. The reader never returns to this path unless another path specifically diverts the reader to it.</p>
 <p>A path is considered to &quot;end&quot; when:</p>
 <ul>
-<li>It diverts to the <code>END</code> path.</li>
+<li>It diverts to the <code>end</code> path.</li>
 <li>There's no more content to be shown.</li>
 </ul>
-<p>So if the path diverts to another path, the temporary diversion will wait for that path to end, too! Things can get a little confusing with temporary diversion so use it sparingly!</p>
-<pre><code class="language-md"># Graveyard
+<h3 id="diverting-to-children-paths"><a class="header" href="#diverting-to-children-paths">Diverting to children paths</a></h3>
+<p>Main paths (Those which are created with the <code>#</code> symbol) have to be unique - there can't be multiple paths with the same name, however, path children can!</p>
+<p>A path can divert to it's children directly:</p>
+<pre><code class="language-md"># Main Path
 
-Zach and Betty finally reached the graveyard. 
+## Child 1
 
-&lt;-&gt; Left
--&gt; Right
+// Works!
+-&gt; child_of_child
 
-This will never be seen...
+### Child of child
 
-## Left
-
-Zach and Betty decided to visit the left section of the graveyard first. They didn't find anything interesting.
-
-## Right
-
-Then they visited the rest of the graveyard. There, they found the unthinkable...
+## Child 2
 </code></pre>
-<p>This would result in the following:</p>
-<pre><code>Zach and Betty finally reached the graveyard. 
-Zach and Betty decided to visit the left section of the graveyard first. They didn't find anything interesting.
-Then they visited the rest of the graveyard. There, they found the unthinkable...
-</code></pre>
-<h3 id="diverting-to-sub-paths-outside-the-main-path"><a class="header" href="#diverting-to-sub-paths-outside-the-main-path">Diverting to sub-paths outside the main path</a></h3>
-<p>Main paths (Those which are created with the <code>#</code> symbol) have to be unique - there can't be multiple paths with the same name, however, deviations can!</p>
-<p>So, let's say the reader is in another path, not <code>Graveyard</code>, but we want them to see the contents of the <code>Left</code> chapter, which <strong>is</strong> inside Graveyard. We can use a dot <code>.</code> to connect both names so Storytell knows where to find the <code>Left</code> path:</p>
-<pre><code>-&gt; Graveyard.Left
-// or
--&gt; graveyard.left
-// path names are case insensitive!
+<p>However, if the path you want to divert to is not a <strong>direct</strong> child of the current path, you have to use the <strong>access</strong> syntax to reach it:</p>
+<pre><code class="language-md"># Main Path
+
+## Child 1
+
+// Doesn't work
+-&gt; child_2
+
+// Works!
+-&gt; main_path.child_2
+
+### Child of child
+
+## Child 2
 </code></pre>
 
                     </main>
