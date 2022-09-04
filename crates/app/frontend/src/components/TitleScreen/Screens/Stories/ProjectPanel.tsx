@@ -1,9 +1,9 @@
-import { deleteProject, setModal } from "../../state";
-import { Project } from "../../types";
-import { DownloadIcon } from "../Icons/download";
-import { EditIcon } from "../Icons/edit";
-import { TrashIcon } from "../Icons/trash";
-import { AreYouSureModal } from "../utils/AreYouSureModal";
+import { deleteProject, setModal } from "../../../../state";
+import { Project } from "../../../../types";
+import { DownloadIcon } from "../../../Icons/download";
+import { EditIcon } from "../../../Icons/edit";
+import { TrashIcon } from "../../../Icons/trash";
+import { AreYouSureModal } from "../../../utils/AreYouSureModal";
 
 
 export const ProjectPanel = (props: {

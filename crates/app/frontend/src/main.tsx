@@ -4,10 +4,10 @@ import { TitleScreen } from "./components/TitleScreen";
 import { state } from "./state";
 
 const App = () => {
-    return <div>
+    return <div class="h-full">
         {state.modal}
         <TitleScreen />
     </div>;
 };
 
-render(() => <App />, document.getElementById("root")!);
+render(() => <App />, document.getElementById("root") as HTMLElement);
