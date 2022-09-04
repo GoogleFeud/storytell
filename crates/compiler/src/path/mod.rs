@@ -1,21 +1,5 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use storytell_parser::ast::model::{ASTHeader, ASTBlock};
-use std::rc::Rc;
-use std::cell::RefCell;
-
-pub type PathRef = Rc<RefCell<NewPath>>;
-
-pub struct NewPath {
-    pub name: String,
-    pub depth: u8,
-    pub children: HashMap<String, PathRef>,
-    pub labels: HashSet<String>
-}
-
-pub struct PathCollector {
-    pub paths: HashMap<String, PathRef>,
-    pub global_labels: HashSet<String>
-}
 
 pub struct Path {
     pub name: String,

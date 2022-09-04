@@ -3,7 +3,6 @@ use std::marker::PhantomData;
 use storytell_diagnostics::{diagnostic::{StorytellResult, Diagnostic, DiagnosticMessage}, make_diagnostics};
 use storytell_fs::{file_host::{FileDiagnostic, FileHost, GetFindResult}};
 use storytell_parser::{ast::{model::{ASTHeader, ASTBlock}, Parser}, input::ParsingContext};
-use crate::path::Path;
 
 make_diagnostics!(define [
     UNKNOWN_CHILD_PATH,
@@ -16,7 +15,7 @@ make_diagnostics!(define [
 ]);
 
 pub trait CompilerContext {
-    fn get_global_path(&mut self) -> &mut Path;
+    fn process_path(&mut self, path: &ASTHeader);
     fn add_diagnostic(&mut self, dia: FileDiagnostic);
 }
 
@@ -56,7 +55,7 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
         let mut paths: Vec<&ASTHeader> = vec![];
         for thing in &file.content {
             if let ASTBlock::Header(header) = thing {
-                ctx.get_global_path().add_child_ast(header);
+                ctx.process_path(header);
                 paths.push(header);
             }
         }
@@ -106,7 +105,7 @@ pub fn compile_str<P: CompilerProvider>(string: &str, mut ctx: P::Context, line_
     let mut headers: Vec<ASTHeader> = vec![];
     for thing in parsed {
         if let ASTBlock::Header(header) = thing {
-            ctx.get_global_path().add_child_ast(&header);
+            ctx.process_path(&header);
             headers.push(header);
         }
     }

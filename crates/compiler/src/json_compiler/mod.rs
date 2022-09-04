@@ -1,7 +1,7 @@
 use storytell_diagnostics::diagnostic::StorytellResult;
 use storytell_fs::file_host::FileDiagnostic;
 use storytell_parser::ast::model::ASTHeader;
-use crate::{base::*, visitors::MagicVariableCollectorContext, path::Path};
+use crate::{base::*, visitors::MagicVariableCollectorContext};
 use self::compile::JSONCompilable;
 
 pub mod compile;
@@ -17,11 +17,10 @@ impl CompilerProvider for JSONCompilerProvider {
     }
 }
 
+#[derive(Default)]
 pub struct JSONCompilerContext {
     pub magic_variables: MagicVariableCollectorContext,
-    pub diagnostics: Vec<FileDiagnostic>,
-    pub paths: Path,
-    pub include_details: bool
+    pub diagnostics: Vec<FileDiagnostic>
 }
 
 impl CompilerContext for JSONCompilerContext {
@@ -29,19 +28,17 @@ impl CompilerContext for JSONCompilerContext {
         self.diagnostics.push(dia);
     }
 
-    fn get_global_path(&mut self) -> &mut Path {
-        &mut self.paths
+    fn process_path(&mut self, _path: &ASTHeader) {
+        // Not needed, for now the front-end handles this.
     }
 }
 
 impl JSONCompilerContext {
 
-    pub fn new(include_details: bool) -> Self {
+    pub fn new() -> Self {
         Self { 
             magic_variables: MagicVariableCollectorContext::new(),
-            diagnostics: vec![],
-            paths: Path::new("global"),
-            include_details
+            diagnostics: vec![]
         }
     }
 
@@ -81,7 +78,7 @@ Hello!
 {killed = c}
 {e.b.c.d += 1}
 {e.b.c.d}
-", JSONCompilerContext::new(true), 1);
+", JSONCompilerContext::new(), 1);
         println!("Parsing took {} nanoseconds", before.elapsed().as_nanos());
         println!("[{}] {:?} {:?}", result.join(","), diagnostics, ctx.magic_variables);
     }
