@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 @font-face {
-  font-family: Lato;
-  src: url(./assets/fonts/Lato-Regular.ttf);
+  font-family: Poppins;
+  src: url(./assets/fonts/Poppins.ttf);
 }
 
 html {
@@ -13,15 +13,15 @@ html {
 
 body {
   height: 100%;
-  color: black;
-  background-color: #F0EBE3;
+  color: white;
+  background-color: #0d0d0d;
   overflow-y: auto;
   overflow-x: hidden;
 }
 
 #root {
   height: 100%;
-  font-family: Lato, Avenir, Helvetica, Arial, sans-serif;
+  font-family: Poppins;
 }
 
 @-webkit-keyframes slide-top {

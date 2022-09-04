@@ -1,31 +1,52 @@
-import { For, onMount } from "solid-js";
+import { createSignal, For, JSXElement, onMount } from "solid-js";
 import { setModal } from "../../state";
 import { createProject, loadProjects, state } from "../../state";
+import { BookIcon } from "../Icons/book";
+import { GearIcon } from "../Icons/gear";
+import { GradCap } from "../Icons/gradcap";
 import { ErrorModal } from "../utils/ErrorModal";
 import { ProjectPanel } from "./ProjectPanel";
 
+export const SidebarMenu = (props: {
+    selected?: boolean,
+    icon: JSXElement,
+    text: string,
+    onClick?: () => void
+}) => {
+    return <div class={`flex gap-4 cursor-pointer p-2 rounded-lg items-center w-[220px] ${props.selected ? "bg-neutral-700" : "bg-none"} transition-all`} onClick={props.onClick}>
+        <div class="text-slate-300 pl-2">
+            {props.icon}
+        </div>
+        <p class={`text-[16px] font-medium transition-all ${props.selected ? "text-white" : "text-neutral-400 hover:text-neutral-300"}`}>
+            {props.text}
+        </p>
+    </div>;
+};
+
+export const enum Screens {
+    Stories,
+    Settings, 
+    Guides
+}
+
 export const TitleScreen = () => {
+    const [activeScreen, setActiveScreen] = createSignal<Screens>(Screens.Stories);
     
     onMount(async () => {
         await loadProjects();
     });
 
     return <div class="flex min-h-full">
-        <div class="p-10 bg-[#E4DCCF] flex flex-col gap-28">
-            <div>
-                <img src="./assets/images/book.png" height="164px" width="152px" />
-                <p class="text-[40px]">Storytell</p>
+        <div class="bg-[#242424] flex flex-col max-h-full w-[340px]">
+            <div class="flex justify-center items-center gap-4 py-6">
+                <img src="./assets/images/book.png" height="32px" width="32px" />
+                <p class="text-[22px]">Storytell</p>
             </div>
-            <div class="flex flex-col gap-[38px]">
-                <div class="bg-[#F0EBE3] p-1 mr-[-90px] cursor-pointer">
-                    <p class="text-[20px]">Stories</p>
-                </div>
-                <div>
-                    <p class="text-[20px] p-1 cursor-pointer">Settings</p>
-                </div>
-                <div>
-                    <p class="text-[20px] p-1 cursor-pointer">Guides</p>
-                </div>
+            <div class="border-b border-neutral-700" />
+            <div class="flex flex-col justify-center items-center gap-3 py-4">
+                <SidebarMenu icon={<BookIcon size="16px" />} text="Stories" selected={activeScreen() === Screens.Stories} onClick={() => setActiveScreen(Screens.Stories)} />
+                <SidebarMenu icon={<GearIcon size="16px" />} text="Settings" selected={activeScreen() === Screens.Settings} onClick={() => setActiveScreen(Screens.Settings)} />
+                <SidebarMenu icon={<GradCap size="16px" />} text="Guides" selected={activeScreen() === Screens.Guides} onClick={() => setActiveScreen(Screens.Guides)} />
             </div>
         </div>
         <div class="w-full pt-[24px] pl-[32px] flex flex-col gap-28">
