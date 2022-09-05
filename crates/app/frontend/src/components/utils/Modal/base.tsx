@@ -1,7 +1,6 @@
 import { ParentProps } from "solid-js";
 import { setModal } from "../../../state";
 
-
 export const ModalBase = (props: ParentProps<{
     position?: "bottom" | "center",
     exitable?: boolean
