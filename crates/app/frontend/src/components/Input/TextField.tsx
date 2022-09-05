@@ -4,6 +4,7 @@ import { JSXElement } from "solid-js";
 export const TextField = (props: {
     onChange?: (content: string) => void,
     error?: string,
+    value?: string,
     icon?: JSXElement,
     placeholder?: string
 }) => {
@@ -12,7 +13,7 @@ export const TextField = (props: {
             "border-red-500": !!props.error
         }}>
             {props.icon}
-            <input type="text" class="bg-transparent outline-0 basis-full" placeholder={props.placeholder} onInput={(ctx) => props.onChange?.((ctx.target as HTMLInputElement).value)}></input>
+            <input type="text" value={props.value || ""} class="bg-transparent outline-0 basis-full" placeholder={props.placeholder} onInput={(ctx) => props.onChange?.((ctx.target as HTMLInputElement).value)}></input>
         </div>
         {props.error && <p class="text-[13px] text-red-500">{props.error}</p>}
     </div>;
@@ -21,6 +22,7 @@ export const TextField = (props: {
 export const TextFieldGroup = (props: {
     title: string,
     error?: string,
+    value?: string,
     onChange?: (content: string) => void,
     icon?: JSXElement,
     placeholder?: string

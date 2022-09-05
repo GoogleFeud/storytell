@@ -1,8 +1,9 @@
-import { deleteProject, setModal } from "../../../../state";
+import { deleteProject, editProject, setModal } from "../../../../state";
 import { Project } from "../../../../types";
 import { EditIcon } from "../../../Icons/edit";
 import { TrashIcon } from "../../../Icons/trash";
 import { AreYouSureModal } from "../../../utils/Modal/AreYouSureModal";
+import { ModifyProjectModal } from "../../../utils/Modal/ModifyProjectModal";
 
 export const ProjectPanel = (props: {
     project: Project
@@ -12,7 +13,15 @@ export const ProjectPanel = (props: {
             <div class="flex justify-between items-center">
                 <p class="text-[20px]">{props.project.metadata.name}</p>
                 <div class="flex gap-4 text-neutral-400">
-                    <EditIcon />
+                    <div onClick={() => {
+                        setModal(<ModifyProjectModal isUpdate={props.project} onFinish={(name, desc) => {
+                            if (!name) return;
+                            setModal();
+                            editProject(props.project.metadata.name, name, desc);
+                        }} />);
+                    }}>
+                        <EditIcon />
+                    </div>
                     <div onClick={() => {
                         setModal(<AreYouSureModal text={`Do you want to delete "${props.project.metadata.name}" forever?`} onYes={() => deleteProject(props.project.metadata.name)} />);
                     }}><TrashIcon /></div>

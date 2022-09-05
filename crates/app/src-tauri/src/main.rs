@@ -15,7 +15,7 @@ fn main() {
   let context = tauri::generate_context!();
   tauri::Builder::default()
     .manage(state)
-    .invoke_handler(tauri::generate_handler![list_projects, create_project, delete_project])
+    .invoke_handler(tauri::generate_handler![list_projects, create_project, delete_project, edit_project])
     .menu(if cfg!(target_os = "macos") {
       tauri::Menu::os_default(&context.package_info().name)
     } else {

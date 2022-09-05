@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 use storytell_compiler::{
-    json_compiler::{JSONCompilerContext, JSONCompilerProvider},
+    json_compiler::{JSONCompilerProvider},
     base::Compiler
 };
 use storytell_fs::file_host::SysFileHost;

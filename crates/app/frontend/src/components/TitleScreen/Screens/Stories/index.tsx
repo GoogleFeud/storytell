@@ -1,9 +1,9 @@
 import { For } from "solid-js";
-import { setModal, state } from "../../../../state";
+import { createProject, setModal, state } from "../../../../state";
 import { SearchIcon } from "../../../Icons/search";
 import { Button } from "../../../Input/Button";
 import { TextField } from "../../../Input/TextField";
-import { CreateProjectModal } from "../../../utils/Modal/CreateProjectModal";
+import { ModifyProjectModal } from "../../../utils/Modal/ModifyProjectModal";
 import { ProjectPanel } from "./ProjectPanel";
 
 export const StoriesScreen = () => {
@@ -14,7 +14,11 @@ export const StoriesScreen = () => {
                 <div class="flex gap-4">
                     <Button text="Import" />
                     <Button text="Create" primary onClick={async () => {
-                        setModal(<CreateProjectModal />);
+                        setModal(<ModifyProjectModal onFinish={(name, desc) => {
+                            if (!name) return;
+                            createProject(name, desc || "");
+                            setModal();
+                        }} />);
                     }}/>
                 </div>
                 <TextField placeholder="Search" icon={<SearchIcon size="14px" />} />

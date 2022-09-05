@@ -77,6 +77,23 @@ impl Projects {
         }
     }
 
+    pub fn update_project(&mut self, old_name: String, name: String, description: String) -> Option<()> {
+        let project = self.projects.get_mut(&old_name)?;
+        project.metadata.description = description;
+        // Rename the entire folder if the name is different
+        if name != project.metadata.name {
+            project.metadata.name = name.clone();
+            let mut new_dir = project.directory.clone();
+            new_dir.pop();
+            new_dir.push(name);
+            fs::rename(&project.directory, &new_dir).ok()?;
+            project.directory = new_dir.clone();
+            project.files_directory = new_dir.join("./content");
+        }
+        fs::write(project.directory.join("./metadata.json"), to_string(&project.metadata).unwrap()).expect("Couldn't write to file.");
+        Some(())
+    }
+
     pub fn delete_project(&mut self, name: &str) -> bool {
         if let Some(project) = self.projects.remove(name) {
             fs::remove_dir_all(project.directory).expect("Failed to delete directory.");
