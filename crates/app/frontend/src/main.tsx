@@ -1,12 +1,20 @@
 import "./style.css";
-import { render } from "solid-js/web";
+import { Match, render, Switch } from "solid-js/web";
 import { TitleScreen } from "./components/TitleScreen";
-import { state } from "./state";
+import { Pages, state } from "./state";
+import { Editor } from "./components/Editor";
 
 const App = () => {
     return <div class="h-full">
         {state.modal}
-        <TitleScreen />
+        <Switch>
+            <Match when={state.currentPage === Pages.TitleScreen}>
+                <TitleScreen />
+            </Match>
+            <Match when={state.currentPage === Pages.Editor}>
+                <Editor />
+            </Match>
+        </Switch>
     </div>;
 };
 

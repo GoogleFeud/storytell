@@ -3,11 +3,19 @@ import { JSXElement } from "solid-js";
 import { createStore } from "solid-js/store";
 import { Project } from "./types";
 
+export const enum Pages {
+    TitleScreen,
+    Editor
+}
+
 export const [state, setState] = createStore<{
     projects: Project[],
-    modal?: JSXElement
+    modal?: JSXElement,
+    currentProject?: Project,
+    currentPage: Pages
 }>({
-    projects: []
+    projects: [],
+    currentPage: Pages.TitleScreen
 });
 
 export const loadProjects = async (): Promise<Project[]> => {
@@ -35,4 +43,9 @@ export const deleteProject = async (name: string) => {
 
 export const setModal = (modal?: JSXElement) => {
     setState("modal", modal);
+};
+
+export const openProject = (project: Project) => {
+    setState("currentProject", project);
+    setState("currentPage", Pages.Editor);
 };
