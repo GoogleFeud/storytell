@@ -3,7 +3,7 @@ import { createProject, setModal, state } from "../../../../state";
 import { SearchIcon } from "../../../Icons/search";
 import { Button } from "../../../Input/Button";
 import { TextField } from "../../../Input/TextField";
-import { ErrorModal } from "../../../utils/ErrorModal";
+import { MessageModal } from "../../../utils/Modal/MessageModal";
 import { ProjectPanel } from "./ProjectPanel";
 
 export const StoriesScreen = () => {
@@ -15,13 +15,13 @@ export const StoriesScreen = () => {
                     <Button text="Import" />
                     <Button text="Create" primary onClick={async () => {
                         const created = await createProject("Untitled", "Some description!");
-                        if (!created) setModal(<ErrorModal msg="Project with that name already exists." />);
+                        if (!created) setModal(<MessageModal text="Project with that name already exists." />);
                     }}/>
                 </div>
                 <TextField placeholder="Search" icon={<SearchIcon size="14px" />} />
             </div>
         </div>
-        <div class="w-full flex flex-col gap-12">
+        <div class="w-full flex flex-col gap-8">
             <For each={state.projects}>{(project) => <ProjectPanel project={project} />}</For>
         </div>
     </div>;

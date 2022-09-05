@@ -12,7 +12,7 @@ export const [state, setState] = createStore<{
 
 export const loadProjects = async (): Promise<Project[]> => {
     const projects = JSON.parse(await invoke<string>("list_projects"));
-    setState("projects", projects);
+    setState("projects", [...state.projects, ...projects]);
     return state.projects;
 };
 
