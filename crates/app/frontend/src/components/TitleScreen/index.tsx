@@ -3,6 +3,7 @@ import { loadProjects } from "../../state";
 import { BookIcon } from "../Icons/book";
 import { GearIcon } from "../Icons/gear";
 import { GradCap } from "../Icons/gradcap";
+import { Divider } from "../utils/Divider";
 import { Screens } from "./Screens";
 
 export const SidebarMenu = (props: {
@@ -29,19 +30,19 @@ export const TitleScreen = () => {
     });
 
     return <div class="flex min-h-full">
-        <div class="bg-[#242424] flex flex-col max-h-full w-[340px]">
+        <div class="bg-[#242424] flex flex-col max-h-full min-w-[240px]">
             <div class="flex justify-center items-center gap-4 py-6">
                 <img src="./assets/images/book.png" height="32px" width="32px" />
                 <p class="text-[22px]">Storytell</p>
             </div>
-            <div class="border-b border-neutral-700" />
+            <Divider />
             <div class="flex flex-col justify-center items-center gap-3 py-4">
                 <SidebarMenu icon={<BookIcon size="16px" />} text="Stories" selected={activeScreen() === Screens.stories} onClick={() => setActiveScreen(Screens.stories)} />
                 <SidebarMenu icon={<GearIcon size="16px" />} text="Settings" selected={activeScreen() === Screens.settings} onClick={() => setActiveScreen(Screens.settings)} />
                 <SidebarMenu icon={<GradCap size="16px" />} text="Guides" selected={activeScreen() === Screens.guides} onClick={() => setActiveScreen(Screens.guides)} />
             </div>
         </div>
-        <div class="w-full pt-[24px] pl-[32px]">
+        <div class="w-full pt-[24px] max-w-[1024px] pl-[32px]">
             {Screens.components[activeScreen()]}
         </div>
     </div>;
