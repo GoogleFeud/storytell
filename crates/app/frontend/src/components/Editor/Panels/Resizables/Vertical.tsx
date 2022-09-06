@@ -18,7 +18,7 @@ export const VerticalResize = (props: {
             {props.children[0]}
         </div>
         <div class="relative" style={{
-            "min-height": props.minHBottom && `${props.minHBottom}px`,
+            "min-height": props.minHBottom && `${props.minHBottom}px`
         }}>
             {props.children[1]}
             <div class="cursor-row-resize absolute top-0 left-0 w-full border border-neutral-700" onMouseDown={(ev) => {
