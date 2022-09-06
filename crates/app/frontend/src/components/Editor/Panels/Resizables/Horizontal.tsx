@@ -6,6 +6,7 @@ export const HorizontalResize = (props: {
     children: [JSXElement, JSXElement],
     minWLeft?: number,
     minWRight?: number,
+    maxWLeft?: number,
     defaultWLeft?: number
 }) => {
     let leftPane: HTMLDivElement|undefined;
@@ -13,6 +14,7 @@ export const HorizontalResize = (props: {
     return <div class="w-full h-full flex">
         <div ref={leftPane} style={{ 
             "min-width": props.minWLeft && `${props.minWLeft}px`,
+            "max-width": props.maxWLeft && `${props.maxWLeft}px`,
             "width": props.defaultWLeft && `${props.defaultWLeft}px`
         }}>
             {props.children[0]}
