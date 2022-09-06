@@ -24,6 +24,21 @@ body {
   font-family: Poppins;
 }
 
+/* width */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+/* Track */
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+ 
+/* Handle */
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #404040; 
+}
+
 @-webkit-keyframes slide-top {
   0% {
     -webkit-transform: translateY(0);

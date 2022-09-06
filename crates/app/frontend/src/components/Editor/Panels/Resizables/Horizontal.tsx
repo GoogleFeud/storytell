@@ -12,14 +12,14 @@ export const HorizontalResize = (props: {
     let leftPane: HTMLDivElement|undefined;
 
     return <div class="w-full h-full flex">
-        <div ref={leftPane} style={{ 
+        <div class="h-full" ref={leftPane} style={{ 
             "min-width": props.minWLeft && `${props.minWLeft}px`,
             "max-width": props.maxWLeft && `${props.maxWLeft}px`,
             "width": props.defaultWLeft && `${props.defaultWLeft}px`
         }}>
             {props.children[0]}
         </div>
-        <div class="relative w-auto" style={{
+        <div class="relative w-auto h-full" style={{
             "min-width": props.minWRight && `${props.minWRight}px`,
         }}>
             {props.children[1]}

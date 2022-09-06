@@ -10,7 +10,7 @@ export const Editor = () => {
                 <Explorer />
                 <p>Editor</p>
             </HorizontalResize>
-            <VerticalResize minHTop={200} minHBottom={0} defaultHTop={800}>
+            <VerticalResize minHTop="200px" minHBottom="0px" defaultHTop="800px">
                 <p>Live View</p>
                 <p>Debug Window</p>
             </VerticalResize>

@@ -1,15 +1,9 @@
 import { Panel } from "../Common/Panel";
 import { VerticalResize } from "../Panels/Resizables/Vertical";
 
-export const enum Viewing {
-    Files,
-    Paths
-}
-
-
 export const Explorer = () => {
-    return <div>
-        <VerticalResize minHBottom={50} minHTop={50} defaultHTop={900}>
+    return <div class="h-full">
+        <VerticalResize minHBottom="50px" minHTop="50px" defaultHTop={(80 / 100 * window.screen.height) + "px"}>
             <Panel text="Files" collapsable>
                 <div class="pt-2">
                     <p>File 1...</p>
