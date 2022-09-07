@@ -9,7 +9,7 @@ use crate::json_compiler::JSONCompilerContext;
 use crate::path::Path;
 use crate::visitors::{MagicVarCollector, Rebuilder, transform_js};
 
-
+#[macro_export]
 macro_rules! json {
     () => {};
     ($key: ident:$value: expr, $($tail:tt)*) => {

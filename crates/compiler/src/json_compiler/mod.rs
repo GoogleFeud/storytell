@@ -1,5 +1,5 @@
 use storytell_diagnostics::diagnostic::StorytellResult;
-use storytell_fs::file_host::FileDiagnostic;
+use storytell_fs::file_host::{FileDiagnostic};
 use storytell_parser::ast::model::ASTHeader;
 use crate::{base::*, visitors::MagicVariableCollectorContext};
 use self::compile::JSONCompilable;

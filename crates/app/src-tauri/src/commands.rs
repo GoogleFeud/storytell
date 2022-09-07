@@ -16,13 +16,13 @@ pub fn create_project(state: State<StorytellState>, name: String, description: S
 }
 
 #[tauri::command]
-pub fn edit_project(state: State<StorytellState>, old_name: String, name: String, description: Option<String>) {
+pub fn edit_project(state: State<StorytellState>, id: String, name: String, description: Option<String>) {
     let mut inner_state = state.lock().unwrap();
-    inner_state.projects.update_project(old_name, name, description.unwrap_or(String::new()));
+    inner_state.projects.update_project(id, name, description.unwrap_or(String::new()));
 }
 
 #[tauri::command]
-pub fn delete_project(state: State<StorytellState>, name: String) {
+pub fn delete_project(state: State<StorytellState>, id: String) {
     let mut inner_state = state.lock().unwrap();
-    inner_state.projects.delete_project(&name);
+    inner_state.projects.delete_project(&id);
 }

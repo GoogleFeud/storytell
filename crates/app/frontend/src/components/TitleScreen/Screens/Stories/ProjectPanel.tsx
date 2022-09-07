@@ -17,20 +17,20 @@ export const ProjectPanel = (props: {
                         setModal(<ModifyProjectModal isUpdate={props.project} onFinish={(name, desc) => {
                             if (!name) return;
                             setModal();
-                            editProject(props.project.metadata.name, name, desc);
+                            editProject(props.project.metadata.id, name, desc);
                         }} />);
                         ev.stopPropagation();
                     }}>
                         <EditIcon />
                     </div>
                     <div onClick={(ev) => {
-                        setModal(<AreYouSureModal text={`Do you want to delete "${props.project.metadata.name}" forever?`} onYes={() => deleteProject(props.project.metadata.name)} />);
+                        setModal(<AreYouSureModal text={`Do you want to delete "${props.project.metadata.name}" forever?`} onYes={() => deleteProject(props.project.metadata.id)} />);
                         ev.stopPropagation();
                     }}><TrashIcon /></div>
                 </div>
             </div>
             <div>
-                <p class="text-[14px]">{props.project.metadata.description}</p>
+                <p class="text-[14px] text-ellipsis overflow-hidden">{props.project.metadata.description}</p>
             </div>
         </div>
     </div>;

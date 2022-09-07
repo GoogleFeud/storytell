@@ -2,7 +2,8 @@
 export interface Project {
     metadata: {
         name: string,
-        description: string
+        description: string,
+        id: string
     },
     directory: string,
     files_directory: string

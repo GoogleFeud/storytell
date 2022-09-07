@@ -26,14 +26,14 @@ export const createProject = async (name: string, description: string): Promise<
     return project;
 };
 
-export const editProject = async (oldName: string, name: string, description?: string) => {
-    setState("projects", (p) => p.metadata.name === oldName, "metadata", {name, description: description || ""});
-    invoke("edit_project", {oldName, name, description});
+export const editProject = async (id: string, name: string, description?: string) => {
+    setState("projects", (p) => p.metadata.id === id, "metadata", {name, description: description || ""});
+    invoke("edit_project", {id, name, description});
 };
 
-export const deleteProject = async (name: string) => {
-    setState("projects", (p) => p.filter(p => p.metadata.name !== name));
-    await invoke<string>("delete_project", {name});
+export const deleteProject = async (id: string) => {
+    setState("projects", (p) => p.filter(p => p.metadata.id !== id));
+    await invoke<string>("delete_project", {id});
 };
 
 export const setModal = (modal?: JSXElement) => {
