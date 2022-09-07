@@ -2,6 +2,8 @@ import { children, createSignal } from "solid-js";
 import { ArrowDownIcon } from "../../../Icons/arrowDown";
 import { ArrowRightIcon } from "../../../Icons/arrowRight";
 import { FileIcon } from "../../../Icons/file";
+import { ContextMenuBox } from "../../../utils/ContextMenuBox";
+import { ContextMenu } from "../../Common/ContextMenu";
 
 export interface FMItem {
     name: string,
@@ -28,10 +30,23 @@ export const FileManagerFolder = (props: {
 export const FileManagerFile = (props: {
     item: FMItem
 }) => {
-    return <div class="flex gap-2 p-1 items-center cursor-pointer">
-        <FileIcon size="13px" />
-        <p class="text-[13px] text-neutral-400 hover:text-neutral-200">{props.item.name}</p>
-    </div>;
+    return <ContextMenuBox menu={<ContextMenu commands={[
+        {
+            name: "Rename",
+            shortcut: "F2",
+            execute: () => console.log("Rename.")
+        },
+        {
+            name: "Delete",
+            shortcut: "F3",
+            execute: () => console.log("Rename.")
+        }
+    ]} />}>
+        <div class="flex gap-2 p-1 items-center cursor-pointer">
+            <FileIcon size="13px" />
+            <p class="text-[13px] text-neutral-400 hover:text-neutral-200">{props.item.name}</p>
+        </div>
+    </ContextMenuBox>;
 };
 
 export const createComponentFromItem = (item: FMItem) => {
