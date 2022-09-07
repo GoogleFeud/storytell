@@ -1,9 +1,10 @@
 import { ThreeDotsIcon } from "../../Icons/threeDots";
 import { Panel } from "../Common/Panel";
-import { VerticalResize } from "../Panels/Resizables/Vertical";
+import { VerticalResize } from "../Resizables/Vertical";
+import { FileManager } from "./Files";
 
 export const Explorer = () => {
-    return <div class="flex flex-col">
+    return <div class="h-full">
         <div class="flex justify-between items-center border-t border-neutral-800 p-1.5 px-3">
             <p class="text-[12px]">EXPLORER</p>
             <div class="text-neutral-400">
@@ -11,14 +12,106 @@ export const Explorer = () => {
             </div>
         </div>
         <div class="h-full">
-            <VerticalResize minHBottom="50px" minHTop="50px" defaultHTop={(80 / 100 * window.screen.height) + "px"}>
-                <Panel text="Files" collapsable>
-                    <div class="pt-2">
-                        <p>File 1...</p>
-                        <p>File 2...</p>
-                        <p>File 3...</p>
-                    </div>
-                </Panel>
+            <VerticalResize minHBottom="50px" minHTop="50px" defaultHTop={(80 / 100 * window.innerHeight) + "px"}>
+                <FileManager files={[{
+                    name: "MyFile",
+                    path: "./a/b/c"
+                }, {
+                    name: "Some Folder",
+                    path:"./ab/c/d/d",
+                    children: [
+                        {
+                            name: "MyFile",
+                            path: "./a/b/c"
+                        },
+                        {
+                            name: "MyFile",
+                            path: "./a/b/c"
+                        },
+                        {
+                            name: "MyFile",
+                            path: "./a/b/c"
+                        },
+                        {
+                            name: "Second Folder",
+                            path:"./ab/c/d/d",
+                            children: [
+                                {
+                                    name: "MyFile",
+                                    path: "./a/b/c"
+                                },
+                                {
+                                    name: "MyFile",
+                                    path: "./a/b/c"
+                                },
+                                {
+                                    name: "MyFile",
+                                    path: "./a/b/c"
+                                },
+                                {
+                                    name: "Third Folder",
+                                    path:"./ab/c/d/d",
+                                    children: [
+                                        {
+                                            name: "MyFile",
+                                            path: "./a/b/c"
+                                        },
+                                        {
+                                            name: "MyFile",
+                                            path: "./a/b/c"
+                                        },
+                                        {
+                                            name: "MyFile",
+                                            path: "./a/b/c"
+                                        },
+                                        {
+                                            name: "MyFile",
+                                            path: "./a/b/c"
+                                        },
+                                        {
+                                            name: "MyFile",
+                                            path: "./a/b/c"
+                                        },
+                                        {
+                                            name: "MyFile",
+                                            path: "./a/b/c"
+                                        },
+                                        {
+                                            name: "Fourth Folder",
+                                            path:"./ab/c/d/d",
+                                            children: [
+                                                {
+                                                    name: "MyFile",
+                                                    path: "./a/b/c"
+                                                },
+                                                {
+                                                    name: "MyFile",
+                                                    path: "./a/b/c"
+                                                },
+                                                {
+                                                    name: "MyFile",
+                                                    path: "./a/b/c"
+                                                },
+                                                {
+                                                    name: "MyFile",
+                                                    path: "./a/b/c"
+                                                },
+                                                {
+                                                    name: "MyFile",
+                                                    path: "./a/b/c"
+                                                },
+                                                {
+                                                    name: "MyFile",
+                                                    path: "./a/b/c"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }]} />
                 <Panel text="Paths" collapsable isCollapsed>
                     <div class="pt-2">
                         <p>Path 1...</p>

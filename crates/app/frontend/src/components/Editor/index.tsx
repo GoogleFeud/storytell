@@ -1,10 +1,10 @@
 import { Explorer } from "./Explorer";
-import { HorizontalResize } from "./Panels/Resizables/Horizontal";
-import { VerticalResize } from "./Panels/Resizables/Vertical";
+import { HorizontalResize } from "./Resizables/Horizontal";
+import { VerticalResize } from "./Resizables/Vertical";
 
 
 export const Editor = () => {
-    return <div class="h-full w-full">
+    return <div class="h-full w-full overflow-y-hidden">
         <HorizontalResize minWLeft={600} defaultWLeft={400}>
             <HorizontalResize minWLeft={300} minWRight={300} maxWLeft={600}>
                 <Explorer />

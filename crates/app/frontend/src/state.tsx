@@ -1,12 +1,7 @@
 import { invoke } from "@tauri-apps/api";
 import { JSXElement } from "solid-js";
 import { createStore } from "solid-js/store";
-import { Project } from "./types";
-
-export const enum Pages {
-    TitleScreen,
-    Editor
-}
+import { Pages, Project } from "./types";
 
 export const [state, setState] = createStore<{
     projects: Project[],

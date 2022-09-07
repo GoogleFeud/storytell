@@ -1,8 +1,9 @@
 import "./style.css";
 import { Match, render, Switch } from "solid-js/web";
 import { TitleScreen } from "./components/TitleScreen";
-import { Pages, state } from "./state";
+import { state } from "./state";
 import { Editor } from "./components/Editor";
+import { Pages } from "./types";
 
 const App = () => {
     return <div class="h-full">

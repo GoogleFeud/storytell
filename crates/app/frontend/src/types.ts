@@ -1,5 +1,4 @@
 
-
 export interface Project {
     metadata: {
         name: string,
@@ -9,3 +8,7 @@ export interface Project {
     files_directory: string
 }
 
+export const enum Pages {
+    TitleScreen,
+    Editor
+}
