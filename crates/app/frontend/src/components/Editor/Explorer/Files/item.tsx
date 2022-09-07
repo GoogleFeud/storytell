@@ -3,6 +3,7 @@ import { ArrowDownIcon } from "../../../Icons/arrowDown";
 import { ArrowRightIcon } from "../../../Icons/arrowRight";
 import { FileIcon } from "../../../Icons/file";
 import { ContextMenuBox } from "../../../utils/ContextMenuBox";
+import { Input } from "../../../utils/Input";
 import { ContextMenu } from "../../Common/ContextMenu";
 
 export interface FMItem {
@@ -30,21 +31,23 @@ export const FileManagerFolder = (props: {
 export const FileManagerFile = (props: {
     item: FMItem
 }) => {
+    const [isRenaming, setRenaming] = createSignal();
     return <ContextMenuBox menu={<ContextMenu commands={[
         {
             name: "Rename",
-            shortcut: "F2",
-            execute: () => console.log("Rename.")
+            execute: () => setRenaming(true)
         },
         {
             name: "Delete",
-            shortcut: "F3",
             execute: () => console.log("Rename.")
         }
     ]} />}>
         <div class="flex gap-2 p-1 items-center cursor-pointer">
             <FileIcon size="13px" />
-            <p class="text-[13px] text-neutral-400 hover:text-neutral-200">{props.item.name}</p>
+            {isRenaming() ? <Input type="text" class="text-[13px] outline-none bg-neutral-700 border border-neutral-600 w-full" value={props.item.name} ref={(ev) => setTimeout(() => ev.select(), 0)} onExit={() => {
+                // Set name here in the state and send to the backend...
+                setRenaming();
+            }} /> : <p class="text-[13px] text-neutral-400 hover:text-neutral-200">{props.item.name}</p>}
         </div>
     </ContextMenuBox>;
 };
