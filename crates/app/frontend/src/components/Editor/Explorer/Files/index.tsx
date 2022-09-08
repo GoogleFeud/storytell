@@ -1,13 +1,19 @@
+import { File } from "../../../../types";
 import { Panel } from "../../Common/Panel";
-import { createComponentFromItem, FMItem } from "./item";
+import { createComponentFromItem } from "./item";
 
 
 export const FileManager = (props: { 
-    files: FMItem[]
+    files: File[]
 }) => {
     return <Panel text="Files" collapsable>
         <div class="pt-2">
-            {props.files.map(f => createComponentFromItem(f))}
+            {props.files.sort((a, b) => {
+                // First folders, then files
+                if (a.children && !b.children) return -1;
+                else if (b.children && !a.children) return 1;
+                else return a.name.localeCompare(b.name);
+            }).map(f => createComponentFromItem(f))}
         </div>
     </Panel>;
 };

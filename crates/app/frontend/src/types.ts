@@ -24,6 +24,12 @@ export interface FileDiagnostic {
     diagnostics: Diagnostic[]
 }
 
+export interface File {
+    path: string,
+    name: string,
+    children?: File[]
+}
+
 export const enum Pages {
     TitleScreen,
     Editor

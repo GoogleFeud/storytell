@@ -98,9 +98,9 @@ impl SysFileHost {
             if entry.file_type().unwrap().is_dir() {
                 let path = entry.path();
                 let path_str = path.to_str().unwrap();
-                blobs.push(Blob::Directory(entry.file_name().to_str().unwrap().to_string(), entry.file_name().to_str().unwrap().to_string(), self.get_files_from_directory_as_blobs(path_str)));
+                blobs.push(Blob::Directory(entry.path().to_str().unwrap().to_string().replace('\\', "\\\\"), entry.file_name().to_str().unwrap().to_string(), self.get_files_from_directory_as_blobs(path_str)));
             } else {
-                blobs.push(Blob::File(entry.file_name().to_str().unwrap().to_string(), entry.file_name().to_str().unwrap().to_string()));
+                blobs.push(Blob::File(entry.path().to_str().unwrap().to_string().replace('\\', "\\\\"), entry.file_name().to_str().unwrap().to_string()));
             }
         }
         blobs

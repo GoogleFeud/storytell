@@ -1,4 +1,5 @@
 import { children, createSignal } from "solid-js";
+import { File } from "../../../../types";
 import { ArrowDownIcon } from "../../../Icons/arrowDown";
 import { ArrowRightIcon } from "../../../Icons/arrowRight";
 import { FileIcon } from "../../../Icons/file";
@@ -6,14 +7,8 @@ import { ContextMenuBox } from "../../../utils/ContextMenuBox";
 import { Input } from "../../../utils/Input";
 import { ContextMenu } from "../../Common/ContextMenu";
 
-export interface FMItem {
-    name: string,
-    path: string,
-    children?: Array<FMItem>
-}
-
 export const FileManagerFolder = (props: {
-    item: FMItem
+    item: File
 }) => {
     const [collapsed, setCollapsed] = createSignal(true);
     const realChildren = children(() => props.item.children?.map(c => createComponentFromItem(c)));
@@ -29,7 +24,7 @@ export const FileManagerFolder = (props: {
 };
 
 export const FileManagerFile = (props: {
-    item: FMItem
+    item: File
 }) => {
     const [isRenaming, setRenaming] = createSignal();
     return <ContextMenuBox menu={<ContextMenu commands={[
@@ -47,11 +42,11 @@ export const FileManagerFile = (props: {
             {isRenaming() ? <Input type="text" class="text-[13px] outline-none bg-neutral-700 border border-neutral-600 w-full" value={props.item.name} ref={(ev) => setTimeout(() => ev.select(), 0)} onExit={() => {
                 // Set name here in the state and send to the backend...
                 setRenaming();
-            }} /> : <p class="text-[13px] text-neutral-400 hover:text-neutral-200">{props.item.name}</p>}
+            }} /> : <p class="text-[13px] text-neutral-400 hover:text-neutral-200">{props.item.name.split(".")[0]}</p>}
         </div>
     </ContextMenuBox>;
 };
 
-export const createComponentFromItem = (item: FMItem) => {
+export const createComponentFromItem = (item: File) => {
     return item.children ? <FileManagerFolder item={item} /> : <FileManagerFile item={item} />;
 };
