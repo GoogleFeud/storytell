@@ -1,6 +1,7 @@
-
+use storytell_compiler::{base::Compiler, json_compiler::{JSONCompilerProvider, JSONCompilerContext}, json};
+use storytell_fs::file_host::SysFileHost;
 use tauri::State;
-use crate::{state::StorytellState, projects::Project};
+use crate::{state::StorytellState, projects::Project, deserialization::JSONCompilable};
 use serde_json::{to_string};
 
 #[tauri::command]
@@ -25,4 +26,23 @@ pub fn edit_project(state: State<StorytellState>, id: String, name: String, desc
 pub fn delete_project(state: State<StorytellState>, id: String) {
     let mut inner_state = state.lock().unwrap();
     inner_state.projects.delete_project(&id);
+}
+
+#[tauri::command]
+pub fn init_compiler(state: State<StorytellState>, project_id: String) -> Option<String> {
+    let mut inner_state = state.lock().unwrap();
+    let project = inner_state.projects.projects.get(&project_id)?;
+    #[cfg(windows)]
+    let line_endings = 2;
+    #[cfg(not(windows))]
+    let line_endings = 1;
+    let mut compiler = Compiler::<JSONCompilerProvider, SysFileHost>::new(SysFileHost::new(line_endings), project.files_directory.to_str().unwrap());
+    let (result_json, ctx) = compiler.compile(JSONCompilerContext::new());
+    let json_str = json!({
+        files: compiler.host.get_files_from_directory_as_blobs(project.files_directory.to_str().unwrap()).compile(),
+        paths: format!("[{}]", result_json.join(",")),
+        diagnostics: ctx.diagnostics.compile()
+    });
+    inner_state.compiler = Some(compiler);
+    Some(json_str)
 }

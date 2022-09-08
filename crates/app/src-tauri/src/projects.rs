@@ -72,12 +72,12 @@ impl Projects {
                 description
             };
             fs::write(project_dir.join("./metadata.json"), to_string(&project_info).unwrap()).expect("Couldn't create file.");
-            self.projects.insert(project_id, Project {
+            self.projects.insert(project_id.clone(), Project {
                 metadata: project_info,
                 files_directory: files_dir,
                 directory: project_dir
             });
-            self.projects.get(&name)
+            self.projects.get(&project_id)
         }
     }
 

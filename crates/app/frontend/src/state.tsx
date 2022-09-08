@@ -1,15 +1,19 @@
 import { invoke } from "@tauri-apps/api";
 import { JSXElement } from "solid-js";
 import { createStore } from "solid-js/store";
-import { Pages, Project } from "./types";
+import { FileDiagnostic, Pages, Project } from "./types";
 
 export const [state, setState] = createStore<{
     projects: Project[],
     modal?: JSXElement,
     currentProject?: Project,
+    files: string[],
+    diagnostics: FileDiagnostic[],
     currentPage: Pages
 }>({
     projects: [],
+    files: [],
+    diagnostics: [],
     currentPage: Pages.TitleScreen
 });
 
@@ -43,4 +47,9 @@ export const setModal = (modal?: JSXElement) => {
 export const openProject = (project: Project) => {
     setState("currentProject", project);
     setState("currentPage", Pages.Editor);
+};
+
+export const initCompiler = async (projectId: string) => {
+    const result = await invoke<string>("init_compiler", {projectId});
+    console.log(result);
 };

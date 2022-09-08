@@ -7,25 +7,24 @@ pub struct File {
 }
 
 impl File {
+
+    pub fn empty(path: &str) -> Self {
+        Self { 
+            content: vec![],
+            path: path.to_string()
+        }
+    }
     
-    pub fn new(path: &str, content: &str) -> (Self, Vec<Diagnostic>) {
-        let (res, ctx) = Parser::new(content, ParsingContext::new(if cfg!(target_os = "windows") {
-            2
-        } else {
-            1
-        })).parse();
+    pub fn new(path: &str, content: &str, line_endings: usize) -> (Self, Vec<Diagnostic>) {
+        let (res, ctx) = Parser::new(content, ParsingContext::new(line_endings)).parse();
         (Self { 
             content: res,
             path: path.to_string()
         }, ctx.diagnostics)
     }
 
-    pub fn reparse(&mut self, content: &str) -> Vec<Diagnostic> {
-        let (res, ctx) = Parser::new(content, ParsingContext::new(if cfg!(target_os = "windows") {
-            2
-        } else {
-            1
-        })).parse();
+    pub fn reparse(&mut self, content: &str, line_endings: usize) -> Vec<Diagnostic> {
+        let (res, ctx) = Parser::new(content, ParsingContext::new(line_endings)).parse();
         self.content = res;
         ctx.diagnostics
     }
