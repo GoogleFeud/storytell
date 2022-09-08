@@ -46,9 +46,10 @@ impl<T: JSONCompilable> JSONCompilable for Vec<T> {
 impl JSONCompilable for Blob {
     fn compile(&self) -> String {
         match self {
-            Blob::File(filename) => json!({filename: filename.compile()}),
-            Blob::Directory(filename, children) => json!({
-                filename: filename.compile(),
+            Blob::File(file_path, file_name) => json!({path: file_path.compile(), name: file_name.compile()}),
+            Blob::Directory(path, name, children) => json!({
+                path: path.compile(),
+                name: name.compile(),
                 children: children.compile()
             })
         }

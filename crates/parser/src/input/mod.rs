@@ -97,7 +97,7 @@ impl<'a> InputConsumer<'a> {
         while !self.is_eof() {
             match self.data[self.pos] {
                 b'\n' if self.ctx.line_endings == 1 => break,
-                b'\r' if self.ctx.line_endings == 2 && self.peek().is('\n') => break,
+                b'\r' if self.ctx.line_endings == 2 && self.peek_n(1).is('\n') => break,
                 _ => self.pos += 1
             }
         }
@@ -110,10 +110,9 @@ impl<'a> InputConsumer<'a> {
         while !self.is_eof() {
             match self.data[self.pos] {
                 b'\n' if self.ctx.line_endings == 1 => break,
-                b'\r' if self.ctx.line_endings == 2 && self.peek().is('\n') => break,
+                b'\r' if self.ctx.line_endings == 2 && self.peek_n(1).is('\n') => break,
                 _ => self.pos += 1
             }
-            self.pos += 1;
         }
         self.pos += self.ctx.line_endings;
     }
@@ -177,7 +176,7 @@ impl<'a> InputConsumer<'a> {
     pub fn is_on_new_line(&self) -> bool {
         match self.data[self.pos - 1] {
             b'\n' if self.ctx.line_endings == 1 => true,
-            b'\r' if self.ctx.line_endings == 2 && self.data[self.pos - 2] == b'\n' => true,
+            b'\n' if self.ctx.line_endings == 2 && self.data[self.pos - 2] == b'\r' => true,
             _ => false
         }
     }

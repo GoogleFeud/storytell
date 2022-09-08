@@ -150,7 +150,7 @@ impl<'a> Parser<'a> {
                 self.input.skip_until_end_of_line();
                 self.parse_block(depth)
             },
-            ' ' | '\n' => {
+            ' ' | '\n' | '\r' => {
                 self.input.skip();
                 self.parse_block(depth)
             }

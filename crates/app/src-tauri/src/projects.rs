@@ -72,6 +72,8 @@ impl Projects {
                 description
             };
             fs::write(project_dir.join("./metadata.json"), to_string(&project_info).unwrap()).expect("Couldn't create file.");
+            // Create the main file
+            fs::write(files_dir.join("./main.md"), "# Welcome\r\nWelcome to storytell!\r\n\r\n- Check out the guides!\r\n   -> check_out_the_guides\r\n\r\n## Check out the guides\r\n\r\nCheck out the guide here: {link}").expect("Couldn't create file.");
             self.projects.insert(project_id.clone(), Project {
                 metadata: project_info,
                 files_directory: files_dir,

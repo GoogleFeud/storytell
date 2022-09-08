@@ -227,7 +227,7 @@ impl JSONCompilable for ASTChoiceGroup {
     fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
         Ok(json!({
             kind: 2,
-            text: self.choices.compile(ctx)?,
+            choices: self.choices.compile(ctx)?,
             range: self.range.safe_compile(),
             attributes: self.attributes.safe_compile()
         }))
