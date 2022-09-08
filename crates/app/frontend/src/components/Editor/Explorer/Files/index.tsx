@@ -1,3 +1,4 @@
+import { setCurrentFile } from "../../../../state";
 import { File } from "../../../../types";
 import { Panel } from "../../Common/Panel";
 import { createComponentFromItem } from "./item";
@@ -13,7 +14,7 @@ export const FileManager = (props: {
                 if (a.children && !b.children) return -1;
                 else if (b.children && !a.children) return 1;
                 else return a.name.localeCompare(b.name);
-            }).map(f => createComponentFromItem(f))}
+            }).map(f => createComponentFromItem(f, setCurrentFile))}
         </div>
     </Panel>;
 };

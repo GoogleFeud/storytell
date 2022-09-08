@@ -7,6 +7,7 @@ export const [state, setState] = createStore<{
     projects: Project[],
     modal?: JSXElement,
     currentProject?: Project,
+    currentFile?: string,
     files: File[],
     diagnostics: FileDiagnostic[],
     currentPage: Pages
@@ -59,3 +60,5 @@ export const initCompiler = async (projectId: string) => {
     setState("files", result.files);
     setState("diagnostics", result.diagnostics);
 };
+
+export const setCurrentFile = (file: File) => setState("currentFile", file.path);
