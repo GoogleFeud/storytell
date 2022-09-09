@@ -56,9 +56,15 @@ export const initCompiler = async (projectId: string) => {
         paths: unknown,
         diagnostics: FileDiagnostic[]
     };
-    console.log(result);
     setState("files", result.files);
     setState("diagnostics", result.diagnostics);
 };
 
 export const setCurrentFile = (file: File) => setState("currentFile", file.path);
+
+export const renameFile = async (filePath: string, name: string) => {
+    console.log("RENAMING ", filePath, " to: ", name);
+    const newPath = await invoke<string>("rename_file", { path: filePath, name });
+    setState("files", f => f.path === filePath, (f) => ({...f, name, path: newPath}));
+    console.log(state.files);
+};

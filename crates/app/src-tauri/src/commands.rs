@@ -1,8 +1,8 @@
 use storytell_compiler::{base::Compiler, json_compiler::{JSONCompilerProvider, JSONCompilerContext}, json};
-use storytell_fs::file_host::SysFileHost;
+use storytell_fs::file_host::{SysFileHost, FileHost};
 use tauri::State;
 use crate::{state::StorytellState, projects::Project, deserialization::JSONCompilable};
-use serde_json::{to_string};
+use serde_json::to_string;
 
 #[tauri::command]
 pub fn list_projects(state: State<StorytellState>) -> String {
@@ -26,6 +26,16 @@ pub fn edit_project(state: State<StorytellState>, id: String, name: String, desc
 pub fn delete_project(state: State<StorytellState>, id: String) {
     let mut inner_state = state.lock().unwrap();
     inner_state.projects.delete_project(&id);
+}
+
+#[tauri::command]
+pub fn rename_file(state: State<StorytellState>, path: String, name: String) -> Option<String> {
+    let mut inner_state = state.lock().unwrap();
+    if let Some(compiler) = inner_state.compiler.as_mut() {
+        compiler.host.rename_file(&path, name)
+    } else {
+        None
+    }
 }
 
 #[tauri::command]

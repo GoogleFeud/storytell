@@ -2,24 +2,21 @@ use storytell_diagnostics::diagnostic::Diagnostic;
 use storytell_parser::{ast::{model::ASTBlock, Parser}, input::ParsingContext};
 
 pub struct File {
-    pub content: Vec<ASTBlock>,
-    pub path: String
+    pub content: Vec<ASTBlock>
 }
 
 impl File {
 
-    pub fn empty(path: &str) -> Self {
+    pub fn empty() -> Self {
         Self { 
-            content: vec![],
-            path: path.to_string()
+            content: vec![]
         }
     }
     
-    pub fn new(path: &str, content: &str, line_endings: usize) -> (Self, Vec<Diagnostic>) {
+    pub fn new(content: &str, line_endings: usize) -> (Self, Vec<Diagnostic>) {
         let (res, ctx) = Parser::new(content, ParsingContext::new(line_endings)).parse();
         (Self { 
-            content: res,
-            path: path.to_string()
+            content: res
         }, ctx.diagnostics)
     }
 

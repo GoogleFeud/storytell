@@ -9,7 +9,7 @@ export const FileManager = (props: {
 }) => {
     return <Panel text="Files" collapsable>
         <div class="pt-2">
-            {props.files.sort((a, b) => {
+            {props.files.slice().sort((a, b) => {
                 // First folders, then files
                 if (a.children && !b.children) return -1;
                 else if (b.children && !a.children) return 1;
