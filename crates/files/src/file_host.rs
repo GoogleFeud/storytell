@@ -65,9 +65,9 @@ impl FileHost for SysFileHost {
 
     fn rename_file(&mut self, path: &str, name: String) -> Option<String> {
         let path_obj = Path::new(path);
-        let new_path = path_obj.parent().unwrap().join(name).to_str().unwrap().to_string();
+        let new_path = path_obj.parent().unwrap().join(name + ".md").to_str().unwrap().to_string();
         // Always rename the file, even if it's not in the cache
-        rename(path, &new_path).ok()?;
+        rename(path, &new_path).unwrap();
         if path_obj.is_dir() {
             // Remove the files from the cache - they will have to be recompiled
             for file in self.get_files_from_directory(path) {
@@ -76,7 +76,6 @@ impl FileHost for SysFileHost {
         } else {
             if let Some(file) = self.files.remove(path) {
                 self.files.insert(new_path.clone(), file);
-                rename(path, &new_path).ok()?;
             }
         }
         Some(new_path)
