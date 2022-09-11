@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { JSXElement } from "solid-js";
+import { Accessor, children, JSXElement } from "solid-js";
 
 
 export const VerticalResize = (props: {
@@ -8,6 +8,7 @@ export const VerticalResize = (props: {
     minHBottom?: string,
     defaultHTop?: string
 }) => {
+    const childrenProps = children(() => props.children) as Accessor<[JSXElement, JSXElement]>;
     let topPane: HTMLDivElement|undefined;
 
     return <div class="w-full h-full flex flex-col">
@@ -15,12 +16,12 @@ export const VerticalResize = (props: {
             "min-height": props.minHTop,
             "height": props.defaultHTop
         }}>
-            {props.children[0]}
+            {childrenProps()[0]}
         </div>
         <div class="relative" style={{
             "min-height": props.minHBottom
         }}>
-            {props.children[1]}
+            {childrenProps()[1]}
             <div class="cursor-row-resize absolute top-0 left-0 w-full border border-neutral-700" onMouseDown={(ev) => {
                 const topPaneDimensions = topPane!.getBoundingClientRect();
 

@@ -27,6 +27,7 @@ export interface FileDiagnostic {
 export interface File {
     path: string,
     name: string,
+    isEditing?: boolean,
     children?: File[]
 }
 

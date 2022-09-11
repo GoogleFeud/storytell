@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { JSXElement } from "solid-js";
+import { Accessor, children, JSXElement } from "solid-js";
 
 
 export const HorizontalResize = (props: {
@@ -9,6 +9,7 @@ export const HorizontalResize = (props: {
     maxWLeft?: number,
     defaultWLeft?: number
 }) => {
+    const childrenProps = children(() => props.children) as Accessor<[JSXElement, JSXElement]>;
     let leftPane: HTMLDivElement|undefined;
 
     return <div class="w-full h-full flex">
@@ -17,12 +18,12 @@ export const HorizontalResize = (props: {
             "max-width": props.maxWLeft && `${props.maxWLeft}px`,
             "width": props.defaultWLeft && `${props.defaultWLeft}px`
         }}>
-            {props.children[0]}
+            {childrenProps()[0]}
         </div>
         <div class="relative w-auto h-full" style={{
             "min-width": props.minWRight && `${props.minWRight}px`,
         }}>
-            {props.children[1]}
+            {childrenProps()[1]}
             <div class="cursor-col-resize absolute top-0 left-0 h-full border border-neutral-700" onMouseDown={(ev) => {
                 const leftPaneDimensions = leftPane!.getBoundingClientRect();
 
