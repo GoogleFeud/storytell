@@ -10,7 +10,8 @@ use serde_json::{from_slice, to_string};
 pub struct ProjectMetadata {
     pub name: String,
     pub description: String,
-    pub id: String
+    pub id: String,
+    pub last_open: Option<String>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -69,6 +70,7 @@ impl Projects {
             let project_info = ProjectMetadata {
                 id: project_id.clone(),
                 name: name.clone(),
+                last_open: None,
                 description
             };
             fs::write(project_dir.join("metadata.json"), to_string(&project_info).unwrap()).expect("Couldn't create file.");

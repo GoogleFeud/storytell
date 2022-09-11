@@ -1,4 +1,4 @@
-use storytell_compiler::{base::Compiler, json_compiler::{JSONCompilerProvider, JSONCompilerContext}, json};
+use storytell_compiler::{base::Compiler, json_compiler::{JSONCompilerProvider}, json};
 use storytell_fs::file_host::{SysFileHost, FileHost};
 use tauri::State;
 use crate::{state::StorytellState, projects::Project, deserialization::JSONCompilable};
@@ -38,6 +38,8 @@ pub fn rename_file(state: State<StorytellState>, path: String, name: String) -> 
     }
 }
 
+// Returns all the files for the file manager
+// Compiles the last opened file if necessary
 #[tauri::command]
 pub fn init_compiler(state: State<StorytellState>, project_id: String) -> Option<String> {
     let mut inner_state = state.lock().unwrap();
@@ -46,12 +48,9 @@ pub fn init_compiler(state: State<StorytellState>, project_id: String) -> Option
     let line_endings = 2;
     #[cfg(not(windows))]
     let line_endings = 1;
-    let mut compiler = Compiler::<JSONCompilerProvider, SysFileHost>::new(SysFileHost::new(line_endings), project.files_directory.to_str().unwrap());
-    let (result_json, ctx) = compiler.compile(JSONCompilerContext::new());
+    let compiler = Compiler::<JSONCompilerProvider, SysFileHost>::new(SysFileHost::new(line_endings), project.files_directory.to_str().unwrap());
     let json_str = json!({
-        files: compiler.host.get_files_from_directory_as_blobs(project.files_directory.to_str().unwrap()).compile(),
-        paths: format!("[{}]", result_json.join(",")),
-        diagnostics: ctx.diagnostics.compile()
+        files: compiler.host.get_files_from_directory_as_blobs(project.files_directory.to_str().unwrap()).compile()
     });
     inner_state.compiler = Some(compiler);
     Some(json_str)

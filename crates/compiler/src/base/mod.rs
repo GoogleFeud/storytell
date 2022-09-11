@@ -16,7 +16,6 @@ make_diagnostics!(define [
 
 pub trait CompilerContext {
     fn process_path(&mut self, path: &ASTHeader);
-    fn add_diagnostic(&mut self, dia: FileDiagnostic);
 }
 
 pub trait CompilerProvider {
@@ -41,16 +40,11 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
         }
     }
 
-    pub fn prepare_file<C: CompilerContext>(&mut self, file_name: &str, ctx: &mut C) -> Option<Vec<&ASTHeader>> {
-        let file = match self.host.get_or_find(file_name) {
-            GetFindResult::FromCache(file) => file,
-            GetFindResult::Parsed(file, diagnostic) => {
-                if let Some(dia) = diagnostic {
-                    ctx.add_diagnostic(dia);
-                }
-                file
-            }
-            GetFindResult::NotFound => return None
+    pub fn prepare_file<C: CompilerContext>(&mut self, file_name: &str, ctx: &mut C) -> (Vec<&ASTHeader>, FileDiagnostic) {
+        let (file, dia) = match self.host.get_or_find(file_name) {
+            GetFindResult::FromCache(file) => (file, None),
+            GetFindResult::Parsed(file, diagnostic) => (file, diagnostic),
+            GetFindResult::NotFound => panic!("File not found.")
         };
         let mut paths: Vec<&ASTHeader> = vec![];
         for thing in &file.content {
@@ -59,40 +53,39 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
                 paths.push(header);
             }
         }
-        Some(paths)
+        (paths, dia.unwrap_or_else(|| FileDiagnostic { diagnostics: vec![], filename: file_name.to_string() } ))
     }
 
-    pub fn compile_file<R>(&mut self, file_name: &str, ctx: &mut P::Context) -> Option<Vec<P::Output>> {
+    pub fn compile_file<R>(&mut self, file_name: &str, ctx: &mut P::Context) -> (Vec<P::Output>, FileDiagnostic) {
         let mut result: Vec<P::Output> = vec![];
-        for header in self.prepare_file(file_name, ctx)? {
+        let (file, mut dias) = self.prepare_file(file_name, ctx);
+        for header in file {
             match P::compile_header(header, ctx) {
                 Ok(compiled) => result.push(compiled),
-                Err(error) => {
-                    ctx.add_diagnostic(FileDiagnostic {
-                        diagnostics: error,
-                        filename: file_name.to_string()
-                    });
-                    return None
+                Err(mut error) => {
+                    dias.diagnostics.append(&mut error)
                 }
             }
         }
-        Some(result)
+        (result, dias)
     }
 
-    pub fn compile(&mut self, mut ctx: P::Context) -> (Vec<P::Output>, P::Context) {
+    pub fn compile(&mut self, mut ctx: P::Context) -> (Vec<P::Output>, Vec<FileDiagnostic>, P::Context) {
         let mut results: Vec<P::Output> = vec![];
+        let mut diagnostics: Vec<FileDiagnostic> = vec![];
         for file_path in self.host.get_files_from_directory(&self.cwd) {
-            for header in self.prepare_file(&file_path, &mut ctx).unwrap() {
+            let (headers, mut dia) = self.prepare_file(&file_path, &mut ctx);
+            for header in headers {
                 match P::compile_header(header, &mut ctx) {
                     Ok(compiled) => results.push(compiled),
-                    Err(error) => ctx.add_diagnostic(FileDiagnostic {
-                        diagnostics: error,
-                        filename: file_path.clone()
-                    })
+                    Err(mut error) => dia.diagnostics.append(&mut error)
                 }
             }
+            if !dia.diagnostics.is_empty() {
+                diagnostics.push(dia);
+            }
         }
-        (results, ctx)
+        (results, diagnostics, ctx)
     }
 
 

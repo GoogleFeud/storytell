@@ -49,6 +49,16 @@ pub trait DiagnosticCollector {
 }
 
 #[macro_export]
+macro_rules! try_return {
+    ($exp: expr) => {
+        match $exp {
+            Ok(val) => val,
+            Err(err) => return Err(err)
+        }
+    }
+}
+
+#[macro_export]
 macro_rules! make_diagnostics {
     ($([$name:ident, $code:expr, $msg:expr]),+) => {
         impl Diagnostics {

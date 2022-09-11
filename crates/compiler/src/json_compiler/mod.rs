@@ -1,5 +1,4 @@
 use storytell_diagnostics::diagnostic::StorytellResult;
-use storytell_fs::file_host::{FileDiagnostic};
 use storytell_parser::ast::model::ASTHeader;
 use crate::{base::*, visitors::MagicVariableCollectorContext};
 use self::compile::JSONCompilable;
@@ -19,26 +18,22 @@ impl CompilerProvider for JSONCompilerProvider {
 
 #[derive(Default)]
 pub struct JSONCompilerContext {
-    pub magic_variables: MagicVariableCollectorContext,
-    pub diagnostics: Vec<FileDiagnostic>
+    pub magic_variables: MagicVariableCollectorContext
 }
 
 impl CompilerContext for JSONCompilerContext {
-    fn add_diagnostic(&mut self, dia: FileDiagnostic) {
-        self.diagnostics.push(dia);
-    }
 
     fn process_path(&mut self, _path: &ASTHeader) {
         // Not needed, for now the front-end handles this.
     }
+
 }
 
 impl JSONCompilerContext {
 
     pub fn new() -> Self {
         Self { 
-            magic_variables: MagicVariableCollectorContext::new(),
-            diagnostics: vec![]
+            magic_variables: MagicVariableCollectorContext::new()
         }
     }
 

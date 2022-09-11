@@ -52,12 +52,9 @@ export const openProject = (project: Project) => {
 
 export const initCompiler = async (projectId: string) => {
     const result = JSON.parse(await invoke<string>("init_compiler", {projectId})) as {
-        files: File[],
-        paths: unknown,
-        diagnostics: FileDiagnostic[]
+        files: File[]
     };
     setState("files", result.files);
-    setState("diagnostics", result.diagnostics);
 };
 
 export const setCurrentFile = (file: File) => setState("currentFile", file.path);
