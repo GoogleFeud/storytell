@@ -25,10 +25,9 @@ export interface FileDiagnostic {
 }
 
 export interface File {
-    path: string,
     name: string,
-    isEditing?: boolean,
-    children?: File[]
+    id: number,
+    children?: number[]
 }
 
 export const enum Pages {

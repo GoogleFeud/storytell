@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use storytell_diagnostics::{diagnostic::{StorytellResult, Diagnostic, DiagnosticMessage}, make_diagnostics};
-use storytell_fs::{file_host::{FileDiagnostic, FileHost, GetFindResult}};
+use storytell_fs::{file_host::{FileDiagnostic, FileHost}};
 use storytell_parser::{ast::{model::{ASTHeader, ASTBlock}, Parser}, input::ParsingContext};
 
 make_diagnostics!(define [
@@ -40,49 +40,42 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
         }
     }
 
-    pub fn prepare_file<C: CompilerContext>(&mut self, file_name: &str, ctx: &mut C) -> (Vec<&ASTHeader>, FileDiagnostic) {
-        let (file, dia) = match self.host.get_or_find(file_name) {
-            GetFindResult::FromCache(file) => (file, None),
-            GetFindResult::Parsed(file, diagnostic) => (file, diagnostic),
-            GetFindResult::NotFound => panic!("File not found.")
+    pub fn compile_file<R>(&mut self, file_id: u16, ctx: &mut P::Context) -> (Vec<P::Output>, FileDiagnostic) {
+        let mut result: Vec<P::Output> = vec![];
+        let file = self.host.parse_file_by_id(file_id).unwrap();
+        let mut dia = FileDiagnostic {
+            file_id,
+            diagnostics: vec![]
         };
-        let mut paths: Vec<&ASTHeader> = vec![];
         for thing in &file.content {
             if let ASTBlock::Header(header) = thing {
-                ctx.process_path(header);
-                paths.push(header);
-            }
-        }
-        (paths, dia.unwrap_or_else(|| FileDiagnostic { diagnostics: vec![], filename: file_name.to_string() } ))
-    }
-
-    pub fn compile_file<R>(&mut self, file_name: &str, ctx: &mut P::Context) -> (Vec<P::Output>, FileDiagnostic) {
-        let mut result: Vec<P::Output> = vec![];
-        let (file, mut dias) = self.prepare_file(file_name, ctx);
-        for header in file {
-            match P::compile_header(header, ctx) {
-                Ok(compiled) => result.push(compiled),
-                Err(mut error) => {
-                    dias.diagnostics.append(&mut error)
+                match P::compile_header(header, ctx) {
+                    Ok(compiled) => result.push(compiled),
+                    Err(mut error) => {
+                        dia.diagnostics.append(&mut error)
+                    }
                 }
             }
         }
-        (result, dias)
+        (result, dia)
     }
 
     pub fn compile(&mut self, mut ctx: P::Context) -> (Vec<P::Output>, Vec<FileDiagnostic>, P::Context) {
         let mut results: Vec<P::Output> = vec![];
         let mut diagnostics: Vec<FileDiagnostic> = vec![];
-        for file_path in self.host.get_files_from_directory(&self.cwd) {
-            let (headers, mut dia) = self.prepare_file(&file_path, &mut ctx);
-            for header in headers {
-                match P::compile_header(header, &mut ctx) {
-                    Ok(compiled) => results.push(compiled),
-                    Err(mut error) => dia.diagnostics.append(&mut error)
+        let line_endings = self.host.get_line_endings();
+        for file in self.host.get_all_files() {
+            let mut dias = file.parse(line_endings);
+            for thing in &file.content {
+                if let ASTBlock::Header(header) = thing {
+                    match P::compile_header(header, &mut ctx) {
+                        Ok(compiled) => results.push(compiled),
+                        Err(mut error) => dias.append(&mut error)
+                    }
                 }
             }
-            if !dia.diagnostics.is_empty() {
-                diagnostics.push(dia);
+            if !dias.is_empty() {
+                diagnostics.push(FileDiagnostic { diagnostics: dias, file_id: file.id })
             }
         }
         (results, diagnostics, ctx)

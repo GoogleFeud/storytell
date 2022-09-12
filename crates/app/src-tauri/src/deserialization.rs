@@ -1,7 +1,8 @@
-
-use storytell_fs::file_host::{FileDiagnostic, Blob};
+use std::{fmt::Display, path::PathBuf};
+use storytell_fs::{file::{File, Directory}, file_host::{FileDiagnostic}};
 use storytell_diagnostics::{diagnostic::Diagnostic, location::Range};
 use storytell_compiler::{json};
+use rustc_hash::FxHashMap;
 
 pub trait JSONCompilable {
     fn compile(&self) -> String;
@@ -31,7 +32,7 @@ impl JSONCompilable for Diagnostic {
 impl JSONCompilable for FileDiagnostic {
     fn compile(&self) -> String {
         json!({
-            filename: self.filename.compile(),
+            fileId: self.file_id,
             diagnostics: self.diagnostics.compile()
         })
     }
@@ -43,16 +44,34 @@ impl<T: JSONCompilable> JSONCompilable for Vec<T> {
     }
 }
 
-impl JSONCompilable for Blob {
+impl JSONCompilable for u16 {
     fn compile(&self) -> String {
-        match self {
-            Blob::File(file_path, file_name) => json!({path: file_path.compile(), name: file_name.compile()}),
-            Blob::Directory(path, name, children) => json!({
-                path: path.compile(),
-                name: name.compile(),
-                children: children.compile()
-            })
-        }
+        self.to_string()
+    }
+}
+
+impl JSONCompilable for File {
+    fn compile(&self) -> String {
+        json!({
+            name: PathBuf::from(&self.path).iter().last().unwrap().to_str().unwrap().split('.').next().unwrap().to_string().compile(),
+            id: self.id
+        })
+    }
+}
+
+impl JSONCompilable for Directory {
+    fn compile(&self) -> String {
+        json!({
+            name: PathBuf::from(&self.path).iter().last().unwrap().to_str().unwrap().to_string().compile(),
+            children: self.children.compile(),
+            id: self.id
+        })
+    }
+}
+
+impl<K: Display, V: JSONCompilable> JSONCompilable for FxHashMap<K, V> {
+    fn compile(&self) -> String {
+        format!("{{{}}}", self.iter().map(|(k, v)| format!("\"{}\":{}", k, v.compile())).collect::<Vec<String>>().join(","))
     }
 }
 

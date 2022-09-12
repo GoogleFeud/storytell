@@ -14,7 +14,7 @@ export const Explorer = () => {
         </div>
         <div class="h-full">
             <VerticalResize minHBottom="50px" minHTop="50px" defaultHTop={(80 / 100 * window.innerHeight) + "px"}>
-                <FileManager files={state.files} />
+                <FileManager files={state.fileExplorer.global.map(id => state.fileExplorer.files[id] || state.fileExplorer.dirs[id])} />
                 <Panel text="Paths" collapsable isCollapsed>
                     <div class="pt-2">
                         <p>Path 1...</p>

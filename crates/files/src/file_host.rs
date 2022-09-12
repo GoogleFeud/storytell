@@ -1,102 +1,106 @@
 use storytell_diagnostics::diagnostic::Diagnostic;
 
+use crate::file::{Directory};
+
 use super::file::File;
-use std::collections::HashMap;
-use std::fs::{read_dir, read_to_string, write, rename};
-use std::path::{Path};
+use std::fs::{read_dir, write, rename};
+use std::path::{PathBuf};
+use rustc_hash::FxHashMap;
 
 pub struct FileDiagnostic {
     pub diagnostics: Vec<Diagnostic>,
-    pub filename: String
-}
-
-pub enum Blob {
-    Directory(String, String, Vec<Blob>),
-    File(String, String)
-}
-
-pub enum GetFindResult<'a> {
-    NotFound,
-    FromCache(&'a File),
-    Parsed(&'a File, Option<FileDiagnostic>)
+    pub file_id: u16
 }
 
 pub trait FileHost {
-    fn write_file(&mut self, path: &str, content: String) -> bool;
-    fn rename_file(&mut self, path: &str, name: String) -> Option<String>;
-    fn get_or_find(&mut self, path: &str) -> GetFindResult;
+    fn write_file(&mut self, id: u16, content: String) -> bool;
+    fn rename_file(&mut self, id: u16, name: String) -> Option<String>;
+    fn parse_file_by_id(&mut self, id: u16) -> Option<&mut File>;
+    fn get_all_files(&mut self) -> Vec<&mut File>;
     fn get_files_from_directory(&self, path: &str) -> Vec<String>;
     fn get_line_endings(&self) -> usize;
 }
 
 #[derive(Default)]
 pub struct SysFileHost {
-    pub files: HashMap<String, File>,
+    pub files: FxHashMap<u16, File>,
+    pub directories: FxHashMap<u16, Directory>,
+    pub counter: u16,
     pub line_endings: usize
 }
 
 impl SysFileHost {
     pub fn new(line_endings: usize) -> Self {
         Self {
-            files: HashMap::new(),
+            files: FxHashMap::default(),
+            directories: FxHashMap::default(),
+            counter: 0,
             line_endings
         }
     }
 
-    pub fn get_files_from_directory_as_blobs(&self, directory: &str) -> Vec<Blob> {
-        let mut blobs: Vec<Blob> = vec![];
-        for entry in read_dir(directory).unwrap().flatten() {
+    pub fn load_directory(&mut self, main: &str) -> Vec<u16> {
+        let mut files_and_dirs: Vec<u16> = vec![];
+        for entry in read_dir(main).unwrap().flatten() {
             if entry.file_type().unwrap().is_dir() {
                 let path = entry.path();
                 let path_str = path.to_str().unwrap();
-                blobs.push(Blob::Directory(entry.path().to_str().unwrap().to_string().replace('\\', "\\\\"), entry.file_name().to_str().unwrap().split('.').next().unwrap().to_string(), self.get_files_from_directory_as_blobs(path_str)));
+                let current_id = self.counter;
+                self.counter += 1;
+                let children = self.load_directory(path_str);
+                self.directories.insert(current_id, Directory { 
+                    id: current_id, 
+                    path: path_str.to_string(), 
+                    children
+                });
+                files_and_dirs.push(current_id);
             } else {
-                blobs.push(Blob::File(entry.path().to_str().unwrap().to_string().replace('\\', "\\\\"), entry.file_name().to_str().unwrap().split('.').next().unwrap().to_string()));
+                self.files.insert(self.counter, File::empty(self.counter, entry.path().to_str().unwrap()));
+                files_and_dirs.push(self.counter);
+                self.counter += 1;
             }
         }
-        blobs
+        files_and_dirs
     }
+
 }
 
 impl FileHost for SysFileHost {
-    fn write_file(&mut self, path: &str, content: String) -> bool {
-        write(path, content).is_ok()
-    }
-
-    fn rename_file(&mut self, path: &str, name: String) -> Option<String> {
-        let path_obj = Path::new(path);
-        let new_path = path_obj.parent().unwrap().join(name + ".md").to_str().unwrap().to_string();
-        // Always rename the file, even if it's not in the cache
-        rename(path, &new_path).unwrap();
-        if path_obj.is_dir() {
-            // Remove the files from the cache - they will have to be recompiled
-            for file in self.get_files_from_directory(path) {
-                self.files.remove(&file);
-            }
+    fn write_file(&mut self, path: u16, content: String) -> bool {
+        if let Some(file) = self.files.get(&path) {
+            write(&file.path, content).is_ok()
         } else {
-            if let Some(file) = self.files.remove(path) {
-                self.files.insert(new_path.clone(), file);
-            }
+            false
         }
-        Some(new_path)
     }
 
-    fn get_or_find(&mut self, path: &str) -> GetFindResult {
-        if self.files.contains_key(path) {
-            GetFindResult::FromCache(self.files.get(path).unwrap())
-        } else if let Ok(file_contents) = read_to_string(path) {
-            let (file, dia) = File::new(&file_contents, self.line_endings);
-            self.files.insert(path.to_string(), file);
-            GetFindResult::Parsed(self.files.get(path).unwrap(), if dia.is_empty() {
-                None
-            } else {
-                Some(FileDiagnostic {
-                    diagnostics: dia,
-                    filename: path.to_string()
-                })
-            })
+    fn parse_file_by_id(&mut self, id: u16) -> Option<&mut File> {
+        if let Some(file) = self.files.get_mut(&id) {
+            file.parse(self.line_endings);
+            Some(file)
         } else {
-            GetFindResult::NotFound
+            None
+        }
+    }
+
+    fn get_all_files(&mut self) -> Vec<&mut File> {
+        self.files.values_mut().collect::<Vec<&mut File>>()
+    }
+
+    fn rename_file(&mut self, path: u16, name: String) -> Option<String> {
+        if let Some(file) = self.files.get_mut(&path) {
+            let new_path = PathBuf::from(&file.path).parent().unwrap().join(name).to_str().unwrap().to_string();
+            rename(&file.path, &new_path).unwrap();
+            file.path = new_path.clone();
+            Some(new_path)
+        } else if let Some(dir) = self.directories.get_mut(&path) {
+            let new_path = PathBuf::from(&dir.path).parent().unwrap().join(name).to_str().unwrap().to_string();
+            rename(&dir.path, &new_path).unwrap();
+            dir.path = new_path.clone();
+            // TODO: Change the path of all children...
+            Some(new_path)
+        } else {
+            None
         }
     }
 

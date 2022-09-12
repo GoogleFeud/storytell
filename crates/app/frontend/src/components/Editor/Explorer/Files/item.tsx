@@ -13,7 +13,7 @@ export const FileManagerFolder = (props: {
     onSelect?: (file: File) => void
 }) => {
     const [collapsed, setCollapsed] = createSignal(true);
-    const realChildren = children(() => props.item.children?.map(c => createComponentFromItem(c, props.onSelect)));
+    const realChildren = children(() => props.item.children?.map(c => createComponentFromItem(state.fileExplorer.dirs[c] || state.fileExplorer.files[c], props.onSelect)));
     const [isRenaming, setRenaming] = createSignal();
     return <div class="flex flex-col gap-1 ml-1">
         <ContextMenuBox menu={<ContextMenu commands={[
@@ -26,14 +26,14 @@ export const FileManagerFolder = (props: {
                 execute: () => console.log("Delete")
             }
         ]} />}>
-            <div class={`flex items-center gap-2 cursor-pointer p-0.5 ${state.currentFile === props.item.path ? "w-full bg-[#6d4c41] text-white" : ""}`} onClick={() => {
+            <div class={`flex items-center gap-2 cursor-pointer p-0.5 ${state.currentFile === props.item.id ? "w-full bg-[#6d4c41] text-white" : ""}`} onClick={() => {
                 setCollapsed(!collapsed());
                 props.onSelect?.(props.item);
             }}>
                 {collapsed() ? <ArrowRightIcon size="13px" /> : <ArrowDownIcon size="12px" />}
                 {isRenaming() ? <Input type="text" class="text-[13px] outline-none bg-neutral-700 border border-neutral-600 w-full" value={props.item.name} ref={(ev) => setTimeout(() => ev.select(), 0)} onExit={(newName) => {
                     if (!isRenaming()) return;
-                    renameFile(props.item.path, newName);
+                    renameFile(props.item, newName);
                     setRenaming();
                 }} /> : <p class={`text-[13px] text-neutral-400 ${collapsed() && "hover:text-neutral-200"}`}>{props.item.name}</p>}
             </div>
@@ -59,11 +59,11 @@ export const FileManagerFile = (props: {
             execute: () => console.log("Delete")
         }
     ]} />}>
-        <div class={`flex gap-2 p-0.5 items-center cursor-pointer ${state.currentFile === props.item.path ? "w-full bg-[#6d4c41] text-white" : ""}`} onClick={() => props.onSelect?.(props.item)}>
+        <div class={`flex gap-2 p-0.5 items-center cursor-pointer ${state.currentFile === props.item.id ? "w-full bg-[#6d4c41] text-white" : ""}`} onClick={() => props.onSelect?.(props.item)}>
             <FileIcon size="13px" />
             {isRenaming() ? <Input type="text" class="text-[13px] outline-none bg-neutral-700 border border-neutral-600 w-full" value={props.item.name} ref={(ev) => setTimeout(() => ev.select(), 0)} onExit={(newName) => {
                 if (!isRenaming()) return;
-                renameFile(props.item.path, newName);
+                renameFile(props.item, newName);
                 setRenaming();
             }} /> : <p class="text-[13px] text-neutral-400 hover:text-neutral-200">{props.item.name}</p>}
         </div>

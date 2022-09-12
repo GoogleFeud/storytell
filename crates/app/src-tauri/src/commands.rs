@@ -29,10 +29,10 @@ pub fn delete_project(state: State<StorytellState>, id: String) {
 }
 
 #[tauri::command]
-pub fn rename_file(state: State<StorytellState>, path: String, name: String) -> Option<String> {
+pub fn rename_file(state: State<StorytellState>, id: u16, name: String) -> Option<String> {
     let mut inner_state = state.lock().unwrap();
     if let Some(compiler) = inner_state.compiler.as_mut() {
-        compiler.host.rename_file(&path, name)
+        compiler.host.rename_file(id, name)
     } else {
         None
     }
@@ -48,9 +48,15 @@ pub fn init_compiler(state: State<StorytellState>, project_id: String) -> Option
     let line_endings = 2;
     #[cfg(not(windows))]
     let line_endings = 1;
-    let compiler = Compiler::<JSONCompilerProvider, SysFileHost>::new(SysFileHost::new(line_endings), project.files_directory.to_str().unwrap());
+    let mut compiler = Compiler::<JSONCompilerProvider, SysFileHost>::new(SysFileHost::new(line_endings), project.files_directory.to_str().unwrap());
+    let global_files = compiler.host.load_directory(project.files_directory.to_str().unwrap());
     let json_str = json!({
-        files: compiler.host.get_files_from_directory_as_blobs(project.files_directory.to_str().unwrap()).compile()
+        fileExplorer: json!({
+            dirs: compiler.host.directories.compile(),
+            files: compiler.host.files.compile(),
+            global: global_files.compile(),
+            lastId: compiler.host.counter
+        })
     });
     inner_state.compiler = Some(compiler);
     Some(json_str)
