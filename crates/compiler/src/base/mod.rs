@@ -1,8 +1,9 @@
 use std::marker::PhantomData;
-
 use storytell_diagnostics::{diagnostic::{StorytellResult, Diagnostic, DiagnosticMessage}, make_diagnostics};
-use storytell_fs::{file_host::{FileDiagnostic, FileHost}};
 use storytell_parser::{ast::{model::{ASTHeader, ASTBlock}, Parser}, input::ParsingContext};
+use storytell_fs::FileHost;
+pub mod files;
+use files::{CompilerFileHost, FileDiagnostic};
 
 make_diagnostics!(define [
     UNKNOWN_CHILD_PATH,
@@ -26,15 +27,15 @@ pub trait CompilerProvider {
 
 pub struct Compiler<P: CompilerProvider, F: FileHost> {
     pub cwd: String,
-    pub host: F,
+    pub host: CompilerFileHost<F>,
     _provider: PhantomData<P>
 }
 
 impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
 
-    pub fn new(host: F, cwd: &str) -> Self {
+    pub fn new(cwd: &str, line_endings: usize, host: F) -> Self {
         Self {
-            host,
+            host: CompilerFileHost::new(cwd, line_endings, host),
             cwd: cwd.to_string(),
             _provider: PhantomData::default()
         }
@@ -42,12 +43,12 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
 
     pub fn compile_file<R>(&mut self, file_id: u16, ctx: &mut P::Context) -> (Vec<P::Output>, FileDiagnostic) {
         let mut result: Vec<P::Output> = vec![];
-        let file = self.host.parse_file_by_id(file_id).unwrap();
+        let (content, dias) = self.host.parse_file_by_id(&file_id).unwrap();
         let mut dia = FileDiagnostic {
             file_id,
-            diagnostics: vec![]
+            diagnostics: dias
         };
-        for thing in &file.content {
+        for thing in &content.parsed_content {
             if let ASTBlock::Header(header) = thing {
                 match P::compile_header(header, ctx) {
                     Ok(compiled) => result.push(compiled),
@@ -63,10 +64,10 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
     pub fn compile(&mut self, mut ctx: P::Context) -> (Vec<P::Output>, Vec<FileDiagnostic>, P::Context) {
         let mut results: Vec<P::Output> = vec![];
         let mut diagnostics: Vec<FileDiagnostic> = vec![];
-        let line_endings = self.host.get_line_endings();
-        for file in self.host.get_all_files() {
-            let mut dias = file.parse(line_endings);
-            for thing in &file.content {
+        for file in self.host.files.values() {
+            let borrowed = file.borrow();
+            let (parsed_content, mut dias) = self.host.parse_file(&borrowed).unwrap();
+            for thing in &parsed_content {
                 if let ASTBlock::Header(header) = thing {
                     match P::compile_header(header, &mut ctx) {
                         Ok(compiled) => results.push(compiled),
@@ -75,7 +76,7 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
                 }
             }
             if !dias.is_empty() {
-                diagnostics.push(FileDiagnostic { diagnostics: dias, file_id: file.id })
+                diagnostics.push(FileDiagnostic { diagnostics: dias, file_id: borrowed.id })
             }
         }
         (results, diagnostics, ctx)

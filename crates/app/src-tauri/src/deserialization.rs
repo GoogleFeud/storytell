@@ -1,8 +1,5 @@
-use std::{fmt::Display, path::PathBuf};
-use storytell_fs::{file::{File, Directory}, file_host::{FileDiagnostic}};
 use storytell_diagnostics::{diagnostic::Diagnostic, location::Range};
-use storytell_compiler::{json};
-use rustc_hash::FxHashMap;
+use storytell_compiler::{base::files::{File, FileDiagnostic, Directory}, json};
 
 pub trait JSONCompilable {
     fn compile(&self) -> String;
@@ -53,7 +50,7 @@ impl JSONCompilable for u16 {
 impl JSONCompilable for File {
     fn compile(&self) -> String {
         json!({
-            name: PathBuf::from(&self.path).iter().last().unwrap().to_str().unwrap().split('.').next().unwrap().to_string().compile(),
+            name: self.name.split(".").next().unwrap().compile(),
             id: self.id
         })
     }
@@ -62,20 +59,20 @@ impl JSONCompilable for File {
 impl JSONCompilable for Directory {
     fn compile(&self) -> String {
         json!({
-            name: PathBuf::from(&self.path).iter().last().unwrap().to_str().unwrap().to_string().compile(),
-            children: self.children.compile(),
-            id: self.id
+            name: self.name.compile(),
+            id: self.id,
+            children: self.children.compile()
         })
     }
 }
 
-impl<K: Display, V: JSONCompilable> JSONCompilable for FxHashMap<K, V> {
+impl JSONCompilable for String {
     fn compile(&self) -> String {
-        format!("{{{}}}", self.iter().map(|(k, v)| format!("\"{}\":{}", k, v.compile())).collect::<Vec<String>>().join(","))
+        format!("\"{}\"", self)
     }
 }
 
-impl JSONCompilable for String {
+impl JSONCompilable for &str {
     fn compile(&self) -> String {
         format!("\"{}\"", self)
     }

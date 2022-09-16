@@ -1,5 +1,5 @@
 use storytell_compiler::{base::Compiler, json_compiler::{JSONCompilerProvider}, json};
-use storytell_fs::file_host::{SysFileHost, FileHost};
+use storytell_fs::SysFileHost;
 use tauri::State;
 use crate::{state::StorytellState, projects::Project, deserialization::JSONCompilable};
 use serde_json::to_string;
@@ -19,7 +19,7 @@ pub fn create_project(state: State<StorytellState>, name: String, description: S
 #[tauri::command]
 pub fn edit_project(state: State<StorytellState>, id: String, name: String, description: Option<String>) {
     let mut inner_state = state.lock().unwrap();
-    inner_state.projects.update_project(id, name, description.unwrap_or(String::new()));
+    inner_state.projects.update_project(id, name, description.unwrap_or_default());
 }
 
 #[tauri::command]
@@ -29,12 +29,10 @@ pub fn delete_project(state: State<StorytellState>, id: String) {
 }
 
 #[tauri::command]
-pub fn rename_file(state: State<StorytellState>, id: u16, name: String) -> Option<String> {
+pub fn rename_file(state: State<StorytellState>, id: u16, name: String) {
     let mut inner_state = state.lock().unwrap();
     if let Some(compiler) = inner_state.compiler.as_mut() {
-        compiler.host.rename_file(id, name)
-    } else {
-        None
+        compiler.host.rename_file_or_dir(&id, name);
     }
 }
 
@@ -48,12 +46,15 @@ pub fn init_compiler(state: State<StorytellState>, project_id: String) -> Option
     let line_endings = 2;
     #[cfg(not(windows))]
     let line_endings = 1;
-    let mut compiler = Compiler::<JSONCompilerProvider, SysFileHost>::new(SysFileHost::new(line_endings), project.files_directory.to_str().unwrap());
-    let global_files = compiler.host.load_directory(project.files_directory.to_str().unwrap());
+    let mut compiler = Compiler::<JSONCompilerProvider, SysFileHost>::new(project.files_directory.to_str().unwrap(), line_endings, SysFileHost::default());
+    let global_files = compiler.host.load_cwd();
     let json_str = json!({
         fileExplorer: json!({
-            dirs: compiler.host.directories.compile(),
-            files: compiler.host.files.compile(),
+            blobs: format!("{{{}}}", compiler.host.dirs.iter()
+                .map(|i| format!("\"{}\":{}", i.0, i.1.borrow().compile()))
+                .chain(compiler.host.files.iter()
+                    .map(|i| format!("\"{}\":{}", i.0, i.1.borrow().compile())))
+                .collect::<Vec<String>>().join(",")),
             global: global_files.compile(),
             lastId: compiler.host.counter
         })

@@ -13,7 +13,7 @@ export const FileManagerFolder = (props: {
     onSelect?: (file: File) => void
 }) => {
     const [collapsed, setCollapsed] = createSignal(true);
-    const realChildren = children(() => props.item.children?.map(c => createComponentFromItem(state.fileExplorer.dirs[c] || state.fileExplorer.files[c], props.onSelect)));
+    const realChildren = children(() => props.item.children?.map(c => createComponentFromItem(state.fileExplorer.blobs[c], props.onSelect)));
     const [isRenaming, setRenaming] = createSignal();
     return <div class="flex flex-col gap-1 ml-1">
         <ContextMenuBox menu={<ContextMenu commands={[

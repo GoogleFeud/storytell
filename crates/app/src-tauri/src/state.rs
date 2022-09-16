@@ -3,9 +3,10 @@ use storytell_compiler::{
     json_compiler::{JSONCompilerProvider},
     base::Compiler
 };
-use storytell_fs::file_host::SysFileHost;
+use storytell_fs::SysFileHost;
 use crate::projects::Projects;
 
+#[derive(Default)]
 pub struct InnerStorytellState {
     pub compiler: Option<Compiler<JSONCompilerProvider, SysFileHost>>,
     pub projects: Projects

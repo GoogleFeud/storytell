@@ -9,20 +9,16 @@ export const [state, setState] = createStore<{
     currentProject?: Project,
     currentFile?: number,
     fileExplorer: {
-        files: Record<number, File>,
-        dirs: Record<number, File>,
+        blobs: Record<number, File>,
         global: number[],
-        lastId: number
     }
     diagnostics: FileDiagnostic[],
     currentPage: Pages
 }>({
     projects: [],
     fileExplorer: {
-        files: {},
-        dirs: {},
-        global: [],
-        lastId: 0
+        blobs: {},
+        global: []
     },
     diagnostics: [],
     currentPage: Pages.TitleScreen
@@ -63,10 +59,8 @@ export const openProject = (project: Project) => {
 export const initCompiler = async (projectId: string) => {
     const result = JSON.parse(await invoke<string>("init_compiler", {projectId})) as {
         fileExplorer: {
-            files: Record<number, File>,
-            dirs: Record<number, File>,
+            blobs: Record<string, File>,
             global: number[],
-            lastId: number
         }
     };
     setState("fileExplorer", result.fileExplorer);
@@ -75,9 +69,6 @@ export const initCompiler = async (projectId: string) => {
 export const setCurrentFile = (file: File) => setState("currentFile", file.id);
 
 export const renameFile = async (file: File, name: string) => {
-    const newPath = await invoke<string>("rename_file", { id: file.id, name: file.children ? name : name + ".md" });
-    if (file.children) {
-        setState("fileExplorer", "dirs", file.id, (f) => ({...f, name, path: newPath }));
-    }
-    else setState("fileExplorer", "files", file.id, (f) => ({...f, name, path: newPath }));
+    await invoke<string>("rename_file", { id: file.id, name: file.children ? name : name + ".md" });
+    setState("fileExplorer", "blobs", file.id, (f) => ({...f, name }));
 };

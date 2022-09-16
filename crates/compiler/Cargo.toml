@@ -10,3 +10,4 @@ storytell_diagnostics = { path = "../diagnostics" }
 storytell_parser = { path = "../parser" }
 storytell_js_parser = { path = "../js_parser" }
 storytell_fs = { path = "../files" }
+rustc-hash = "1.1.0"

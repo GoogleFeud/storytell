@@ -69,7 +69,7 @@ impl Projects {
             fs::create_dir(&files_dir).expect("Failed to create directory.");
             let project_info = ProjectMetadata {
                 id: project_id.clone(),
-                name: name.clone(),
+                name,
                 last_open: None,
                 description
             };
@@ -102,4 +102,10 @@ impl Projects {
         }
     }
 
+}
+
+impl Default for Projects {
+    fn default() -> Self {
+        Self::new()
+    }
 }
