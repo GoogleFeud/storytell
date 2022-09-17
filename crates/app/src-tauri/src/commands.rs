@@ -1,4 +1,4 @@
-use storytell_compiler::{base::Compiler, json_compiler::{JSONCompilerProvider}, json};
+use storytell_compiler::{base::{Compiler, files::BlobId}, json_compiler::{JSONCompilerProvider}, json};
 use storytell_fs::SysFileHost;
 use tauri::State;
 use crate::{state::StorytellState, projects::Project, deserialization::JSONCompilable};
@@ -31,17 +31,23 @@ pub fn delete_project(state: State<StorytellState>, id: String) {
 #[tauri::command]
 pub fn rename_blob(state: State<StorytellState>, id: u16, name: String) {
     let mut inner_state = state.lock().unwrap();
-    if let Some(compiler) = inner_state.compiler.as_mut() {
-        compiler.host.rename_blob(&id, name);
-    }
+    let compiler = inner_state.compiler.as_mut().unwrap();
+    compiler.host.rename_blob(&id, name);
 }
 
 #[tauri::command]
 pub fn delete_blob(state: State<StorytellState>, id: u16) {
     let mut inner_state = state.lock().unwrap();
-    if let Some(compiler) = inner_state.compiler.as_mut() {
-        compiler.host.delete_blob(&id);
-    }
+    let compiler = inner_state.compiler.as_mut().unwrap();
+    compiler.host.delete_blob(&id);
+}
+
+#[tauri::command]
+pub fn create_file(state: State<StorytellState>, name: String, parent: Option<BlobId>) -> String {
+    let mut inner_state = state.lock().unwrap();
+    let compiler = inner_state.compiler.as_mut().unwrap();
+    let file = compiler.host.create_file(name, parent).borrow();
+    file.compile()
 }
 
 // Returns all the files for the file manager

@@ -30,6 +30,11 @@ export interface File {
     children?: number[]
 }
 
+export const enum BlobType {
+    File = 1,
+    Folder
+}
+
 export const enum Pages {
     TitleScreen,
     Editor
