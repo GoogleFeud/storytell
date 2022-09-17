@@ -29,10 +29,18 @@ pub fn delete_project(state: State<StorytellState>, id: String) {
 }
 
 #[tauri::command]
-pub fn rename_file(state: State<StorytellState>, id: u16, name: String) {
+pub fn rename_blob(state: State<StorytellState>, id: u16, name: String) {
     let mut inner_state = state.lock().unwrap();
     if let Some(compiler) = inner_state.compiler.as_mut() {
-        compiler.host.rename_file_or_dir(&id, name);
+        compiler.host.rename_blob(&id, name);
+    }
+}
+
+#[tauri::command]
+pub fn delete_blob(state: State<StorytellState>, id: u16) {
+    let mut inner_state = state.lock().unwrap();
+    if let Some(compiler) = inner_state.compiler.as_mut() {
+        compiler.host.delete_blob(&id);
     }
 }
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { invoke } from "@tauri-apps/api";
 import { JSXElement } from "solid-js";
 import { createStore } from "solid-js/store";
@@ -68,7 +69,25 @@ export const initCompiler = async (projectId: string) => {
 
 export const setCurrentFile = (file: File) => setState("currentFile", file.id);
 
-export const renameFile = async (file: File, name: string) => {
-    await invoke<string>("rename_file", { id: file.id, name: file.children ? name : name + ".md" });
+export const renameBlob = async (file: File, name: string) => {
+    await invoke<string>("rename_blob", { id: file.id, name: file.children ? name : name + ".md" });
     setState("fileExplorer", "blobs", file.id, (f) => ({...f, name }));
+};
+
+export const deleteBlob = async (file: File, parent?: number) => {
+    await invoke("delete_blob", { id: file.id });
+    const newBlobs = {...state.fileExplorer.blobs};
+    deleteBlobsRecursive(file, newBlobs);
+    setState("fileExplorer", "blobs", newBlobs);
+    if (parent !== undefined) setState("fileExplorer", "blobs", parent, "children", (children) => children!.filter(f => f !== file.id));
+    else setState("fileExplorer", "global", (s) => s.filter(g => newBlobs[g]));
+};
+
+const deleteBlobsRecursive = (file: File, blobs: Record<number, File>) => {
+    if (file.children) {
+        for (const child of file.children) {
+            deleteBlobsRecursive(blobs[child], blobs);
+        }
+    }
+    delete blobs[file.id];
 };

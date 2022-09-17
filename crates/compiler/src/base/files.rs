@@ -26,6 +26,11 @@ pub struct Directory {
     pub children: Vec<BlobId>
 }
 
+pub enum FileOrDir {
+    File(RefCell<File>),
+    Directory(RefCell<Directory>)
+}
+
 pub struct CompilerFileHost<H: FileHost> {
     pub raw: H,
     pub cwd: String,
@@ -104,7 +109,7 @@ impl<H: FileHost> CompilerFileHost<H> {
         Some((res, ctx.diagnostics))
     }
     
-    pub fn rename_file_or_dir(&mut self, id: &BlobId, name: String) {
+    pub fn rename_blob(&mut self, id: &BlobId, name: String) {
         let path = if let Some(file) = self.files.get(id) {
             let mut borrowed = file.borrow_mut();
             let built_path =             self.build_path(&borrowed.path, &borrowed.name);
@@ -119,6 +124,30 @@ impl<H: FileHost> CompilerFileHost<H> {
             return;
         };
         self.raw.rename_item(path, &name);
+    }
+
+    pub fn delete_blob(&mut self, id: &BlobId) {
+        match self.delete_blob_in_memory(id) {
+            FileOrDir::Directory(dir) => {
+                let borrowed = dir.borrow();
+                self.raw.delete_dir_recursive(self.build_path(&borrowed.path, &borrowed.name));
+            }
+            FileOrDir::File(file) => {
+                let borrowed = file.borrow();
+                self.raw.delete_file(self.build_path(&borrowed.path, &borrowed.name));
+            }
+        }
+    }
+
+    fn delete_blob_in_memory(&mut self, id: &BlobId) -> FileOrDir {
+        if let Some(directory) = self.dirs.remove(id) {
+            for child in &directory.borrow().children {
+                self.delete_blob_in_memory(child);
+            }
+            FileOrDir::Directory(directory)
+        } else {
+            FileOrDir::File(self.files.remove(id).unwrap())
+        }
     }
 
 }

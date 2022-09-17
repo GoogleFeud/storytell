@@ -1,10 +1,11 @@
 
-use std::{fs::{read_dir, write, rename, read_to_string, remove_file, remove_dir_all, ReadDir}, path::Path, iter::Flatten};
+use std::{fs::{read_dir, write, rename, read_to_string, remove_file, remove_dir_all, remove_dir, ReadDir}, path::Path, iter::Flatten};
 
 pub trait FileHost {
     fn write_file<P: AsRef<Path>>(&mut self, path: P, content: &str) -> Option<()>;
     fn rename_item<P: AsRef<Path>>(&mut self, path: P, name: &str) -> Option<(String, bool)>;
     fn delete_file<P: AsRef<Path>>(&mut self, path: P) -> Option<()>;
+    fn delete_dir_recursive<P: AsRef<Path>>(&mut self, path: P) -> Option<()>;
     fn delete_dir<P: AsRef<Path>>(&mut self, path: P) -> Option<()>;
     fn read_file<P: AsRef<Path>>(&self, path: P) -> Option<String>;
     fn get_entries_from_directory<P: AsRef<Path>>(&self, path: P) -> Flatten<ReadDir>;
@@ -31,12 +32,16 @@ impl FileHost for SysFileHost {
         remove_file(path).ok()
     }
 
-    fn delete_dir<P: AsRef<Path>>(&mut self, path: P) -> Option<()> {
+    fn delete_dir_recursive<P: AsRef<Path>>(&mut self, path: P) -> Option<()> {
         remove_dir_all(path).ok()
     }
 
     fn read_file<P: AsRef<Path>>(&self, path: P) -> Option<String> {
         read_to_string(path).ok()
+    }
+
+    fn delete_dir<P: AsRef<Path>>(&mut self, path: P) -> Option<()> {
+        remove_dir(path).ok()
     }
 
     fn get_entries_from_directory<P: AsRef<Path>>(&self, path: P) -> Flatten<ReadDir> {
