@@ -130,6 +130,27 @@ impl<H: FileHost> CompilerFileHost<H> {
         self.raw.rename_item(path, &name);
     }
 
+    pub fn create_file(&mut self, name: String, parent: Option<BlobId>) -> &RefCell<File> {
+        let file_id = self.counter;
+        self.counter += 1;
+        let path = if let Some(id) = &parent {
+            let mut folder = self.dirs.get(id).unwrap().borrow_mut();
+            folder.children.insert(file_id);
+            let mut new_path = folder.path.clone();
+            new_path.push(folder.id);
+            new_path
+        } else { vec![] };
+        self.raw.write_file(self.build_path(&path, &name), "");
+        self.files.insert(file_id, RefCell::from(File {
+            name,
+            parent,
+            path,
+            parsed_content: vec![],
+            id: file_id
+        }));
+        self.files.get(&file_id).unwrap()
+    }
+
     pub fn delete_blob(&mut self, id: &BlobId) {
         match self.delete_blob_in_memory(id) {
             FileOrDir::Directory(dir) => {
