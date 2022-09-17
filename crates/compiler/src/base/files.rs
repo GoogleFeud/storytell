@@ -1,6 +1,6 @@
 use storytell_diagnostics::diagnostic::Diagnostic;
 use storytell_fs::FileHost;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use storytell_parser::{ast::{model::ASTBlock, Parser}, input::ParsingContext};
 use std::{path::{PathBuf, Path}, cell::RefMut};
 use std::cell::RefCell;
@@ -16,6 +16,7 @@ pub struct File {
     pub name: String,
     pub parsed_content: Vec<ASTBlock>,
     pub path: Vec<BlobId>,
+    pub parent: Option<BlobId>,
     pub id: BlobId
 }
 
@@ -23,7 +24,8 @@ pub struct Directory {
     pub name: String,
     pub path: Vec<BlobId>,
     pub id: BlobId,
-    pub children: Vec<BlobId>
+    pub parent: Option<BlobId>,
+    pub children: FxHashSet<BlobId>
 }
 
 pub enum FileOrDir {
@@ -62,16 +64,16 @@ impl<H: FileHost> CompilerFileHost<H> {
         res
     }
 
-    pub fn load_cwd(&mut self) -> Vec<BlobId> {
+    pub fn load_cwd(&mut self) -> FxHashSet<BlobId>{
         let cwd = self.cwd.clone();
         self.load_dir(&cwd, vec![])
     }
 
-    pub fn load_dir<P: AsRef<Path>>(&mut self, dir: P, path: Vec<BlobId>) -> Vec<BlobId> {
-        let mut children: Vec<BlobId> = vec![];
+    pub fn load_dir<P: AsRef<Path>>(&mut self, dir: P, path: Vec<BlobId>) -> FxHashSet<BlobId> {
+        let mut children: FxHashSet<BlobId> = FxHashSet::default();
         for entry in self.raw.get_entries_from_directory(dir) {
             let blob_id = self.counter;
-            children.push(blob_id);
+            children.insert(blob_id);
             self.counter += 1;
             if entry.file_type().unwrap().is_dir() {
                 let mut new_path = path.clone();
@@ -81,6 +83,7 @@ impl<H: FileHost> CompilerFileHost<H> {
                     name: entry.file_name().to_str().unwrap().to_string(),
                     path: path.clone(),
                     id: blob_id,
+                    parent: path.last().cloned(),
                     children
                 }));
             } else {
@@ -88,6 +91,7 @@ impl<H: FileHost> CompilerFileHost<H> {
                     parsed_content: vec![],
                     name: entry.file_name().to_str().unwrap().to_string(),
                     path: path.clone(),
+                    parent: path.last().cloned(),
                     id: blob_id
                 }));
             }
@@ -112,12 +116,12 @@ impl<H: FileHost> CompilerFileHost<H> {
     pub fn rename_blob(&mut self, id: &BlobId, name: String) {
         let path = if let Some(file) = self.files.get(id) {
             let mut borrowed = file.borrow_mut();
-            let built_path =             self.build_path(&borrowed.path, &borrowed.name);
+            let built_path = self.build_path(&borrowed.path, &borrowed.name);
             borrowed.name = name.clone();
             built_path
         } else if let Some(dir) = self.dirs.get(id) {
             let mut borrowed = dir.borrow_mut();
-            let built_path =             self.build_path(&borrowed.path, &borrowed.name);
+            let built_path = self.build_path(&borrowed.path, &borrowed.name);
             borrowed.name = name.clone();
             built_path
         } else {
@@ -130,10 +134,16 @@ impl<H: FileHost> CompilerFileHost<H> {
         match self.delete_blob_in_memory(id) {
             FileOrDir::Directory(dir) => {
                 let borrowed = dir.borrow();
+                if let Some(parent) = &borrowed.parent {
+                    self.dirs.get(parent).unwrap().borrow_mut().children.remove(&borrowed.id);
+                }
                 self.raw.delete_dir_recursive(self.build_path(&borrowed.path, &borrowed.name));
             }
             FileOrDir::File(file) => {
                 let borrowed = file.borrow();
+                if let Some(parent) = &borrowed.parent {
+                    self.dirs.get(parent).unwrap().borrow_mut().children.remove(&borrowed.id);
+                }
                 self.raw.delete_file(self.build_path(&borrowed.path, &borrowed.name));
             }
         }

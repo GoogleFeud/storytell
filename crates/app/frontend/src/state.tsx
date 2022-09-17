@@ -64,6 +64,7 @@ export const initCompiler = async (projectId: string) => {
             global: number[],
         }
     };
+    console.log({...result});
     setState("fileExplorer", result.fileExplorer);
 };
 
@@ -81,6 +82,7 @@ export const deleteBlob = async (file: File, parent?: number) => {
     setState("fileExplorer", "blobs", newBlobs);
     if (parent !== undefined) setState("fileExplorer", "blobs", parent, "children", (children) => children!.filter(f => f !== file.id));
     else setState("fileExplorer", "global", (s) => s.filter(g => newBlobs[g]));
+    console.log({...state.fileExplorer.blobs});
 };
 
 const deleteBlobsRecursive = (file: File, blobs: Record<number, File>) => {

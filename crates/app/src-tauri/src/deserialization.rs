@@ -1,5 +1,6 @@
 use storytell_diagnostics::{diagnostic::Diagnostic, location::Range};
 use storytell_compiler::{base::files::{File, FileDiagnostic, Directory}, json};
+use rustc_hash::FxHashSet;
 
 pub trait JSONCompilable {
     fn compile(&self) -> String;
@@ -63,6 +64,12 @@ impl JSONCompilable for Directory {
             id: self.id,
             children: self.children.compile()
         })
+    }
+}
+
+impl<T: JSONCompilable> JSONCompilable for FxHashSet<T> {
+    fn compile(&self) -> String {
+        format!("[{}]", self.iter().map(|d| d.compile()).collect::<Vec<String>>().join(","))
     }
 }
 
