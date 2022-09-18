@@ -64,7 +64,15 @@ impl<H: FileHost> CompilerFileHost<H> {
         res
     }
 
-    pub fn load_cwd(&mut self) -> FxHashSet<BlobId>{
+    pub fn load_cwd(&mut self) -> FxHashSet<BlobId> {
+        let cwd = self.cwd.clone();
+        self.load_dir(&cwd, vec![])
+    }
+
+    pub fn refresh(&mut self) -> FxHashSet<BlobId> {
+        self.counter = 0;
+        self.dirs.clear();
+        self.files.clear();
         let cwd = self.cwd.clone();
         self.load_dir(&cwd, vec![])
     }

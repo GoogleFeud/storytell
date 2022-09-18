@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { createSignal } from "solid-js";
-import { isCurrentFolder, setCreatingChildInDirectory, setCurrentFile, setOpenDirectory, state } from "../../../../state";
+import { isCurrentFolder, refreshBlobs, setCreatingChildInDirectory, setCurrentFile, setOpenDirectory, state } from "../../../../state";
 import { BlobType, File } from "../../../../types";
+import { ArrowCircleIcon } from "../../../Icons/arrowCircle";
 import { MinimizeFolderIcon } from "../../../Icons/minimizeFolder";
 import { PlusFileIcon } from "../../../Icons/plusFile";
 import { PlusFolderIcon } from "../../../Icons/plusFolder";
@@ -37,6 +38,10 @@ export const FileManager = (props: {
                 setOpenDirectory(state.currentFile!, true);
             }
             else setIsCreating(BlobType.Folder);
+        }} />
+        <ArrowCircleIcon size={"12px"} onClick={(e) => {
+            e.stopPropagation();
+            refreshBlobs();
         }} />
         <MinimizeFolderIcon size={"12px"} onClick={(e) => {
             e.stopPropagation();

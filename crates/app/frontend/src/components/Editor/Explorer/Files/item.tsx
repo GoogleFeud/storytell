@@ -16,7 +16,7 @@ export const FileManagerInput = (props: JSX.InputHTMLAttributes<HTMLInputElement
 }) => {
     return <Input {...props} type="text" class="text-[13px] outline-none bg-neutral-700 border border-neutral-600 w-full" ref={(ev) => setTimeout(() => ev.select(), 0)} validator={(val) => {
         if (val && !val.match(/^(?!\.)(?!com[0-9]$)(?!con$)(?!lpt[0-9]$)(?!nul$)(?!prn$)[^|*?\\:<>/$"]*[^.|*?\\:<>/$"]+$/)) return "Invalid file / folder name.";
-        const parent = (props.parent !== undefined ? state.fileExplorer.blobs[props.parent].children : state.fileExplorer.global) as Array<number>;
+        const parent = (props.parent !== undefined ? state.fileExplorer.blobs[props.parent].children : state.fileExplorer.global) as number[];
         for (const child of parent) {
             if (state.fileExplorer.blobs[child].name === val) return "A file or folder with this name already exists.";
         }

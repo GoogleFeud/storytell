@@ -94,6 +94,17 @@ export const deleteBlob = async (file: File, parent?: number) => {
     else setState("fileExplorer", "global", (s) => s.filter(g => newBlobs[g]));
 };
 
+export const refreshBlobs = async () => {
+    const refreshed = JSON.parse(await invoke<string>("refresh_blobs")) as {
+        blobs: Record<string, File>,
+        global: number[],
+    };
+    for (const blob in state.fileExplorer.blobs) {
+        refreshed.blobs[blob].isOpen = state.fileExplorer.blobs[blob].isOpen;
+    }
+    setState("fileExplorer", refreshed);
+};
+
 export const setOpenDirectory = (folder: number, open: boolean) => {
     setState("fileExplorer", "blobs", folder, "isOpen", open);
 };

@@ -56,6 +56,22 @@ pub fn create_blob(state: State<StorytellState>, name: String, parent: Option<Bl
     }
 }
 
+#[tauri::command]
+pub fn refresh_blobs(state: State<StorytellState>) -> String {
+    let mut inner_state = state.lock().unwrap();
+    let compiler = inner_state.compiler.as_mut().unwrap();
+    let global_files = compiler.host.refresh();
+    json!({
+        blobs: format!("{{{}}}", compiler.host.dirs.iter()
+            .map(|i| format!("\"{}\":{}", i.0, i.1.borrow().compile()))
+            .chain(compiler.host.files.iter()
+                .map(|i| format!("\"{}\":{}", i.0, i.1.borrow().compile())))
+            .collect::<Vec<String>>().join(",")),
+        global: global_files.compile()
+    })
+}
+
+
 // Returns all the files for the file manager
 // Compiles the last opened file if necessary
 #[tauri::command]
@@ -75,8 +91,7 @@ pub fn init_compiler(state: State<StorytellState>, project_id: String) -> Option
                 .chain(compiler.host.files.iter()
                     .map(|i| format!("\"{}\":{}", i.0, i.1.borrow().compile())))
                 .collect::<Vec<String>>().join(",")),
-            global: global_files.compile(),
-            lastId: compiler.host.counter
+            global: global_files.compile()
         })
     });
     inner_state.compiler = Some(compiler);
