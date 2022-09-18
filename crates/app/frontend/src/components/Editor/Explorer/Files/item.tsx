@@ -14,7 +14,7 @@ export const FileManagerInput = (props: JSX.InputHTMLAttributes<HTMLInputElement
     parent?: number,
     onExit?: (value: string) => void
 }) => {
-    return <Input {...props} type="text" class="text-[13px] outline-none bg-neutral-700 border border-neutral-600 w-full" ref={(ev) => setTimeout(() => ev.select(), 0)} validator={(val) => {
+    return <Input {...props} type="text" class="text-[11.5px] outline-none bg-neutral-700 border border-neutral-600 w-full" ref={(ev) => setTimeout(() => ev.select(), 0)} validator={(val) => {
         if (val && !val.match(/^(?!\.)(?!com[0-9]$)(?!con$)(?!lpt[0-9]$)(?!nul$)(?!prn$)[^|*?\\:<>/$"]*[^.|*?\\:<>/$"]+$/)) return "Invalid file / folder name.";
         const parent = (props.parent !== undefined ? state.fileExplorer.blobs[props.parent].children : state.fileExplorer.global) as number[];
         for (const child of parent) {
@@ -60,11 +60,11 @@ export const FileManagerFolder = (props: {
                 setCurrentFile(props.item);
                 ev.stopPropagation();
             }}>
-                {props.item.isOpen ? <ArrowDownIcon size="12px" /> : <ArrowRightIcon size="13px" />}
+                {props.item.isOpen ? <ArrowDownIcon size="10px" /> : <ArrowRightIcon size="11px" />}
                 {isRenaming() ? <FileManagerInput value={props.item.name} parent={props.parent} onExit={(newName) => {
                     if (newName) renameBlob(props.item, newName);
                     setRenaming();
-                }} /> : <p class={`text-[13px] text-neutral-400 text-ellipsis overflow-hidden whitespace-nowrap ${!props.item.isOpen && "hover:text-neutral-200"}`}>{props.item.name}</p>}
+                }} /> : <p class={`text-[12px] text-neutral-400 text-ellipsis overflow-hidden whitespace-nowrap ${!props.item.isOpen && "hover:text-neutral-200"}`}>{props.item.name}</p>}
             </div>
         </ContextMenuBox>
         <div class="flex flex-col border-l border-neutral-700 pl-1 ml-1.5">
@@ -93,11 +93,11 @@ export const FileManagerFile = (props: {
             setCurrentFile(props.item);
             ev.stopPropagation();
         }}>
-            <FileIcon size="13px" />
+            <FileIcon size="12px" />
             {isRenaming() ? <FileManagerInput value={props.item.name} parent={props.parent} onExit={(newName) => {
                 if (newName) renameBlob(props.item, newName);
                 setRenaming();
-            }} /> : <p class="text-[13px] text-neutral-400 hover:text-neutral-200 text-ellipsis overflow-hidden whitespace-nowrap">{props.item.name}</p>}
+            }} /> : <p class="text-[12px] text-neutral-400 hover:text-neutral-200 text-ellipsis overflow-hidden whitespace-nowrap">{props.item.name}</p>}
         </div>
     </ContextMenuBox>;
 };
