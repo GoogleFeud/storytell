@@ -22,6 +22,7 @@
   "dependencies": {
     "@tauri-apps/api": "^1.0.2",
     "monaco-editor": "^0.34.0",
-    "solid-js": "^1.4.6"
+    "solid-js": "^1.4.6",
+    "split.js": "^1.6.5"
   }
 }

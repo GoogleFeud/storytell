@@ -10,8 +10,5 @@
   },
   "keywords": [],
   "author": "GoogleFeud",
-  "license": "MIT",
-  "dependencies": {
-    "split.js": "^1.6.5"
-  }
+  "license": "MIT"
 }
