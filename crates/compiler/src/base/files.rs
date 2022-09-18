@@ -130,7 +130,7 @@ impl<H: FileHost> CompilerFileHost<H> {
         self.raw.rename_item(path, &name);
     }
 
-    pub fn create_file(&mut self, name: String, parent: Option<BlobId>) -> &RefCell<File> {
+    pub fn create_blob(&mut self, name: String, parent: Option<BlobId>, is_dir: bool) -> BlobId {
         let file_id = self.counter;
         self.counter += 1;
         let path = if let Some(id) = &parent {
@@ -140,15 +140,26 @@ impl<H: FileHost> CompilerFileHost<H> {
             new_path.push(folder.id);
             new_path
         } else { vec![] };
-        self.raw.write_file(self.build_path(&path, &name), "");
-        self.files.insert(file_id, RefCell::from(File {
-            name,
-            parent,
-            path,
-            parsed_content: vec![],
-            id: file_id
-        }));
-        self.files.get(&file_id).unwrap()
+        if is_dir {
+            self.raw.create_dir(self.build_path(&path, &name));
+            self.dirs.insert(file_id, RefCell::from(Directory {
+                name,
+                parent,
+                path,
+                children: FxHashSet::default(),
+                id: file_id
+            }));
+        } else {
+            self.raw.write_file(self.build_path(&path, &name), "");
+            self.files.insert(file_id, RefCell::from(File {
+                name,
+                parent,
+                path,
+                parsed_content: vec![],
+                id: file_id
+            }));
+        }
+        file_id
     }
 
     pub fn delete_blob(&mut self, id: &BlobId) {

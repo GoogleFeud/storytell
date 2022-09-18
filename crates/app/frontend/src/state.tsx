@@ -78,8 +78,8 @@ export const renameBlob = async (file: File, name: string) => {
     setState("fileExplorer", "blobs", file.id, (f) => ({...f, name }));
 };
 
-export const createFile = async (name: string, parent?: number) => {
-    const file = JSON.parse(await invoke<string>("create_file", { parent, name: name + ".md" })) as File;
+export const createBlob = async (name: string, isDir: boolean, parent?: number) => {
+    const file = JSON.parse(await invoke<string>("create_blob", { parent, name: isDir ? name : name + ".md", dir: isDir })) as File;
     setState("fileExplorer", "blobs", file.id, file);
     if (parent !== undefined) setState("fileExplorer", "blobs", parent, "children", (c) => [...c!, file.id]);
     else setState("fileExplorer", "global", (g) => [...g, file.id]);

@@ -22,7 +22,14 @@ export const FileManager = (props: {
             }
             else setIsCreating(BlobType.File);
         }} />
-        <PlusFolderIcon size={"12px"} />
+        <PlusFolderIcon size={"12px"} onClick={(e) => {
+            e.stopPropagation();
+            if (isCurrentFolder()) {
+                setCreatingChildInDirectory(state.currentFile!, BlobType.Folder);
+                setOpenDirectory(state.currentFile!, true);
+            }
+            else setIsCreating(BlobType.Folder);
+        }} />
         <MinimizeFolderIcon size={"12px"} onClick={(e) => {
             e.stopPropagation();
             for (const icon in state.fileExplorer.blobs) {

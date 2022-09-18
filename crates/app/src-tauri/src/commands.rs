@@ -43,11 +43,17 @@ pub fn delete_blob(state: State<StorytellState>, id: u16) {
 }
 
 #[tauri::command]
-pub fn create_file(state: State<StorytellState>, name: String, parent: Option<BlobId>) -> String {
+pub fn create_blob(state: State<StorytellState>, name: String, parent: Option<BlobId>, dir: bool) -> String {
     let mut inner_state = state.lock().unwrap();
     let compiler = inner_state.compiler.as_mut().unwrap();
-    let file = compiler.host.create_file(name, parent).borrow();
-    file.compile()
+    let file_id = compiler.host.create_blob(name, parent, dir);
+    if dir {
+        let dir = compiler.host.dirs.get(&file_id).unwrap().borrow();
+        dir.compile()
+    } else {
+        let file = compiler.host.files.get(&file_id).unwrap().borrow();
+        file.compile()
+    }
 }
 
 // Returns all the files for the file manager

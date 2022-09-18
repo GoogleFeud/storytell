@@ -1,5 +1,5 @@
 import { createMemo, createSignal, JSX } from "solid-js";
-import { state, renameBlob, deleteBlob, createFile, setOpenDirectory, setCurrentFile, setCreatingChildInDirectory } from "../../../../state";
+import { state, renameBlob, deleteBlob, createBlob, setOpenDirectory, setCurrentFile, setCreatingChildInDirectory } from "../../../../state";
 import { File, BlobType } from "../../../../types";
 import { ArrowDownIcon } from "../../../Icons/arrowDown";
 import { ArrowRightIcon } from "../../../Icons/arrowRight";
@@ -106,12 +106,13 @@ export const FileManagerCreating = (props: {
     parent?: number,
     onEnd?: () => void
 }) => {
+    const isFolder = !!props.isFolder;
     return <div>
         <div class="flex gap-2 p-0.5 items-center cursor-pointer">
-            {props.isFolder ? <ArrowRightIcon size="13px" />  : <FileIcon size="13px" />}
+            {isFolder ? <ArrowRightIcon size="13px" />  : <FileIcon size="13px" />}
             <FileManagerInput parent={props.parent} onExit={(newName) => {
                 props.onEnd?.();
-                if (newName) createFile(newName, props.parent);
+                if (newName) createBlob(newName, isFolder, props.parent);
             }} />
         </div>
     </div>;
