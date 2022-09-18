@@ -32,6 +32,10 @@ export interface File {
     isCreating?: BlobType
 }
 
+export interface FileContents {
+    text: string
+}
+
 export const enum BlobType {
     File = 1,
     Folder

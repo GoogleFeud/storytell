@@ -1,7 +1,7 @@
 import { state } from "../../../state";
 import { ThreeDotsIcon } from "../../Icons/threeDots";
 import { Panel } from "../Common/Panel";
-import { VerticalResize } from "../Resizables/Vertical";
+import { ResizablePane } from "../Common/Resizables";
 import { FileManager } from "./Files";
 
 export const Explorer = () => {
@@ -13,7 +13,7 @@ export const Explorer = () => {
             </div>
         </div>
         <div class="h-full">
-            <VerticalResize minHBottom="50px" minHTop="50px" defaultHTop={(80 / 100 * window.innerHeight) + "px"}>
+            <ResizablePane vertical sizes={[70, 30]}>
                 <FileManager files={state.fileExplorer.global.map(id => state.fileExplorer.blobs[id])} />
                 <Panel text="Paths" collapsable isCollapsed>
                     <div class="pt-2">
@@ -22,7 +22,7 @@ export const Explorer = () => {
                         <p>Path 3...</p>
                     </div>
                 </Panel>
-            </VerticalResize>
+            </ResizablePane>
         </div>
     </div>;
 };

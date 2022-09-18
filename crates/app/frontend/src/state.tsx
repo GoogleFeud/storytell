@@ -2,7 +2,7 @@
 import { invoke } from "@tauri-apps/api";
 import { JSXElement } from "solid-js";
 import { createStore } from "solid-js/store";
-import { FileDiagnostic, Pages, Project, File, BlobType } from "./types";
+import { FileDiagnostic, Pages, Project, File, BlobType, FileContents } from "./types";
 
 export const [state, setState] = createStore<{
     projects: Project[],
@@ -12,7 +12,8 @@ export const [state, setState] = createStore<{
     fileExplorer: {
         blobs: Record<number, File>,
         global: number[],
-    }
+    },
+    contents: Record<number, FileContents>,
     diagnostics: FileDiagnostic[],
     currentPage: Pages
 }>({
@@ -22,6 +23,7 @@ export const [state, setState] = createStore<{
         global: []
     },
     diagnostics: [],
+    contents: [],
     currentPage: Pages.TitleScreen
 });
 

@@ -23,7 +23,7 @@ export const FileManager = (props: {
 }) => {
     const [isCreating, setIsCreating] = createSignal<BlobType>();
     return <Panel text="Files" collapsable options={<div class="flex gap-1 pr-1">
-        <PlusFileIcon size={"11px"} class="hover:bg-neutral-700 p-1 rounded" onClick={(e) => {
+        <PlusFileIcon size={"11px"} class="hover:bg-neutral-700 p-1 rounded transition" onClick={(e) => {
             e.stopPropagation();
             if (isCurrentFolder()) {
                 setCreatingChildInDirectory(state.currentFile!, BlobType.File);
@@ -31,7 +31,7 @@ export const FileManager = (props: {
             }
             else setIsCreating(BlobType.File);
         }} />
-        <PlusFolderIcon size={"11px"} class="hover:bg-neutral-700 p-1" onClick={(e) => {
+        <PlusFolderIcon size={"11px"} class="hover:bg-neutral-700 p-1 rounded transition" onClick={(e) => {
             e.stopPropagation();
             if (isCurrentFolder()) {
                 setCreatingChildInDirectory(state.currentFile!, BlobType.Folder);
@@ -39,11 +39,11 @@ export const FileManager = (props: {
             }
             else setIsCreating(BlobType.Folder);
         }} />
-        <ArrowCircleIcon size={"11px"} class="hover:bg-neutral-700 p-1" onClick={(e) => {
+        <ArrowCircleIcon size={"11px"} class="hover:bg-neutral-700 p-1 rounded transition" onClick={(e) => {
             e.stopPropagation();
             refreshBlobs();
         }} />
-        <MinimizeFolderIcon size={"11px"} class="hover:bg-neutral-700 p-1" onClick={(e) => {
+        <MinimizeFolderIcon size={"11px"} class="hover:bg-neutral-700 p-1 rounded transition" onClick={(e) => {
             e.stopPropagation();
             for (const icon in state.fileExplorer.blobs) {
                 setOpenDirectory(+icon, false);

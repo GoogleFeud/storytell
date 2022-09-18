@@ -1,19 +1,16 @@
 import { Explorer } from "./Explorer";
-import { HorizontalResize } from "./Resizables/Horizontal";
-import { VerticalResize } from "./Resizables/Vertical";
-
+import { ResizablePane } from "./Common/Resizables";
+import { TextEditor } from "./TextEditor";
 
 export const Editor = () => {
     return <div class="h-full w-full overflow-y-hidden">
-        <HorizontalResize minWLeft={600} defaultWLeft={400}>
-            <HorizontalResize minWLeft={300} minWRight={300} maxWLeft={600}>
-                <Explorer />
-                <p>Editor</p>
-            </HorizontalResize>
-            <VerticalResize minHTop="200px" minHBottom="0px" defaultHTop="800px">
+        <ResizablePane sizes={[20, 60, 20]}>
+            <Explorer />
+            <TextEditor />
+            <ResizablePane vertical sizes={[70, 30]}>
                 <p>Live View</p>
                 <p>Debug Window</p>
-            </VerticalResize>
-        </HorizontalResize>
+            </ResizablePane>
+        </ResizablePane>
     </div>;
 };
