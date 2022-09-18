@@ -8,6 +8,14 @@ import { PlusFolderIcon } from "../../../Icons/plusFolder";
 import { Panel } from "../../Common/Panel";
 import { createComponentFromItem, FileManagerCreating } from "./item";
 
+export const sortFileList = (files: File[]) => {
+    return files.sort((a, b) => {
+        // First folders, then files
+        if (a.children && !b.children) return -1;
+        else if (b.children && !a.children) return 1;
+        else return a.name.localeCompare(b.name);
+    });
+};
 
 export const FileManager = (props: { 
     files: File[]
@@ -38,12 +46,7 @@ export const FileManager = (props: {
         }} />
     </div>}>
         <div class="pt-2 h-full select-none w-full" onClick={() => setCurrentFile()}>
-            {props.files.sort((a, b) => {
-                // First folders, then files
-                if (a.children && !b.children) return -1;
-                else if (b.children && !a.children) return 1;
-                else return a.name.localeCompare(b.name);
-            }).map(f => createComponentFromItem(f))}
+            {sortFileList(props.files).map(f => createComponentFromItem(f))}
             {isCreating() && <FileManagerCreating isFolder={isCreating() === BlobType.Folder} onEnd={setIsCreating()} />}
         </div>
     </Panel>;

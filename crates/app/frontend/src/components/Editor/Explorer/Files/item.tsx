@@ -1,4 +1,5 @@
 import { createMemo, createSignal, JSX } from "solid-js";
+import { sortFileList } from ".";
 import { state, renameBlob, deleteBlob, createBlob, setOpenDirectory, setCurrentFile, setCreatingChildInDirectory } from "../../../../state";
 import { File, BlobType } from "../../../../types";
 import { ArrowDownIcon } from "../../../Icons/arrowDown";
@@ -27,7 +28,7 @@ export const FileManagerFolder = (props: {
     item: File,
     parent?: number,
 }) => {
-    const realChildren = createMemo(() => props.item.children?.map(c => createComponentFromItem(state.fileExplorer.blobs[c], props.item.id)));
+    const realChildren = createMemo(() => sortFileList((props.item.children as number[]).map(c => state.fileExplorer.blobs[c] as File)).map(c => createComponentFromItem(c, props.item.id)));
     const [isRenaming, setRenaming] = createSignal();
     return <div class="flex flex-col gap-1 ml-0.5">
         <ContextMenuBox menu={<ContextMenu commands={[
