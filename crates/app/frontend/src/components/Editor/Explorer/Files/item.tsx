@@ -1,5 +1,5 @@
 import { createMemo, createSignal, JSX } from "solid-js";
-import { state, renameBlob, deleteBlob, createFile, setOpenDirectory } from "../../../../state";
+import { state, renameBlob, deleteBlob, createFile, setOpenDirectory, setCurrentFile, setCreatingChildInDirectory } from "../../../../state";
 import { File, BlobType } from "../../../../types";
 import { ArrowDownIcon } from "../../../Icons/arrowDown";
 import { ArrowRightIcon } from "../../../Icons/arrowRight";
@@ -26,25 +26,23 @@ export const FileManagerInput = (props: JSX.InputHTMLAttributes<HTMLInputElement
 export const FileManagerFolder = (props: {
     item: File,
     parent?: number,
-    onSelect?: (file: File) => void
 }) => {
-    const realChildren = createMemo(() => props.item.children?.map(c => createComponentFromItem(state.fileExplorer.blobs[c], props.onSelect, props.item.id)));
+    const realChildren = createMemo(() => props.item.children?.map(c => createComponentFromItem(state.fileExplorer.blobs[c], props.item.id)));
     const [isRenaming, setRenaming] = createSignal();
-    const [isCreating, setIsCreating] = createSignal<BlobType>();
     return <div class="flex flex-col gap-1 ml-0.5">
         <ContextMenuBox menu={<ContextMenu commands={[
             {
                 name: "New File...",
                 execute: () => {
                     setOpenDirectory(props.item.id, true);
-                    setIsCreating(BlobType.File);
+                    setCreatingChildInDirectory(props.item.id, BlobType.File);
                 }
             },
             {
                 name: "New Folder...",
                 execute: () => {
                     setOpenDirectory(props.item.id, true);
-                    setIsCreating(BlobType.Folder);
+                    setCreatingChildInDirectory(props.item.id, BlobType.Folder);
                 }
             },
             {
@@ -56,9 +54,10 @@ export const FileManagerFolder = (props: {
                 execute: () => deleteBlob(props.item, props.parent)
             }
         ]} />}>
-            <div class={`flex items-center gap-2 cursor-pointer p-0.5 ${state.currentFile === props.item.id ? "w-full bg-[#6d4c41] text-white" : ""}`} onClick={() => {
+            <div class={`flex items-center gap-2 cursor-pointer p-0.5 ${state.currentFile === props.item.id ? "w-full bg-[#6d4c41] text-white" : ""}`} onClick={(ev) => {
                 setOpenDirectory(props.item.id, !props.item.isOpen);
-                props.onSelect?.(props.item);
+                setCurrentFile(props.item);
+                ev.stopPropagation();
             }}>
                 {props.item.isOpen ? <ArrowDownIcon size="12px" /> : <ArrowRightIcon size="13px" />}
                 {isRenaming() ? <FileManagerInput value={props.item.name} parent={props.parent} onExit={(newName) => {
@@ -69,15 +68,14 @@ export const FileManagerFolder = (props: {
         </ContextMenuBox>
         <div class="flex flex-col border-l border-neutral-700 pl-1 ml-1.5">
             {props.item.isOpen && realChildren}
-            {isCreating() && <FileManagerCreating isFolder={isCreating() === BlobType.Folder} parent={props.item.id} onEnd={() => setIsCreating()} />}
+            {props.item.isCreating && <FileManagerCreating isFolder={props.item.isCreating === BlobType.Folder} parent={props.item.id} onEnd={() => setCreatingChildInDirectory(props.item.id)} />}
         </div>
     </div>;
 };
 
 export const FileManagerFile = (props: {
     item: File,
-    parent?: number,
-    onSelect?: (file: File) => void
+    parent?: number
 }) => {
     const [isRenaming, setRenaming] = createSignal();
     return <ContextMenuBox menu={<ContextMenu commands={[
@@ -90,7 +88,10 @@ export const FileManagerFile = (props: {
             execute: () => deleteBlob(props.item, props.parent)
         }
     ]} />}>
-        <div class={`flex gap-2 p-0.5 items-center cursor-pointer ${state.currentFile === props.item.id ? "w-full bg-[#6d4c41] text-white" : ""}`} onClick={() => props.onSelect?.(props.item)}>
+        <div class={`flex gap-2 p-0.5 items-center cursor-pointer ${state.currentFile === props.item.id ? "w-full bg-[#6d4c41] text-white" : ""}`} onClick={(ev) => {
+            setCurrentFile(props.item);
+            ev.stopPropagation();
+        }}>
             <FileIcon size="13px" />
             {isRenaming() ? <FileManagerInput value={props.item.name} parent={props.parent} onExit={(newName) => {
                 if (newName) renameBlob(props.item, newName);
@@ -116,6 +117,6 @@ export const FileManagerCreating = (props: {
     </div>;
 };
 
-export const createComponentFromItem = (item: File, onSelect?: (file: File) => void, parent?: number) => {
-    return item.children ? <FileManagerFolder item={item} onSelect={onSelect} parent={parent} /> : <FileManagerFile item={item} parent={parent} onSelect={onSelect} />;
+export const createComponentFromItem = (item: File, parent?: number) => {
+    return item.children ? <FileManagerFolder item={item} parent={parent} /> : <FileManagerFile item={item} parent={parent} />;
 };

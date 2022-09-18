@@ -13,7 +13,7 @@ export const Panel = (props: ParentProps<{
     const realChildren = children(() => props.children);
 
     return <ScrollBox>
-        <div class="flex flex-col border-y border-neutral-800">
+        <div class="flex flex-col h-full border-y border-neutral-800">
             <div class="flex justify-between items-center p-1 cursor-pointer" onClick={() => setCollapsed(!collapsed())}>
                 <div class="flex items-center gap-2 select-none">
                     {props.collapsable && (collapsed() ? <ArrowRightIcon size="12px" /> : <ArrowDownIcon size="12px" />)}
@@ -21,7 +21,7 @@ export const Panel = (props: ParentProps<{
                 </div>
                 {props.options}
             </div>
-            {!collapsed() && <div class="pl-[14px]">
+            {!collapsed() && <div class="pl-[14px] h-full">
                 {realChildren()}
             </div>}
         </div>

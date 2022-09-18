@@ -28,7 +28,8 @@ export interface File {
     name: string,
     id: number,
     children?: number[],
-    isOpen?: boolean
+    isOpen?: boolean,
+    isCreating?: BlobType
 }
 
 export const enum BlobType {

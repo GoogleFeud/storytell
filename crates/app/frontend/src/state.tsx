@@ -2,7 +2,7 @@
 import { invoke } from "@tauri-apps/api";
 import { JSXElement } from "solid-js";
 import { createStore } from "solid-js/store";
-import { FileDiagnostic, Pages, Project, File } from "./types";
+import { FileDiagnostic, Pages, Project, File, BlobType } from "./types";
 
 export const [state, setState] = createStore<{
     projects: Project[],
@@ -67,7 +67,11 @@ export const initCompiler = async (projectId: string) => {
     setState("fileExplorer", result.fileExplorer);
 };
 
-export const setCurrentFile = (file: File) => setState("currentFile", file.id);
+export const setCurrentFile = (file?: File) => setState("currentFile", file?.id);
+
+export const getCurrentFile = () => state.currentFile && state.fileExplorer.blobs[state.currentFile];
+
+export const isCurrentFolder = () => state.currentFile && !!state.fileExplorer.blobs[state.currentFile].children;
 
 export const renameBlob = async (file: File, name: string) => {
     await invoke<string>("rename_blob", { id: file.id, name: file.children ? name : name + ".md" });
@@ -92,6 +96,10 @@ export const deleteBlob = async (file: File, parent?: number) => {
 
 export const setOpenDirectory = (folder: number, open: boolean) => {
     setState("fileExplorer", "blobs", folder, "isOpen", open);
+};
+
+export const setCreatingChildInDirectory = (folder: number, type?: BlobType) => {
+    setState("fileExplorer", "blobs", folder, "isCreating", type);
 };
 
 const deleteBlobsRecursive = (file: File, blobs: Record<number, File>) => {
