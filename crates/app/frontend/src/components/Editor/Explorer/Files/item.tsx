@@ -1,5 +1,5 @@
-import { createMemo, createSignal } from "solid-js";
-import { state, renameBlob, deleteBlob, createFile } from "../../../../state";
+import { createMemo, createSignal, JSX } from "solid-js";
+import { state, renameBlob, deleteBlob, createFile, setOpenDirectory } from "../../../../state";
 import { File, BlobType } from "../../../../types";
 import { ArrowDownIcon } from "../../../Icons/arrowDown";
 import { ArrowRightIcon } from "../../../Icons/arrowRight";
@@ -8,12 +8,26 @@ import { ContextMenuBox } from "../../../utils/ContextMenuBox";
 import { Input } from "../../../utils/Input";
 import { ContextMenu } from "../../Common/ContextMenu";
 
+export const FileManagerInput = (props: JSX.InputHTMLAttributes<HTMLInputElement> & {
+    value?: string,
+    parent?: number,
+    onExit?: (value: string) => void
+}) => {
+    return <Input {...props} type="text" class="text-[13px] outline-none bg-neutral-700 border border-neutral-600 w-full" ref={(ev) => setTimeout(() => ev.select(), 0)} validator={(val) => {
+        if (val && !val.match(/^(?!\.)(?!com[0-9]$)(?!con$)(?!lpt[0-9]$)(?!nul$)(?!prn$)[^|*?\\:<>/$"]*[^.|*?\\:<>/$"]+$/)) return "Invalid file / folder name.";
+        const parent = (props.parent !== undefined ? state.fileExplorer.blobs[props.parent].children : state.fileExplorer.global) as Array<number>;
+        for (const child of parent) {
+            if (state.fileExplorer.blobs[child].name === val) return "A file or folder with this name already exists.";
+        }
+        return;
+    }} />;
+};
+
 export const FileManagerFolder = (props: {
     item: File,
     parent?: number,
     onSelect?: (file: File) => void
 }) => {
-    const [collapsed, setCollapsed] = createSignal(true);
     const realChildren = createMemo(() => props.item.children?.map(c => createComponentFromItem(state.fileExplorer.blobs[c], props.onSelect, props.item.id)));
     const [isRenaming, setRenaming] = createSignal();
     const [isCreating, setIsCreating] = createSignal<BlobType>();
@@ -21,11 +35,17 @@ export const FileManagerFolder = (props: {
         <ContextMenuBox menu={<ContextMenu commands={[
             {
                 name: "New File...",
-                execute: () => setIsCreating(BlobType.File)
+                execute: () => {
+                    setOpenDirectory(props.item.id, true);
+                    setIsCreating(BlobType.File);
+                }
             },
             {
                 name: "New Folder...",
-                execute: () => setIsCreating(BlobType.Folder)
+                execute: () => {
+                    setOpenDirectory(props.item.id, true);
+                    setIsCreating(BlobType.Folder);
+                }
             },
             {
                 name: "Rename",
@@ -37,19 +57,18 @@ export const FileManagerFolder = (props: {
             }
         ]} />}>
             <div class={`flex items-center gap-2 cursor-pointer p-0.5 ${state.currentFile === props.item.id ? "w-full bg-[#6d4c41] text-white" : ""}`} onClick={() => {
-                setCollapsed(!collapsed());
+                setOpenDirectory(props.item.id, !props.item.isOpen);
                 props.onSelect?.(props.item);
             }}>
-                {collapsed() ? <ArrowRightIcon size="13px" /> : <ArrowDownIcon size="12px" />}
-                {isRenaming() ? <Input type="text" class="text-[13px] outline-none bg-neutral-700 border border-neutral-600 w-full" value={props.item.name} ref={(ev) => setTimeout(() => ev.select(), 0)} onExit={(newName) => {
-                    if (!isRenaming()) return;
-                    renameBlob(props.item, newName);
+                {props.item.isOpen ? <ArrowDownIcon size="12px" /> : <ArrowRightIcon size="13px" />}
+                {isRenaming() ? <FileManagerInput value={props.item.name} parent={props.parent} onExit={(newName) => {
+                    if (newName) renameBlob(props.item, newName);
                     setRenaming();
-                }} /> : <p class={`text-[13px] text-neutral-400 text-ellipsis overflow-hidden whitespace-nowrap ${collapsed() && "hover:text-neutral-200"}`}>{props.item.name}</p>}
+                }} /> : <p class={`text-[13px] text-neutral-400 text-ellipsis overflow-hidden whitespace-nowrap ${!props.item.isOpen && "hover:text-neutral-200"}`}>{props.item.name}</p>}
             </div>
         </ContextMenuBox>
         <div class="flex flex-col border-l border-neutral-700 pl-1 ml-1.5">
-            {!collapsed() && realChildren}
+            {props.item.isOpen && realChildren}
             {isCreating() && <FileManagerCreating isFolder={isCreating() === BlobType.Folder} parent={props.item.id} onEnd={() => setIsCreating()} />}
         </div>
     </div>;
@@ -73,9 +92,8 @@ export const FileManagerFile = (props: {
     ]} />}>
         <div class={`flex gap-2 p-0.5 items-center cursor-pointer ${state.currentFile === props.item.id ? "w-full bg-[#6d4c41] text-white" : ""}`} onClick={() => props.onSelect?.(props.item)}>
             <FileIcon size="13px" />
-            {isRenaming() ? <Input type="text" class="text-[13px] outline-none bg-neutral-700 border border-neutral-600 w-full" value={props.item.name} ref={(ev) => setTimeout(() => ev.select(), 0)} onExit={(newName) => {
-                if (!isRenaming()) return;
-                renameBlob(props.item, newName);
+            {isRenaming() ? <FileManagerInput value={props.item.name} parent={props.parent} onExit={(newName) => {
+                if (newName) renameBlob(props.item, newName);
                 setRenaming();
             }} /> : <p class="text-[13px] text-neutral-400 hover:text-neutral-200 text-ellipsis overflow-hidden whitespace-nowrap">{props.item.name}</p>}
         </div>
@@ -90,9 +108,9 @@ export const FileManagerCreating = (props: {
     return <div>
         <div class="flex gap-2 p-0.5 items-center cursor-pointer">
             {props.isFolder ? <ArrowRightIcon size="13px" />  : <FileIcon size="13px" />}
-            <Input type="text" class="text-[13px] outline-none bg-neutral-700 border border-neutral-600 w-full" ref={(ev) => setTimeout(() => ev.select(), 0)} onExit={(newName) => {
+            <FileManagerInput parent={props.parent} onExit={(newName) => {
                 props.onEnd?.();
-                createFile(newName, props.parent);
+                if (newName) createFile(newName, props.parent);
             }} />
         </div>
     </div>;

@@ -27,7 +27,8 @@ export interface FileDiagnostic {
 export interface File {
     name: string,
     id: number,
-    children?: number[]
+    children?: number[],
+    isOpen?: boolean
 }
 
 export const enum BlobType {
