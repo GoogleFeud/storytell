@@ -2,7 +2,7 @@
 import { invoke } from "@tauri-apps/api";
 import { JSXElement } from "solid-js";
 import { createStore } from "solid-js/store";
-import { FileDiagnostic, Pages, Project, File, BlobType, FileContents } from "./types";
+import { FileDiagnostic, Pages, Project, File, BlobType, FileContents, Panel } from "./types";
 
 export const [state, setState] = createStore<{
     projects: Project[],
@@ -13,6 +13,8 @@ export const [state, setState] = createStore<{
         blobs: Record<number, File>,
         global: number[],
     },
+    openPanels: Panel[],
+    activePanel?: number,
     contents: Record<number, FileContents>,
     diagnostics: FileDiagnostic[],
     currentPage: Pages
@@ -24,6 +26,7 @@ export const [state, setState] = createStore<{
     },
     diagnostics: [],
     contents: [],
+    openPanels: [],
     currentPage: Pages.TitleScreen
 });
 
@@ -69,7 +72,20 @@ export const initCompiler = async (projectId: string) => {
     setState("fileExplorer", result.fileExplorer);
 };
 
-export const setCurrentFile = (file?: File) => setState("currentFile", file?.id);
+export const setCurrentFile = (file?: File) => {
+    if (file) {
+        setState("currentFile", file.id);
+        if (!file.children) {
+            if (!state.openPanels.some(p => p.id === file.id)) setState("openPanels", (p) => [{
+                name: file.name,
+                id: file.id
+            }, ...p]);
+            setState("activePanel", state.openPanels.findIndex(p => p.id === file.id));
+        }
+    } else {
+        setState("currentFile", undefined);
+    }
+};
 
 export const getCurrentFile = () => state.currentFile && state.fileExplorer.blobs[state.currentFile];
 
@@ -96,6 +112,15 @@ export const deleteBlob = async (file: File, parent?: number) => {
     else setState("fileExplorer", "global", (s) => s.filter(g => newBlobs[g]));
 };
 
+const deleteBlobsRecursive = (file: File, blobs: Record<number, File>) => {
+    if (file.children) {
+        for (const child of file.children) {
+            deleteBlobsRecursive(blobs[child], blobs);
+        }
+    }
+    delete blobs[file.id];
+};
+
 export const refreshBlobs = async () => {
     const refreshed = JSON.parse(await invoke<string>("refresh_blobs")) as {
         blobs: Record<string, File>,
@@ -115,11 +140,16 @@ export const setCreatingChildInDirectory = (folder: number, type?: BlobType) => 
     setState("fileExplorer", "blobs", folder, "isCreating", type);
 };
 
-const deleteBlobsRecursive = (file: File, blobs: Record<number, File>) => {
-    if (file.children) {
-        for (const child of file.children) {
-            deleteBlobsRecursive(blobs[child], blobs);
-        }
+export const setActivePanel = (id: number) => {
+    setState("activePanel", id);
+};
+
+export const removePanel = (id: number) => {
+    setState("openPanels", (p) => p.filter((_, ind) => ind !== id));
+    if (state.activePanel === id) {
+        const selected = state.openPanels[id] ? id : state.openPanels[id - 1] ? id - 1 : undefined;
+        console.log(selected);
+        setState("activePanel", selected);
+        console.log(selected);
     }
-    delete blobs[file.id];
 };

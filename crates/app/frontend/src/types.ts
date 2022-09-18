@@ -1,3 +1,4 @@
+import { JSXElement } from "solid-js";
 
 export interface Project {
     metadata: {
@@ -34,6 +35,13 @@ export interface File {
 
 export interface FileContents {
     text: string
+}
+
+export interface Panel {
+    name: string,
+    id?: number,
+    icon?: JSXElement,
+    pinned?: boolean
 }
 
 export const enum BlobType {
