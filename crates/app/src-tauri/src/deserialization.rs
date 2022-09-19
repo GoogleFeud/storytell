@@ -52,6 +52,7 @@ impl JSONCompilable for File {
     fn compile(&self) -> String {
         json!({
             name: self.name.split(".").next().unwrap().compile(),
+            parent: self.parent.compile(),
             id: self.id
         })
     }
@@ -62,7 +63,8 @@ impl JSONCompilable for Directory {
         json!({
             name: self.name.compile(),
             id: self.id,
-            children: self.children.compile()
+            children: self.children.compile(),
+            parent: self.parent.compile()
         })
     }
 }
@@ -82,5 +84,15 @@ impl JSONCompilable for String {
 impl JSONCompilable for &str {
     fn compile(&self) -> String {
         format!("\"{}\"", self)
+    }
+}
+
+impl<T: JSONCompilable> JSONCompilable for Option<T> {
+    fn compile(&self) -> String {
+        if let Some(val) = &self {
+            val.compile()
+        } else {
+            String::from("null")
+        }
     }
 }

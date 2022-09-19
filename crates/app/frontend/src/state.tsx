@@ -14,7 +14,7 @@ export const [state, setState] = createStore<{
         global: number[],
     },
     openPanels: Panel[],
-    activePanel?: number,
+    activePanel?: string,
     contents: Record<number, FileContents>,
     diagnostics: FileDiagnostic[],
     currentPage: Pages
@@ -72,15 +72,16 @@ export const initCompiler = async (projectId: string) => {
     setState("fileExplorer", result.fileExplorer);
 };
 
-export const setCurrentFile = (file?: File) => {
+export const setCurrentFile = (file?: File, addToPanels = true) => {
     if (file) {
         setState("currentFile", file.id);
-        if (!file.children) {
-            if (!state.openPanels.some(p => p.id === file.id)) setState("openPanels", (p) => [{
+        if (!file.children && addToPanels) {
+            if (!state.openPanels.some(p => p.fileId === file.id)) setState("openPanels", (p) => [{
                 name: file.name,
-                id: file.id
+                fileId: file.id,
+                id: file.id.toString()
             }, ...p]);
-            setState("activePanel", state.openPanels.findIndex(p => p.id === file.id));
+            setState("activePanel", file.id.toString());
         }
     } else {
         setState("currentFile", undefined);
@@ -103,12 +104,12 @@ export const createBlob = async (name: string, isDir: boolean, parent?: number) 
     else setState("fileExplorer", "global", (g) => [...g, file.id]);
 };
 
-export const deleteBlob = async (file: File, parent?: number) => {
+export const deleteBlob = async (file: File) => {
     await invoke("delete_blob", { id: file.id });
     const newBlobs = {...state.fileExplorer.blobs};
     deleteBlobsRecursive(file, newBlobs);
     setState("fileExplorer", "blobs", newBlobs);
-    if (parent !== undefined) setState("fileExplorer", "blobs", parent, "children", (children) => children!.filter(f => f !== file.id));
+    if (file.parent !== undefined) setState("fileExplorer", "blobs", file.parent, "children", (children) => children!.filter(f => f !== file.id));
     else setState("fileExplorer", "global", (s) => s.filter(g => newBlobs[g]));
 };
 
@@ -140,16 +141,26 @@ export const setCreatingChildInDirectory = (folder: number, type?: BlobType) => 
     setState("fileExplorer", "blobs", folder, "isCreating", type);
 };
 
-export const setActivePanel = (id: number) => {
-    setState("activePanel", id);
+const openDirectoryRecursive = (dir: number) => {
+    setState("fileExplorer", "blobs", dir, "isOpen", true);
+    const dirObj = state.fileExplorer.blobs[dir];
+    if (dirObj.parent) openDirectoryRecursive(dirObj.parent);
 };
 
-export const removePanel = (id: number) => {
-    setState("openPanels", (p) => p.filter((_, ind) => ind !== id));
+export const setActivePanel = (id: string) => {
+    setState("activePanel", id);
+    const panel = state.openPanels.find(p => p.id === id)!;
+    if (panel.fileId !== undefined) {
+        setState("currentFile", panel.fileId);
+        openDirectoryRecursive(panel.fileId);
+    }
+};
+
+export const removePanel = (id: string) => {
+    const panelId = state.openPanels.findIndex(p => p.id === id);
+    setState("openPanels", (p) => p.filter(p => p.id !== id));
     if (state.activePanel === id) {
-        const selected = state.openPanels[id] ? id : state.openPanels[id - 1] ? id - 1 : undefined;
-        console.log(selected);
+        const selected = (state.openPanels[panelId] || state.openPanels[panelId - 1])?.id;
         setState("activePanel", selected);
-        console.log(selected);
     }
 };

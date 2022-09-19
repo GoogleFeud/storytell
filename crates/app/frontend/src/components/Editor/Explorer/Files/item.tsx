@@ -26,9 +26,8 @@ export const FileManagerInput = (props: JSX.InputHTMLAttributes<HTMLInputElement
 
 export const FileManagerFolder = (props: {
     item: File,
-    parent?: number,
 }) => {
-    const realChildren = createMemo(() => sortFileList((props.item.children as number[]).map(c => state.fileExplorer.blobs[c] as File)).map(c => createComponentFromItem(c, props.item.id)));
+    const realChildren = createMemo(() => sortFileList((props.item.children as number[]).map(c => state.fileExplorer.blobs[c] as File)).map(c => createComponentFromItem(c)));
     const [isRenaming, setRenaming] = createSignal();
     return <div class="flex flex-col gap-1 ml-0.5">
         <ContextMenuBox menu={<ContextMenu commands={[
@@ -52,7 +51,7 @@ export const FileManagerFolder = (props: {
             },
             {
                 name: "Delete",
-                execute: () => deleteBlob(props.item, props.parent)
+                execute: () => deleteBlob(props.item)
             }
         ]} />}>
             <div class={`flex items-center gap-2 cursor-pointer p-0.5 ${state.currentFile === props.item.id ? "w-full bg-[#6d4c41] text-white" : ""}`} onClick={(ev) => {
@@ -61,7 +60,7 @@ export const FileManagerFolder = (props: {
                 ev.stopPropagation();
             }}>
                 {props.item.isOpen ? <ArrowDownIcon size="10px" /> : <ArrowRightIcon size="11px" />}
-                {isRenaming() ? <FileManagerInput value={props.item.name} parent={props.parent} onExit={(newName) => {
+                {isRenaming() ? <FileManagerInput value={props.item.name} parent={props.item.parent} onExit={(newName) => {
                     if (newName) renameBlob(props.item, newName);
                     setRenaming();
                 }} /> : <p class={`text-[12px] text-neutral-400 text-ellipsis overflow-hidden whitespace-nowrap ${!props.item.isOpen && "hover:text-neutral-200"}`}>{props.item.name}</p>}
@@ -75,8 +74,7 @@ export const FileManagerFolder = (props: {
 };
 
 export const FileManagerFile = (props: {
-    item: File,
-    parent?: number
+    item: File
 }) => {
     const [isRenaming, setRenaming] = createSignal();
     return <ContextMenuBox menu={<ContextMenu commands={[
@@ -86,7 +84,7 @@ export const FileManagerFile = (props: {
         },
         {
             name: "Delete",
-            execute: () => deleteBlob(props.item, props.parent)
+            execute: () => deleteBlob(props.item)
         }
     ]} />}>
         <div class={`flex gap-2 p-0.5 items-center cursor-pointer ${state.currentFile === props.item.id ? "w-full bg-[#6d4c41] text-white" : ""}`} onClick={(ev) => {
@@ -94,7 +92,7 @@ export const FileManagerFile = (props: {
             ev.stopPropagation();
         }}>
             <FileIcon size="12px" />
-            {isRenaming() ? <FileManagerInput value={props.item.name} parent={props.parent} onExit={(newName) => {
+            {isRenaming() ? <FileManagerInput value={props.item.name} parent={props.item.parent} onExit={(newName) => {
                 if (newName) renameBlob(props.item, newName);
                 setRenaming();
             }} /> : <p class="text-[12px] text-neutral-400 hover:text-neutral-200 text-ellipsis overflow-hidden whitespace-nowrap">{props.item.name}</p>}
@@ -119,6 +117,6 @@ export const FileManagerCreating = (props: {
     </div>;
 };
 
-export const createComponentFromItem = (item: File, parent?: number) => {
-    return item.children ? <FileManagerFolder item={item} parent={parent} /> : <FileManagerFile item={item} parent={parent} />;
+export const createComponentFromItem = (item: File) => {
+    return item.children ? <FileManagerFolder item={item} /> : <FileManagerFile item={item} />;
 };

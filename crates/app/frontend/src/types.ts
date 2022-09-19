@@ -28,6 +28,7 @@ export interface FileDiagnostic {
 export interface File {
     name: string,
     id: number,
+    parent?: number,
     children?: number[],
     isOpen?: boolean,
     isCreating?: BlobType
@@ -39,7 +40,8 @@ export interface FileContents {
 
 export interface Panel {
     name: string,
-    id?: number,
+    fileId?: number,
+    id: string,
     icon?: JSXElement,
     pinned?: boolean
 }
