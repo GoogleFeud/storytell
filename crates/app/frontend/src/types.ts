@@ -35,7 +35,8 @@ export interface File {
 }
 
 export interface FileContents {
-    text: string
+    textContent?: string,
+    diagnostics?: Diagnostic[]
 }
 
 export interface Panel {

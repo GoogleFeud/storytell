@@ -1,19 +1,24 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { invoke } from "@tauri-apps/api";
-import { File, BlobType } from "@types";
+import { File, BlobType, Diagnostic } from "@types";
 import { state, setState } from ".";
+import { setEditorText } from "./editor";
 import { removePanel } from "./panel";
 
-export const setCurrentFile = (file?: File, addToPanels = true) => {
+export const setCurrentFile = async (file?: File, addToPanels = true) => {
     if (file) {
         setState("currentFile", file.id);
-        if (!file.children && addToPanels) {
-            if (!state.openPanels.some(p => p.fileId === file.id)) setState("openPanels", (p) => [{
-                name: file.name,
-                fileId: file.id,
-                id: file.id.toString()
-            }, ...p]);
-            setState("activePanel", file.id.toString());
+        if (!file.children) {
+            if (!state.contents[file.id]) await openFile(file.id);
+            setEditorText(state.contents[file.id].textContent || "");
+            if (addToPanels) {
+                if (!state.openPanels.some(p => p.fileId === file.id)) setState("openPanels", (p) => [{
+                    name: file.name,
+                    fileId: file.id,
+                    id: file.id.toString()
+                }, ...p]);
+                setState("activePanel", file.id.toString());
+            }
         }
     } else {
         setState("currentFile", undefined);
@@ -80,4 +85,13 @@ export const openDirectoryRecursive = (dir: number) => {
     const dirObj = state.fileExplorer.blobs[dir];
     if (dirObj.children) setState("fileExplorer", "blobs", dir, "isOpen", true);
     if (dirObj.parent) openDirectoryRecursive(dirObj.parent);
+};
+
+export const openFile = async (fileId: number) => {
+    const res = await JSON.parse(await invoke("open_file", {fileId})) as {
+        textContent?: string,
+        diagnostics?: Diagnostic[],
+        parsedContent?: unknown
+    };
+    setState("contents", fileId, res);
 };

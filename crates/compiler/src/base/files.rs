@@ -1,8 +1,8 @@
 use storytell_diagnostics::diagnostic::Diagnostic;
 use storytell_fs::FileHost;
 use rustc_hash::{FxHashMap, FxHashSet};
-use storytell_parser::{ast::{model::ASTBlock, Parser}, input::ParsingContext};
-use std::{path::{PathBuf, Path}, cell::RefMut};
+use storytell_parser::ast::{model::ASTBlock};
+use std::path::{PathBuf, Path};
 use std::cell::RefCell;
 
 pub type BlobId = u16;
@@ -14,6 +14,7 @@ pub struct FileDiagnostic {
 
 pub struct File {
     pub name: String,
+    pub text_content: String,
     pub parsed_content: Vec<ASTBlock>,
     pub path: Vec<BlobId>,
     pub parent: Option<BlobId>,
@@ -97,6 +98,7 @@ impl<H: FileHost> CompilerFileHost<H> {
             } else {
                 self.files.insert(blob_id, RefCell::from(File {
                     parsed_content: vec![],
+                    text_content: String::new(),
                     name: entry.file_name().to_str().unwrap().to_string(),
                     path: path.clone(),
                     parent: path.last().cloned(),
@@ -105,20 +107,6 @@ impl<H: FileHost> CompilerFileHost<H> {
             }
         }
         children
-    }
-
-    pub fn parse_file_by_id(&self, id: &BlobId) -> Option<(RefMut<File>, Vec<Diagnostic>)> {
-        let mut file = self.files.get(id).unwrap().borrow_mut();
-        let file_content = self.raw.read_file(self.build_path(&file.path, &file.name))?;
-        let (res, ctx) = Parser::new(&file_content, ParsingContext::new(self.line_endings)).parse();
-        file.parsed_content = res;
-        Some((file, ctx.diagnostics))
-    }
-
-    pub fn parse_file(&self, file: &File) -> Option<(Vec<ASTBlock>, Vec<Diagnostic>)> {
-        let file_content = self.raw.read_file(self.build_path(&file.path, &file.name))?;
-        let (res, ctx) = Parser::new(&file_content, ParsingContext::new(self.line_endings)).parse();
-        Some((res, ctx.diagnostics))
     }
     
     pub fn rename_blob(&mut self, id: &BlobId, name: String) {
@@ -164,6 +152,7 @@ impl<H: FileHost> CompilerFileHost<H> {
                 parent,
                 path,
                 parsed_content: vec![],
+                text_content: String::new(),
                 id: file_id
             }));
         }

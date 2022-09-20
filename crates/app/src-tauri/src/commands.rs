@@ -1,7 +1,7 @@
-use storytell_compiler::{base::{Compiler, files::BlobId}, json_compiler::{JSONCompilerProvider}, json};
+use storytell_compiler::{base::{Compiler, files::BlobId}, json_compiler::{JSONCompilerProvider, JSONCompilerContext}, json};
 use storytell_fs::SysFileHost;
 use tauri::State;
-use crate::{state::StorytellState, projects::Project, deserialization::JSONCompilable};
+use crate::{state::StorytellState, projects::Project, deserialization::JSONSerializable};
 use serde_json::to_string;
 
 #[tauri::command]
@@ -71,6 +71,18 @@ pub fn refresh_blobs(state: State<StorytellState>) -> String {
     })
 }
 
+#[tauri::command]
+pub fn open_file(state: State<StorytellState>, file_id: BlobId) -> String {
+    let mut inner_state = state.lock().unwrap();
+    let compiler = inner_state.compiler.as_mut().unwrap();
+    let (compiled, diagnostics) = compiler.compile_file(file_id);
+    let file = compiler.host.files.get(&file_id).unwrap().borrow();
+    json!({
+        textContent: file.text_content.compile(),
+        parsedContent: compiled.compile(),
+        diagnostics: diagnostics.compile()
+    })
+}
 
 // Returns all the files for the file manager
 // Compiles the last opened file if necessary
@@ -82,7 +94,7 @@ pub fn init_compiler(state: State<StorytellState>, project_id: String) -> Option
     let line_endings = 2;
     #[cfg(not(windows))]
     let line_endings = 1;
-    let mut compiler = Compiler::<JSONCompilerProvider, SysFileHost>::new(project.files_directory.to_str().unwrap(), line_endings, SysFileHost::default());
+    let mut compiler = Compiler::<JSONCompilerProvider, SysFileHost>::new(project.files_directory.to_str().unwrap(), line_endings, SysFileHost::default(), JSONCompilerContext::default());
     let global_files = compiler.host.load_cwd();
     let json_str = json!({
         fileExplorer: json!({

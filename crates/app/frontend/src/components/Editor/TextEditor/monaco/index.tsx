@@ -1,9 +1,9 @@
+import { setEditor } from "@state/editor";
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
-import { createSignal, onMount } from "solid-js";
+import { onMount } from "solid-js";
 import "./worker";
 
 export const MonacoEditor = () => {
-    const [, setEditor] = createSignal<monaco.editor.IStandaloneCodeEditor>();
     let editorRef: HTMLDivElement|undefined;
 
     onMount(() => {

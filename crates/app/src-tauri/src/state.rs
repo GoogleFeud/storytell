@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 use storytell_compiler::{
-    json_compiler::{JSONCompilerProvider},
-    base::Compiler
+    json_compiler::JSONCompilerProvider,
+    base::{Compiler}
 };
 use storytell_fs::SysFileHost;
 use crate::projects::Projects;

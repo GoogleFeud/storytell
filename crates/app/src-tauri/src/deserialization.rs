@@ -1,15 +1,16 @@
 use storytell_diagnostics::{diagnostic::Diagnostic, location::Range};
 use storytell_compiler::{base::files::{File, FileDiagnostic, Directory}, json};
 use rustc_hash::FxHashSet;
+use serde_json::{json as serde_json};
 
-pub trait JSONCompilable {
+pub trait JSONSerializable {
     fn compile(&self) -> String;
 }
 
 // Due to Rust's orphan rules, serializing structs from other crates becomes
 // a big hassle. This is why I'm implementing my own functions.
 
-impl JSONCompilable for Range<usize> {
+impl JSONSerializable for Range<usize> {
     fn compile(&self) -> String {
         json!({
             start: self.start,
@@ -18,7 +19,7 @@ impl JSONCompilable for Range<usize> {
     }
 }
 
-impl JSONCompilable for Diagnostic {
+impl JSONSerializable for Diagnostic {
     fn compile(&self) -> String {
         json!({
             message: self.msg.compile(),
@@ -27,28 +28,32 @@ impl JSONCompilable for Diagnostic {
     }
 }
 
-impl JSONCompilable for FileDiagnostic {
+impl JSONSerializable for FileDiagnostic {
     fn compile(&self) -> String {
-        json!({
-            fileId: self.file_id,
-            diagnostics: self.diagnostics.compile()
-        })
+        if self.diagnostics.is_empty() {
+            String::from("null")
+        } else {
+            json!({
+                fileId: self.file_id,
+                diagnostics: self.diagnostics.compile()
+            })
+        }
     }
 }
 
-impl<T: JSONCompilable> JSONCompilable for Vec<T> {
+impl<T: JSONSerializable> JSONSerializable for Vec<T> {
     fn compile(&self) -> String {
         format!("[{}]", self.iter().map(|d| d.compile()).collect::<Vec<String>>().join(","))
     }
 }
 
-impl JSONCompilable for u16 {
+impl JSONSerializable for u16 {
     fn compile(&self) -> String {
         self.to_string()
     }
 }
 
-impl JSONCompilable for File {
+impl JSONSerializable for File {
     fn compile(&self) -> String {
         json!({
             name: self.name.split(".").next().unwrap().compile(),
@@ -58,7 +63,7 @@ impl JSONCompilable for File {
     }
 }
 
-impl JSONCompilable for Directory {
+impl JSONSerializable for Directory {
     fn compile(&self) -> String {
         json!({
             name: self.name.compile(),
@@ -69,25 +74,25 @@ impl JSONCompilable for Directory {
     }
 }
 
-impl<T: JSONCompilable> JSONCompilable for FxHashSet<T> {
+impl<T: JSONSerializable> JSONSerializable for FxHashSet<T> {
     fn compile(&self) -> String {
         format!("[{}]", self.iter().map(|d| d.compile()).collect::<Vec<String>>().join(","))
     }
 }
 
-impl JSONCompilable for String {
+impl JSONSerializable for String {
     fn compile(&self) -> String {
-        format!("\"{}\"", self)
+        serde_json!(self).to_string()
     }
 }
 
-impl JSONCompilable for &str {
+impl JSONSerializable for &str {
     fn compile(&self) -> String {
-        format!("\"{}\"", self)
+        serde_json!(self).to_string()
     }
 }
 
-impl<T: JSONCompilable> JSONCompilable for Option<T> {
+impl<T: JSONSerializable> JSONSerializable for Option<T> {
     fn compile(&self) -> String {
         if let Some(val) = &self {
             val.compile()
