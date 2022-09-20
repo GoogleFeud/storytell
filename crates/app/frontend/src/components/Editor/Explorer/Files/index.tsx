@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { createSignal } from "solid-js";
-import { isCurrentFolder, refreshBlobs, setCreatingChildInDirectory, setCurrentFile, setOpenDirectory, state } from "../../../../state";
-import { BlobType, File } from "../../../../types";
-import { ArrowCircleIcon } from "../../../Icons/arrowCircle";
-import { MinimizeFolderIcon } from "../../../Icons/minimizeFolder";
-import { PlusFileIcon } from "../../../Icons/plusFile";
-import { PlusFolderIcon } from "../../../Icons/plusFolder";
+import { isCurrentFolder, refreshBlobs, setCreatingChildInDirectory, setCurrentFile, setOpenDirectory } from "@state/file";
+import { state } from "@state/index";
+import { BlobType, File } from "@types";
+import { ArrowCircleIcon } from "@icons/arrowCircle";
+import { MinimizeFolderIcon } from "@icons/minimizeFolder";
+import { PlusFileIcon } from "@icons/plusFile";
+import { PlusFolderIcon } from "@icons/plusFolder";
 import { Panel } from "../../Common/Panel";
 import { createComponentFromItem, FileManagerCreating } from "./item";
 

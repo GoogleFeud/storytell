@@ -1,7 +1,7 @@
 import { children, createSignal, JSXElement, ParentProps } from "solid-js";
-import { ArrowDownIcon } from "../../Icons/arrowDown";
-import { ArrowRightIcon } from "../../Icons/arrowRight";
-import { ScrollBox } from "../../utils/Scrollbar";
+import { ArrowDownIcon } from "@icons/arrowDown";
+import { ArrowRightIcon } from "@icons/arrowRight";
+import { ScrollBox } from "@utils/Scrollbar";
 
 export const Panel = (props: ParentProps<{
     text: string,

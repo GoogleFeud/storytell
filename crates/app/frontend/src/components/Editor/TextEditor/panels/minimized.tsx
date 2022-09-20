@@ -1,9 +1,10 @@
-import { removePanel, setActivePanel, setPanelPin, state } from "../../../../state";
-import { Panel } from "../../../../types";
-import { FileIcon } from "../../../Icons/file";
-import { PinIcon } from "../../../Icons/pin";
-import { XIcon } from "../../../Icons/x";
-import { ContextMenuBox } from "../../../utils/ContextMenuBox";
+import { state } from "@state/index";
+import { removePanel, setActivePanel, setPanelPin } from "@state/panel";
+import { Panel } from "@types";
+import { FileIcon } from "@icons/file";
+import { PinIcon } from "@icons/pin";
+import { XIcon } from "@icons/x";
+import { ContextMenuBox } from "@utils/ContextMenuBox";
 import { ContextMenu } from "../../Common/ContextMenu";
 
 export const MinimizedPanel = (props: {

@@ -1,7 +1,7 @@
 
 import { createStore } from "solid-js/store";
-import { setModal, state } from "../../../state";
-import { Project } from "../../../types";
+import { setModal, state } from "@state/index";
+import { Project } from "@types";
 import { XIcon } from "../../Icons/x";
 import { Button } from "../../Input/Button";
 import { TextFieldGroup } from "../../Input/TextField";

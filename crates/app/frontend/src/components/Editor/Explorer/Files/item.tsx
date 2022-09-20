@@ -1,13 +1,14 @@
 import { createMemo, createSignal, JSX } from "solid-js";
 import { sortFileList } from ".";
-import { state, renameBlob, deleteBlob, createBlob, setOpenDirectory, setCurrentFile, setCreatingChildInDirectory } from "../../../../state";
+import { renameBlob, deleteBlob, createBlob, setOpenDirectory, setCurrentFile, setCreatingChildInDirectory } from "@state/file";
 import { File, BlobType } from "../../../../types";
-import { ArrowDownIcon } from "../../../Icons/arrowDown";
-import { ArrowRightIcon } from "../../../Icons/arrowRight";
-import { FileIcon } from "../../../Icons/file";
-import { ContextMenuBox } from "../../../utils/ContextMenuBox";
-import { Input } from "../../../utils/Input";
+import { ArrowDownIcon } from "@icons/arrowDown";
+import { ArrowRightIcon } from "@icons/arrowRight";
+import { FileIcon } from "@icons/file";
+import { ContextMenuBox } from "@utils/ContextMenuBox";
+import { Input } from "@utils/Input";
 import { ContextMenu } from "../../Common/ContextMenu";
+import { state } from "@state/index";
 
 export const FileManagerInput = (props: JSX.InputHTMLAttributes<HTMLInputElement> & {
     value?: string,

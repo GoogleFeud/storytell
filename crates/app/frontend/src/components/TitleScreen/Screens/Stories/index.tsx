@@ -1,10 +1,11 @@
 import { For } from "solid-js";
-import { createProject, setModal, state } from "../../../../state";
-import { SearchIcon } from "../../../Icons/search";
-import { Button } from "../../../Input/Button";
-import { TextField } from "../../../Input/TextField";
-import { ModifyProjectModal } from "../../../utils/Modal/ModifyProjectModal";
+import { createProject } from "@state/project";
+import { SearchIcon } from "@icons/search";
+import { Button } from "@input/Button";
+import { TextField } from "@input/TextField";
+import { ModifyProjectModal } from "@utils/Modal/ModifyProjectModal";
 import { ProjectPanel } from "./ProjectPanel";
+import { setModal, state } from "@state/index";
 
 export const StoriesScreen = () => {
     return <div class="flex flex-col gap-20">

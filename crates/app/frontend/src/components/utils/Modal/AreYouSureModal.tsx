@@ -1,4 +1,4 @@
-import { setModal } from "../../../state";
+import { setModal } from "@state/index";
 import { Button } from "../../Input/Button";
 import { ModalBase } from "./base";
 

@@ -1,9 +1,9 @@
 import { createSignal, JSXElement, onMount } from "solid-js";
-import { loadProjects } from "../../state";
-import { BookIcon } from "../Icons/book";
-import { GearIcon } from "../Icons/gear";
-import { GradCap } from "../Icons/gradcap";
-import { Divider } from "../utils/Divider";
+import { loadProjects } from "@state/project";
+import { BookIcon } from "@icons/book";
+import { GearIcon } from "@icons/gear";
+import { GradCap } from "@icons/gradcap";
+import { Divider } from "@utils/Divider";
 import { Screens } from "./Screens";
 
 export const SidebarMenu = (props: {

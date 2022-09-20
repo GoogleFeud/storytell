@@ -1,4 +1,4 @@
-import { setModal } from "../../../state";
+import { setModal } from "@state/index";
 import { XIcon } from "../../Icons/x";
 import { ModalBase } from "./base";
 

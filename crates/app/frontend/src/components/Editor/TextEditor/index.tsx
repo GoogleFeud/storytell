@@ -1,5 +1,5 @@
 import { For } from "solid-js";
-import { state } from "../../../state";
+import { state } from "@state/index";
 import { ScrollBox } from "../../utils/Scrollbar";
 import { MonacoEditor } from "./monaco";
 import { MinimizedPanel } from "./panels/minimized";

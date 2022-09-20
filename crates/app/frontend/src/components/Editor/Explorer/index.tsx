@@ -1,5 +1,5 @@
-import { state } from "../../../state";
-import { ThreeDotsIcon } from "../../Icons/threeDots";
+import { state } from "@state/index";
+import { ThreeDotsIcon } from "@icons/threeDots";
 import { Panel } from "../Common/Panel";
 import { ResizablePane } from "../Common/Resizables";
 import { FileManager } from "./Files";

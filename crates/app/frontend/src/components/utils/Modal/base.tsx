@@ -1,5 +1,5 @@
 import { ParentProps } from "solid-js";
-import { setModal } from "../../../state";
+import { setModal } from "@state/index";
 
 export const ModalBase = (props: ParentProps<{
     position?: "bottom" | "center",

@@ -16,7 +16,14 @@
     "noImplicitReturns": true,
     "skipLibCheck": true,
     "jsx": "preserve",
-    "jsxImportSource": "solid-js"
+    "jsxImportSource": "solid-js",
+    "paths": {
+      "@state/*": ["./src/states/*"],
+      "@icons/*": ["./src/components/Icons/*"],
+      "@utils/*": ["./src/components/utils/*"],
+      "@input/*": ["./src/components/Input/*"],
+      "@types": ["./src/types"]
+    }
   },
   "include": ["src"]
 }
