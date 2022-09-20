@@ -51,7 +51,7 @@ impl<H: FileHost> CompilerFileHost<H> {
             files: FxHashMap::default(),
             dirs: FxHashMap::default(),
             line_endings,
-            counter: 0
+            counter: 1
         }
     }
 
