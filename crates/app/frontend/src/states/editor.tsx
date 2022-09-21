@@ -1,31 +1,13 @@
+import { Diagnostic, RawFileContacts } from "@types";
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 import { createSignal } from "solid-js";
 import { setState, state } from ".";
 import { recompileFile } from "./file";
 
-const [editor, setEditorState] = createSignal<monaco.editor.IStandaloneCodeEditor>();
+export const [editor, setEditorState] = createSignal<monaco.editor.IStandaloneCodeEditor>();
 
 export const setEditor = (editor: monaco.editor.IStandaloneCodeEditor) => {
     setEditorState(editor);
-    let prevFile: number|undefined;
-    editor.onDidChangeModelContent(() => {
-        if (state.currentFile) {
-            if (prevFile && state.currentFile !== prevFile) {
-                prevFile = state.currentFile;
-                return;
-            } else prevFile = state.currentFile;
-            const content = editor.getValue();
-            const currentContent = state.contents[state.currentFile];
-            if (currentContent.textContent === content) return;
-            const pos = editor.getPosition();
-            console.log(pos);
-            if (pos) setState("contents", state.currentFile, "lastCursorPos", {
-                lineNumber: pos.lineNumber,
-                column: pos.column
-            });
-            recompileFile(state.currentFile, content);
-        }
-    });
 };
 
 export const setEditorText = (text: string) => {
@@ -38,12 +20,39 @@ export const setEditorText = (text: string) => {
 
 export const setEditorFile = (fileId: number) => {
     const content = state.contents[fileId];
-    if (content) {
+    if (content && content.model) {
         const editorInstance = editor() as monaco.editor.IStandaloneCodeEditor;
-        editorInstance.setValue(content.textContent || "");
-        if (content.lastCursorPos) {
-            editorInstance.setPosition(content.lastCursorPos);
-            editorInstance.focus();
-        }
+        editorInstance.setModel(content.model);
+        if (content.viewState) editorInstance.restoreViewState(content.viewState);
     }
+};
+
+export const createModel = (fileId: number, contents: RawFileContacts) => {
+    const model = monaco.editor.createModel(contents.textContent || "", "markdown");
+    model.onDidChangeContent(async () => {
+        const newDia = await recompileFile(fileId, model.getValue());
+        setModelDiagnostics(model, newDia);
+    });
+    setModelDiagnostics(model, contents.diagnostics);
+    return model;
+};
+
+export const saveFileModelState = (fileId: number | undefined) => {
+    if (!fileId || !state.fileExplorer.blobs[fileId]) return;
+    setState("contents", fileId, "viewState", editor()?.saveViewState() || undefined);
+};
+
+export const setModelDiagnostics = (model: monaco.editor.ITextModel, dias: Diagnostic[]|undefined) => {
+    monaco.editor.setModelMarkers(model, "owner", (dias || []).map(dia => {
+        const start = model.getPositionAt(dia.range.start);
+        const end = model.getPositionAt(dia.range.end);
+        return {
+            message: dia.message,
+            startLineNumber: start.lineNumber,
+            startColumn: start.column,
+            endLineNumber: end.lineNumber,
+            endColumn: end.column + 1,
+            severity: monaco.MarkerSeverity.Error
+        };
+    }));
 };

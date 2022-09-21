@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { Panel } from "@types";
 import { state, setState } from ".";
-import { setEditorFile } from "./editor";
+import { saveFileModelState, setEditorFile } from "./editor";
 import { openDirectoryRecursive } from "./file";
 
 
 export const setActivePanel = (id: string) => {
+    saveFileModelState(+(state.activePanel || -1));
     setState("activePanel", id);
     const panel = state.openPanels.find(p => p.id === id)!;
     if (panel.fileId) {
@@ -12,6 +14,11 @@ export const setActivePanel = (id: string) => {
         openDirectoryRecursive(panel.fileId);
         setEditorFile(panel.fileId);
     }
+};
+
+export const createPanel = (panel: Panel) => {
+    setState("openPanels", (p) => [panel, ...p]);
+    setState("activePanel", panel.id);
 };
 
 export const removePanel = (id: string) => {

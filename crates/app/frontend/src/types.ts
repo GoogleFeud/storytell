@@ -35,10 +35,15 @@ export interface File {
     isCreating?: BlobType
 }
 
-export interface FileContents {
+export interface RawFileContacts {
     textContent?: string,
+    diagnostics?: Diagnostic[]
+}
+
+export interface FileContents {
+    model?: monaco.editor.ITextModel,
     diagnostics?: Diagnostic[],
-    lastCursorPos?: monaco.IPosition
+    viewState?: monaco.editor.ICodeEditorViewState,
 }
 
 export interface Panel {
