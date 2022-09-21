@@ -1,4 +1,5 @@
 import { JSXElement } from "solid-js";
+import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 
 export interface Project {
     metadata: {
@@ -36,7 +37,8 @@ export interface File {
 
 export interface FileContents {
     textContent?: string,
-    diagnostics?: Diagnostic[]
+    diagnostics?: Diagnostic[],
+    lastCursorPos?: monaco.IPosition
 }
 
 export interface Panel {

@@ -84,6 +84,17 @@ pub fn open_file(state: State<StorytellState>, file_id: BlobId) -> String {
     })
 }
 
+#[tauri::command]
+pub fn recompile_file(state: State<StorytellState>, file_id: BlobId, content: String) -> String {
+    let mut inner_state = state.lock().unwrap();
+    let compiler = inner_state.compiler.as_mut().unwrap();
+    let (compiled, diagnostics) = compiler.compile_file_with_content(file_id, &content);
+    json!({
+        parsedContent: compiled.compile(),
+        diagnostics: diagnostics.compile()
+    })
+}
+
 // Returns all the files for the file manager
 // Compiles the last opened file if necessary
 #[tauri::command]

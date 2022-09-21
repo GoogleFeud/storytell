@@ -9,6 +9,7 @@ import { ContextMenuBox } from "@utils/ContextMenuBox";
 import { Input } from "@utils/Input";
 import { ContextMenu } from "../../Common/ContextMenu";
 import { state } from "@state/index";
+import { ExclamationCircleIcon } from "@icons/exclamationCircle";
 
 export const FileManagerInput = (props: JSX.InputHTMLAttributes<HTMLInputElement> & {
     value?: string,
@@ -88,7 +89,7 @@ export const FileManagerFile = (props: {
             execute: () => deleteBlob(props.item)
         }
     ]} />}>
-        <div class={`flex gap-2 p-0.5 items-center cursor-pointer ${state.currentFile === props.item.id ? "w-full bg-[#6d4c41] text-white" : ""}`} onClick={(ev) => {
+        <div class={`flex gap-2 p-0.5 items-center cursor-pointer ${state.currentFile === props.item.id ? "w-full bg-[#6d4c41]" : ""}`} onClick={(ev) => {
             setCurrentFile(props.item);
             ev.stopPropagation();
         }}>
@@ -96,7 +97,13 @@ export const FileManagerFile = (props: {
             {isRenaming() ? <FileManagerInput value={props.item.name} parent={props.item.parent} onExit={(newName) => {
                 if (newName) renameBlob(props.item, newName);
                 setRenaming();
-            }} /> : <p class="text-[12px] text-neutral-400 hover:text-neutral-200 text-ellipsis overflow-hidden whitespace-nowrap">{props.item.name}</p>}
+            }} /> : <div class="flex justify-between items-center w-full">
+                <p class={`text-[12px] text-ellipsis overflow-hidden whitespace-nowrap ${state.contents[props.item.id]?.diagnostics ? "text-red-500" : state.currentFile === props.item.id ? "text-white" : "text-neutral-400 hover:text-neutral-200"}`}>{props.item.name}</p>
+                {state.contents[props.item.id]?.diagnostics && <div class="text-red-500 pr-2 text-[12px] flex gap-1 items-center">
+                    <ExclamationCircleIcon size="12px" />
+                    <p>{state.contents[props.item.id].diagnostics?.length}</p>
+                </div>}
+            </div>}
         </div>
     </ContextMenuBox>;
 };

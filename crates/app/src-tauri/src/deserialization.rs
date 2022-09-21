@@ -33,10 +33,7 @@ impl JSONSerializable for FileDiagnostic {
         if self.diagnostics.is_empty() {
             String::from("null")
         } else {
-            json!({
-                fileId: self.file_id,
-                diagnostics: self.diagnostics.compile()
-            })
+            self.diagnostics.compile()
         }
     }
 }

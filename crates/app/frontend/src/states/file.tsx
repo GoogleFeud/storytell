@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { invoke } from "@tauri-apps/api";
-import { File, BlobType, Diagnostic } from "@types";
+import { File, BlobType, FileContents } from "@types";
 import { state, setState } from ".";
-import { setEditorText } from "./editor";
+import { setEditorFile } from "./editor";
 import { removePanel } from "./panel";
 
 export const setCurrentFile = async (file?: File, addToPanels = true) => {
@@ -10,7 +10,7 @@ export const setCurrentFile = async (file?: File, addToPanels = true) => {
         setState("currentFile", file.id);
         if (!file.children) {
             if (!state.contents[file.id]) await openFile(file.id);
-            setEditorText(state.contents[file.id].textContent || "");
+            setEditorFile(file.id);
             if (addToPanels) {
                 if (!state.openPanels.some(p => p.fileId === file.id)) setState("openPanels", (p) => [{
                     name: file.name,
@@ -88,10 +88,14 @@ export const openDirectoryRecursive = (dir: number) => {
 };
 
 export const openFile = async (fileId: number) => {
-    const res = await JSON.parse(await invoke("open_file", {fileId})) as {
-        textContent?: string,
-        diagnostics?: Diagnostic[],
-        parsedContent?: unknown
-    };
+    const res = await JSON.parse(await invoke("open_file", {fileId})) as FileContents;
     setState("contents", fileId, res);
+};
+
+export const recompileFile = async (fileId: number, content: string) => {
+    const res = await JSON.parse(await invoke("recompile_file", {fileId, content})) as FileContents;
+    setState("contents", fileId, {
+        ...res,
+        textContent: content
+    });
 };

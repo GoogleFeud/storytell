@@ -14,7 +14,7 @@ export const ResizablePane = (props: {
             direction: props.vertical ? "vertical" : "horizontal",
             sizes: props.sizes,
             minSize: props.minSize,
-            gutterSize: 7
+            gutterSize: 5
         });
     });
 

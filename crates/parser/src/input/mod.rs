@@ -238,10 +238,14 @@ impl<'a> InputConsumer<'a> {
     }
 
     pub fn is_eol(&self) -> bool {
-        match self.data[self.pos] {
-            b'\n' if self.ctx.line_endings == 1 => true,
-            b'\r' if self.ctx.line_endings == 2 && self.peek_n(1).is('\n') => true,
-            _ => false
+        if self.pos >= self.data.len() {
+            true
+        } else {
+            match self.data[self.pos] {
+                b'\n' if self.ctx.line_endings == 1 => true,
+                b'\r' if self.ctx.line_endings == 2 && self.peek_n(1).is('\n') => true,
+                _ => false
+            }
         }
     }
 

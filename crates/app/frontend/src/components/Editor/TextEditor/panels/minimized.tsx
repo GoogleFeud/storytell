@@ -23,7 +23,8 @@ export const MinimizedPanel = (props: {
         }}>
             <div class="flex gap-1 items-center">
                 {props.panel.icon || <FileIcon size="12px" />}
-                <p class="text-[12px] text-ellipsis overflow-hidden whitespace-nowrap max-w-[100px] select-none">{props.panel.name}</p>
+                <p class={`text-[12px] text-ellipsis overflow-hidden whitespace-nowrap max-w-[100px] select-none ${(props.panel.fileId && state.contents[props.panel.fileId]?.diagnostics) ? "text-red-500" : ""}`}>{props.panel.name}</p>
+                <p class="text-red-500 text-[12px]">{props.panel.fileId && state.contents[props.panel.fileId]?.diagnostics?.length}</p>
             </div>
             {props.panel.pinned ? <PinIcon class="bg-neutral-700 p-1 rounded" size="12px" onClick={() => setPanelPin(props.panel.id, false)} /> : <XIcon class="hover:bg-neutral-700 p-1 rounded transition" size="12px" onClick={(e) => {
                 e.stopPropagation();

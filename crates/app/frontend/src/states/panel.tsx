@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { state, setState } from ".";
-import { setEditorText } from "./editor";
+import { setEditorFile } from "./editor";
 import { openDirectoryRecursive } from "./file";
 
 
@@ -8,9 +8,9 @@ export const setActivePanel = (id: string) => {
     setState("activePanel", id);
     const panel = state.openPanels.find(p => p.id === id)!;
     if (panel.fileId) {
-        setEditorText(state.contents[panel.fileId].textContent || "");
         setState("currentFile", panel.fileId);
         openDirectoryRecursive(panel.fileId);
+        setEditorFile(panel.fileId);
     }
 };
 

@@ -48,11 +48,12 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
         let text_content = self.host.raw.read_file(self.host.build_path(&file.path, &file.name)).unwrap();
         let parsed = Parser::new(&text_content, ParsingContext::new(self.host.line_endings)).parse();
         file.text_content = text_content;
+        file.parsed_content = parsed.0;
         let mut dia = FileDiagnostic {
             file_id,
             diagnostics: parsed.1.diagnostics
         };
-        let val = if let Some(ASTBlock::Header(header))  = parsed.0.get(0) {
+        if let Some(ASTBlock::Header(header))  = file.parsed_content.get(0) {
             match P::compile_header(header, &mut self.ctx) {
                 Ok(compiled) => (Some(compiled), dia),
                 Err(mut error) => {
@@ -62,33 +63,30 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
             }
         } else {
             (None, dia)
-        };
-        file.parsed_content = parsed.0;
-        val
+        }
     }
 
-    /*
-    pub fn compile_file_with_content(&mut self, file_id: u16, content: &str, ctx: &mut P::Context) -> (Option<P::Output>, FileDiagnostic) {
+    pub fn compile_file_with_content(&mut self, file_id: u16, content: &str) -> (Option<P::Output>, FileDiagnostic) {
         let mut file = self.host.files.get(&file_id).unwrap().borrow_mut();
-        let (res, mut parsing_ctx) = Parser::new(content, ParsingContext::new(self.host.line_endings)).parse();
-        let result = match P::compile_blocks(&res, ctx) {
-            Ok(compiled) => (Some(compiled), FileDiagnostic {
-                file_id,
-                diagnostics: parsing_ctx.diagnostics
-            }),
-            Err(mut dias) => (None, FileDiagnostic {
-                file_id,
-                diagnostics: {
-                    dias.append(&mut parsing_ctx.diagnostics);
-                    dias
-                }
-            })
-        };
-        file.parsed_content = res;
+        let parsed = Parser::new(content, ParsingContext::new(self.host.line_endings)).parse();
         file.text_content = content.to_string();
-        result
+        file.parsed_content = parsed.0;
+        let mut dia = FileDiagnostic {
+            file_id,
+            diagnostics: parsed.1.diagnostics
+        };
+        if let Some(ASTBlock::Header(header))  = file.parsed_content.get(0) {
+            match P::compile_header(header, &mut self.ctx) {
+                Ok(compiled) => (Some(compiled), dia),
+                Err(mut error) => {
+                    dia.diagnostics.append(&mut error);
+                    (None, dia)
+                }
+            }
+        } else {
+            (None, dia)
+        }
     }
-    */
 
 
 }
