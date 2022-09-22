@@ -60,6 +60,7 @@ const deleteBlobsRecursive = (file: File, blobs: Record<number, File>) => {
             deleteBlobsRecursive(blobs[child], blobs);
         }
     }
+    removePanel(file.id.toString());
     delete blobs[file.id];
 };
 

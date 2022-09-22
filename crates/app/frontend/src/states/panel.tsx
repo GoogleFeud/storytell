@@ -33,6 +33,7 @@ export const removePanel = (id: string) => {
             if (selected.fileId) {
                 setState("currentFile", selected.fileId);
                 openDirectoryRecursive(selected.fileId);
+                setEditorFile(selected.fileId);
             }
         } else {
             if (panel.fileId) setState("currentFile", undefined);
