@@ -209,7 +209,7 @@ impl<'a> InputConsumer<'a> {
 
     pub fn count(&self, character: char) -> usize {
         let mut counter = self.pos;
-        while !self.is_eof() {
+        while counter < self.data.len() {
             if (self.data[counter] as char) == character {
                 counter += 1;
             } else {

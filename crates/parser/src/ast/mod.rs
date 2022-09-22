@@ -367,7 +367,7 @@ impl<'a> Parser<'a> {
             while self.input.pos < pos_end {
                 match self.input.force_next() {
                     // Escape
-                    '\\' => {
+                    '\\' if !self.input.is_eof() => {
                         result.push(self.input.force_next());
                     }
                     // Bold

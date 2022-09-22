@@ -58,7 +58,7 @@ export const FileManagerFolder = (props: {
         ]} />}>
             <div class={`flex items-center gap-2 cursor-pointer p-0.5 ${state.currentFile === props.item.id ? "w-full bg-[#6d4c41] text-white" : ""}`} onClick={(ev) => {
                 setOpenDirectory(props.item.id, !props.item.isOpen);
-                setCurrentFile(props.item);
+                setCurrentFile(props.item.id);
                 ev.stopPropagation();
             }}>
                 {props.item.isOpen ? <ArrowDownIcon size="10px" /> : <ArrowRightIcon size="11px" />}
@@ -90,7 +90,7 @@ export const FileManagerFile = (props: {
         }
     ]} />}>
         <div class={`flex gap-2 p-0.5 items-center cursor-pointer ${state.currentFile === props.item.id ? "w-full bg-[#6d4c41]" : ""}`} onClick={(ev) => {
-            setCurrentFile(props.item);
+            setCurrentFile(props.item.id);
             ev.stopPropagation();
         }}>
             <FileIcon size="12px" />

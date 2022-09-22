@@ -7,7 +7,6 @@ import { WelcomePanel } from "./panels/welcome";
 
 export const TextEditor = () => {
     const monaco = createMemo(() => <MonacoEditor />);
-
     return <div class="h-full w-full flex flex-col">
         <div class="w-full flex border-b border-neutral-700">
             <ScrollBox class="flex">

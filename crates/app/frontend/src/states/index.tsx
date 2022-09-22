@@ -35,7 +35,7 @@ export const setModal = (modal?: JSXElement) => {
     setState("modal", modal);
 };
 
-export const initCompiler = async (projectId: string) => {
+export const initCompiler = async (projectId: string) : Promise<number|undefined> => {
     const result = JSON.parse(await invoke<string>("init_compiler", {projectId})) as {
         fileExplorer: {
             blobs: Record<string, File>,
@@ -58,10 +58,9 @@ export const initCompiler = async (projectId: string) => {
     })));
     if (result.lastOpen) {
         await openFile(result.lastOpen);
-        setEditorFile(result.lastOpen);
-        setState("currentFile", result.lastOpen);
-        setState("activePanel", result.lastOpen.toString());
+        return result.lastOpen;
     }
+    return;
 };
 
 export const saveData = () => {

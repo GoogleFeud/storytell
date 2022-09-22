@@ -5,8 +5,9 @@ import { state, setState, saveData } from ".";
 import { createModel, saveFileModelState, setEditorFile } from "./editor";
 import { createPanel, removePanel, setActivePanel } from "./panel";
 
-export const setCurrentFile = async (file?: File) => {
-    if (file) {
+export const setCurrentFile = async (fileId?: number) => {
+    if (fileId !== undefined) {
+        const file = state.fileExplorer.blobs[fileId];
         saveFileModelState(state.currentFile);
         setState("currentFile", file.id);
         if (!file.children) {
