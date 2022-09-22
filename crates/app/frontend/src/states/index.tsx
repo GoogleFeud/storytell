@@ -2,7 +2,6 @@ import { invoke } from "@tauri-apps/api";
 import { Panel, Project, FileContents, FileDiagnostic, Pages, File } from "@types";
 import { JSXElement } from "solid-js";
 import { createStore } from "solid-js/store";
-import { setEditorFile } from "./editor";
 import { openFile } from "./file";
 
 export const [state, setState] = createStore<{
@@ -50,12 +49,17 @@ export const initCompiler = async (projectId: string) : Promise<number|undefined
         result.fileExplorer.blobs[openFolder].isOpen = true;
     }
     setState("fileExplorer", result.fileExplorer);
-    setState("openPanels", result.openPanels.map(p => ({
-        name: result.fileExplorer.blobs[p].name,
-        id: p.toString(),
-        fileId: p,
-        pinned: result.openFolders.includes(p)
-    })));
+    const openPanels = [];
+    for (const fileId of result.openPanels) {
+        await openFile(fileId);
+        openPanels.push({
+            name: result.fileExplorer.blobs[fileId].name,
+            id: fileId.toString(),
+            fileId: fileId,
+            pinned: result.pinnedPanels.includes(fileId)
+        });
+    }
+    setState("openPanels", openPanels);
     if (result.lastOpen) {
         await openFile(result.lastOpen);
         return result.lastOpen;

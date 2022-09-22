@@ -1,5 +1,5 @@
 use storytell_compiler::{base::{Compiler, files::BlobId}, json_compiler::{JSONCompilerProvider, JSONCompilerContext}, json};
-use storytell_fs::SysFileHost;
+use storytell_fs::{SysFileHost, FileHost};
 use tauri::State;
 use crate::{state::StorytellState, projects::Project, deserialization::JSONSerializable};
 use serde_json::to_string;
@@ -89,6 +89,8 @@ pub fn recompile_file(state: State<StorytellState>, file_id: BlobId, content: St
     let mut inner_state = state.lock().unwrap();
     let compiler = inner_state.compiler.as_mut().unwrap();
     let (compiled, diagnostics) = compiler.compile_file_with_content(file_id, &content);
+    let file = compiler.host.files.get(&file_id).unwrap().borrow();
+    compiler.host.raw.write_file(&compiler.host.build_path(&file.path, &file.name), &content).expect("Couldn't write to file.");
     json!({
         parsedContent: compiled.compile(),
         diagnostics: diagnostics.compile()
