@@ -2,6 +2,7 @@ use storytell_diagnostics::diagnostic::Diagnostic;
 use storytell_fs::FileHost;
 use rustc_hash::{FxHashMap, FxHashSet};
 use storytell_parser::ast::{model::ASTBlock};
+use std::fs::DirEntry;
 use std::path::{PathBuf, Path};
 use std::cell::RefCell;
 
@@ -80,7 +81,12 @@ impl<H: FileHost> CompilerFileHost<H> {
 
     pub fn load_dir<P: AsRef<Path>>(&mut self, dir: P, path: Vec<BlobId>) -> FxHashSet<BlobId> {
         let mut children: FxHashSet<BlobId> = FxHashSet::default();
-        for entry in self.raw.get_entries_from_directory(dir) {
+        let mut vec_of_blobs = self.raw.get_entries_from_directory(dir).collect::<Vec<DirEntry>>();
+        // Assures that the dir entries are always in the same order, so BlobIds awlays match
+        // even when a new file is created by something else other than the program
+        // Is this cutting corners? Yes it is.
+        vec_of_blobs.sort_by(|a, b| a.metadata().unwrap().created().unwrap().cmp(&b.metadata().unwrap().created().unwrap()));
+        for entry in vec_of_blobs {
             let blob_id = self.counter;
             children.insert(blob_id);
             self.counter += 1;

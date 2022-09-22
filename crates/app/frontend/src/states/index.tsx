@@ -2,6 +2,8 @@ import { invoke } from "@tauri-apps/api";
 import { Panel, Project, FileContents, FileDiagnostic, Pages, File } from "@types";
 import { JSXElement } from "solid-js";
 import { createStore } from "solid-js/store";
+import { setEditorFile } from "./editor";
+import { openFile } from "./file";
 
 export const [state, setState] = createStore<{
     projects: Project[],
@@ -38,7 +40,35 @@ export const initCompiler = async (projectId: string) => {
         fileExplorer: {
             blobs: Record<string, File>,
             global: number[],
-        }
+        },
+        openFolders: number[],
+        pinnedPanels: number[],
+        openPanels: number[],
+        lastOpen?: number
     };
+    for (const openFolder of result.openFolders) {
+        result.fileExplorer.blobs[openFolder].isOpen = true;
+    }
     setState("fileExplorer", result.fileExplorer);
+    setState("openPanels", result.openPanels.map(p => ({
+        name: result.fileExplorer.blobs[p].name,
+        id: p.toString(),
+        fileId: p,
+        pinned: result.openFolders.includes(p)
+    })));
+    if (result.lastOpen) {
+        await openFile(result.lastOpen);
+        setEditorFile(result.lastOpen);
+        setState("currentFile", result.lastOpen);
+        setState("activePanel", result.lastOpen.toString());
+    }
+};
+
+export const saveData = () => {
+    invoke<string>("save_data", {
+        openPanels: state.openPanels.filter(p => p.fileId).map(p => p.fileId),
+        pinnedPanels: state.openPanels.filter(p => p.pinned && p.fileId).map(p => p.fileId),
+        openFolders: Object.values(state.fileExplorer.blobs).filter(p => p.children && p.isOpen).map(p => p.id),
+        lastOpen: state.activePanel && state.fileExplorer.blobs[+state.activePanel] ? +state.activePanel : undefined
+    });
 };

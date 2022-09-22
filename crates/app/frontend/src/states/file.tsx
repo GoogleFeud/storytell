@@ -1,22 +1,24 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { invoke } from "@tauri-apps/api";
 import { File, BlobType, RawFileContacts, Diagnostic } from "@types";
-import { state, setState } from ".";
+import { state, setState, saveData } from ".";
 import { createModel, saveFileModelState, setEditorFile } from "./editor";
-import { createPanel, removePanel } from "./panel";
+import { createPanel, removePanel, setActivePanel } from "./panel";
 
 export const setCurrentFile = async (file?: File) => {
     if (file) {
         saveFileModelState(state.currentFile);
         setState("currentFile", file.id);
         if (!file.children) {
-            if (!state.contents[file.id]) await openFile(file.id);
             setEditorFile(file.id);
             if (!state.openPanels.some(p => p.fileId === file.id)) createPanel({
                 name: file.name,
                 fileId: file.id,
                 id: file.id.toString()
             });
+            else {
+                setActivePanel(file.id.toString());
+            }
         }
     } else {
         setState("currentFile", undefined);
@@ -94,6 +96,7 @@ export const openFile = async (fileId: number) => {
 };
 
 export const recompileFile = async (fileId: number, content: string) : Promise<Diagnostic[]|undefined> => {
+    saveData();
     const res = await JSON.parse(await invoke("recompile_file", {fileId, content})) as RawFileContacts;
     setState("contents", fileId, "diagnostics", res.diagnostics);
     return res.diagnostics;

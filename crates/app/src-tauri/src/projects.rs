@@ -1,4 +1,5 @@
 use directories::UserDirs;
+use storytell_compiler::base::files::BlobId;
 use std::collections::HashMap;
 use std::path::{PathBuf, Path};
 use uuid::Uuid;
@@ -11,7 +12,10 @@ pub struct ProjectMetadata {
     pub name: String,
     pub description: String,
     pub id: String,
-    pub last_open: Option<String>
+    pub open_panels: Vec<BlobId>,
+    pub pinned_panels: Vec<BlobId>,
+    pub open_folders: Vec<BlobId>,
+    pub last_open: Option<BlobId>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -21,8 +25,17 @@ pub struct Project {
     pub files_directory: PathBuf
 }
 
+impl Project {
+
+    pub fn save(&self) {
+        fs::write(self.directory.join("metadata.json"), to_string(&self.metadata).unwrap()).expect("Couldn't write to metadata.json.");
+    }
+
+}
+
 pub struct Projects {
     pub storytell_dir: PathBuf,
+    pub current_project: String,
     pub projects: HashMap<String, Project>
 }
 
@@ -52,10 +65,19 @@ impl Projects {
                 }
             }
         }
-        Self { 
+        Self {
+            current_project: String::new(),
             storytell_dir,
             projects
         }
+    }
+
+    pub fn open_project(&mut self, project_id: &str) {
+        self.current_project = project_id.to_string();
+    }
+    
+    pub fn get_open_project(&mut self) -> Option<&mut Project> {
+        self.projects.get_mut(&self.current_project)
     }
 
     pub fn create_project(&mut self, name: String, description: String) -> Option<&Project> {
@@ -71,10 +93,12 @@ impl Projects {
                 id: project_id.clone(),
                 name,
                 last_open: None,
+                open_folders: vec![],
+                pinned_panels: vec![],
+                open_panels: vec![],
                 description
             };
             fs::write(project_dir.join("metadata.json"), to_string(&project_info).unwrap()).expect("Couldn't create file.");
-            // Create the main file
             fs::write(files_dir.join("main.md"), "# Welcome\r\nWelcome to storytell!\r\n\r\n- Check out the guides!\r\n    -> check_out_the_guides\r\n\r\n## Check out the guides\r\n\r\nCheck out the guide here: {link}").expect("Couldn't create file.");
             self.projects.insert(project_id.clone(), Project {
                 metadata: project_info,

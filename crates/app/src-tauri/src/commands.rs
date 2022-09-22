@@ -95,11 +95,28 @@ pub fn recompile_file(state: State<StorytellState>, file_id: BlobId, content: St
     })
 }
 
+#[tauri::command]
+pub fn save_data(state: State<StorytellState>,
+    open_panels: Vec<BlobId>,
+    open_folders: Vec<BlobId>,
+    pinned_panels: Vec<BlobId>,
+    last_open: Option<BlobId>
+) {
+    let mut inner_state = state.lock().unwrap();
+    let current_project = inner_state.projects.get_open_project().unwrap();
+    current_project.metadata.open_folders = open_folders;
+    current_project.metadata.open_panels = open_panels;
+    current_project.metadata.pinned_panels = pinned_panels;
+    current_project.metadata.last_open = last_open;
+    current_project.save();
+}
+
 // Returns all the files for the file manager
 // Compiles the last opened file if necessary
 #[tauri::command]
 pub fn init_compiler(state: State<StorytellState>, project_id: String) -> Option<String> {
     let mut inner_state = state.lock().unwrap();
+    inner_state.projects.open_project(&project_id);
     let project = inner_state.projects.projects.get(&project_id)?;
     #[cfg(windows)]
     let line_endings = 2;
@@ -115,7 +132,11 @@ pub fn init_compiler(state: State<StorytellState>, project_id: String) -> Option
                     .map(|i| format!("\"{}\":{}", i.0, i.1.borrow().compile())))
                 .collect::<Vec<String>>().join(",")),
             global: global_files.compile()
-        })
+        }),
+        openPanels: project.metadata.open_panels.compile(),
+        openFolders: project.metadata.open_folders.compile(),
+        pinnedPanels: project.metadata.pinned_panels.compile(),
+        lastOpen: project.metadata.last_open.compile()
     });
     inner_state.compiler = Some(compiler);
     Some(json_str)

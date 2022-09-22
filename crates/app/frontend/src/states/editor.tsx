@@ -2,7 +2,7 @@ import { Diagnostic, RawFileContacts } from "@types";
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 import { createSignal } from "solid-js";
 import { setState, state } from ".";
-import { recompileFile } from "./file";
+import { openFile, recompileFile } from "./file";
 
 export const [editor, setEditorState] = createSignal<monaco.editor.IStandaloneCodeEditor>();
 
@@ -18,7 +18,8 @@ export const setEditorText = (text: string) => {
     }
 };
 
-export const setEditorFile = (fileId: number) => {
+export const setEditorFile = async (fileId: number) => {
+    if (!state.contents[fileId]) await openFile(fileId);
     const content = state.contents[fileId];
     if (content && content.model) {
         const editorInstance = editor() as monaco.editor.IStandaloneCodeEditor;
@@ -38,7 +39,7 @@ export const createModel = (fileId: number, contents: RawFileContacts) => {
 };
 
 export const saveFileModelState = (fileId: number | undefined) => {
-    if (!fileId || !state.fileExplorer.blobs[fileId]) return;
+    if (!fileId || !state.contents[fileId]) return;
     setState("contents", fileId, "viewState", editor()?.saveViewState() || undefined);
 };
 
