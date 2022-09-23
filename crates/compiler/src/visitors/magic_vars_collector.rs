@@ -259,7 +259,7 @@ impl<'a> MagicVarCollector<'a> {
                     },
                     ASTExpression::Access(access) => {
                         let right_type = self.resolve_binary(&exp.operator, &exp.right);
-                        self.resolve_chain(access).set_value(right_type.clone(), self, exp.range.clone());
+                        self.resolve_chain(access).set_value(right_type.clone(), self, self.range(&exp.range));
                         right_type
                     },
                     _ => {
@@ -290,7 +290,7 @@ impl<'a> MagicVarCollector<'a> {
                 if let ASTExpression::Access(access) = &call.expression {
                     if let Some(access_text) = self.get_string_from_accessor(&access.accessor) {
                         if match_str!(access_text, "push", "pop", "join", "slice", "splice") {
-                            self.resolve_exp_store(&access.expression).set_value(MagicVariableType::Array, self, exp.range().clone());
+                            self.resolve_exp_store(&access.expression).set_value(MagicVariableType::Array, self, self.range(exp.range()));
                         }
                     }
                 }

@@ -1,9 +1,11 @@
 use std::marker::PhantomData;
 use storytell_diagnostics::{diagnostic::{StorytellResult, Diagnostic, DiagnosticMessage}, make_diagnostics};
-use storytell_parser::{ast::{model::{ASTHeader, ASTBlock}, Parser}, input::ParsingContext};
+use storytell_parser::{ast::{model::{ASTHeader, ASTBlock}, Parser}};
 use storytell_fs::FileHost;
 pub mod files;
-use files::{CompilerFileHost, FileDiagnostic};
+use files::{CompilerFileHost};
+
+use self::files::BlobId;
 
 make_diagnostics!(define [
     UNKNOWN_CHILD_PATH,
@@ -26,7 +28,6 @@ pub trait CompilerProvider {
 }
 
 pub struct Compiler<P: CompilerProvider, F: FileHost> {
-    pub cwd: String,
     pub host: CompilerFileHost<F>,
     pub ctx: P::Context,
     _provider: PhantomData<P>
@@ -37,49 +38,35 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
     pub fn new(cwd: &str, line_endings: usize, host: F, ctx: P::Context) -> Self {
         Self {
             host: CompilerFileHost::new(cwd, line_endings, host),
-            cwd: cwd.to_string(),
             ctx,
             _provider: PhantomData::default()
         }
     }
 
-    pub fn compile_file(&mut self, file_id: u16) -> (Option<P::Output>, FileDiagnostic) {
-        let mut file = self.host.files.get(&file_id).unwrap().borrow_mut();
-        let text_content = self.host.raw.read_file(self.host.build_path(&file.path, &file.name)).unwrap();
-        let parsed = Parser::new(&text_content, ParsingContext::new(self.host.line_endings)).parse();
-        file.text_content = text_content;
-        file.parsed_content = parsed.0;
-        let mut dia = FileDiagnostic {
-            file_id,
-            diagnostics: parsed.1.diagnostics
-        };
+    pub fn compile_file(&mut self, file_id: BlobId) -> (Option<P::Output>, String, Vec<Diagnostic>) {
+        let (file, text, mut dia) = self.host.parse_file(file_id).unwrap();
         if let Some(ASTBlock::Header(header))  = file.parsed_content.get(0) {
             match P::compile_header(header, &mut self.ctx) {
-                Ok(compiled) => (Some(compiled), dia),
+                Ok(compiled) => (Some(compiled), text, dia),
                 Err(mut error) => {
-                    dia.diagnostics.append(&mut error);
-                    (None, dia)
+                    dia.append(&mut error);
+                    (None, text, dia)
                 }
             }
         } else {
-            (None, dia)
+            (None, text, dia)
         }
     }
 
-    pub fn compile_file_with_content(&mut self, file_id: u16, content: &str) -> (Option<P::Output>, FileDiagnostic) {
+    pub fn compile_file_with_content(&mut self, file_id: BlobId, content: &str) -> (Option<P::Output>, Vec<Diagnostic>) {
+        let (content, mut dia) = Parser::parse(content, self.host.line_endings);
         let mut file = self.host.files.get(&file_id).unwrap().borrow_mut();
-        let parsed = Parser::new(content, ParsingContext::new(self.host.line_endings)).parse();
-        file.text_content = content.to_string();
-        file.parsed_content = parsed.0;
-        let mut dia = FileDiagnostic {
-            file_id,
-            diagnostics: parsed.1.diagnostics
-        };
+        file.parsed_content = content;
         if let Some(ASTBlock::Header(header))  = file.parsed_content.get(0) {
             match P::compile_header(header, &mut self.ctx) {
                 Ok(compiled) => (Some(compiled), dia),
                 Err(mut error) => {
-                    dia.diagnostics.append(&mut error);
+                    dia.append(&mut error);
                     (None, dia)
                 }
             }
@@ -92,8 +79,7 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
 }
 
 pub fn compile_str<P: CompilerProvider>(string: &str, mut ctx: P::Context, line_endings: usize) -> (Vec<P::Output>, Vec<Diagnostic>, P::Context) {
-    let (parsed, parsing_ctx) = Parser::new(string, ParsingContext::new(line_endings)).parse();
-    let mut total_errors = parsing_ctx.diagnostics;
+    let (parsed, mut total_errors) = Parser::parse(string, line_endings);
     let mut result: Vec<P::Output> = vec![];
     let mut headers: Vec<ASTHeader> = vec![];
     for thing in parsed {

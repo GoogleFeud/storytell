@@ -1,10 +1,11 @@
 use storytell_diagnostics::diagnostic::Diagnostic;
 use storytell_fs::FileHost;
 use rustc_hash::{FxHashMap, FxHashSet};
+use storytell_parser::ast::Parser;
 use storytell_parser::ast::{model::ASTBlock};
 use std::fs::DirEntry;
 use std::path::{PathBuf, Path};
-use std::cell::RefCell;
+use std::cell::{RefCell, RefMut};
 
 pub type BlobId = u16;
 
@@ -15,7 +16,6 @@ pub struct FileDiagnostic {
 
 pub struct File {
     pub name: String,
-    pub text_content: String,
     pub parsed_content: Vec<ASTBlock>,
     pub path: Vec<BlobId>,
     pub parent: Option<BlobId>,
@@ -72,11 +72,19 @@ impl<H: FileHost> CompilerFileHost<H> {
     }
 
     pub fn refresh(&mut self) -> FxHashSet<BlobId> {
-        self.counter = 0;
+        self.counter = 1;
         self.dirs.clear();
         self.files.clear();
         let cwd = self.cwd.clone();
         self.load_dir(&cwd, vec![])
+    }
+
+    pub fn parse_file(&self, file_id: BlobId) -> Option<(RefMut<File>, String, Vec<Diagnostic>)> {
+        let mut file = self.files.get(&file_id)?.borrow_mut();
+        let file_contents = self.raw.read_file(self.build_path(&file.path, &file.name))?;
+        let (content, dias) = Parser::parse(&file_contents, self.line_endings);
+        file.parsed_content = content;
+        Some((file, file_contents, dias))
     }
 
     pub fn load_dir<P: AsRef<Path>>(&mut self, dir: P, path: Vec<BlobId>) -> FxHashSet<BlobId> {
@@ -104,7 +112,6 @@ impl<H: FileHost> CompilerFileHost<H> {
             } else {
                 self.files.insert(blob_id, RefCell::from(File {
                     parsed_content: vec![],
-                    text_content: String::new(),
                     name: entry.file_name().to_str().unwrap().to_string(),
                     path: path.clone(),
                     parent: path.last().cloned(),
@@ -158,7 +165,6 @@ impl<H: FileHost> CompilerFileHost<H> {
                 parent,
                 path,
                 parsed_content: vec![],
-                text_content: String::new(),
                 id: file_id
             }));
         }

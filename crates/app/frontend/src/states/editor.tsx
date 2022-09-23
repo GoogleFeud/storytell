@@ -52,7 +52,7 @@ export const setModelDiagnostics = (model: monaco.editor.ITextModel, dias: Diagn
             startLineNumber: start.lineNumber,
             startColumn: start.column,
             endLineNumber: end.lineNumber,
-            endColumn: end.column + 1,
+            endColumn: end.column,
             severity: monaco.MarkerSeverity.Error
         };
     }));

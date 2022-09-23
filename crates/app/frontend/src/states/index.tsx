@@ -46,11 +46,12 @@ export const initCompiler = async (projectId: string) : Promise<number|undefined
         lastOpen?: number
     };
     for (const openFolder of result.openFolders) {
-        result.fileExplorer.blobs[openFolder].isOpen = true;
+        if (result.fileExplorer.blobs[openFolder]) result.fileExplorer.blobs[openFolder].isOpen = true;
     }
     setState("fileExplorer", result.fileExplorer);
     const openPanels = [];
     for (const fileId of result.openPanels) {
+        if (!result.fileExplorer.blobs[fileId]) continue;
         await openFile(fileId);
         openPanels.push({
             name: result.fileExplorer.blobs[fileId].name,
@@ -60,7 +61,7 @@ export const initCompiler = async (projectId: string) : Promise<number|undefined
         });
     }
     setState("openPanels", openPanels);
-    if (result.lastOpen) {
+    if (result.lastOpen && result.fileExplorer.blobs[result.lastOpen]) {
         await openFile(result.lastOpen);
         return result.lastOpen;
     }

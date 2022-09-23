@@ -37,7 +37,7 @@ export interface File {
 
 export interface RawFileContacts {
     textContent?: string,
-    diagnostics?: Diagnostic[]
+    diagnostics: Diagnostic[]
 }
 
 export interface FileContents {

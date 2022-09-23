@@ -75,10 +75,9 @@ pub fn refresh_blobs(state: State<StorytellState>) -> String {
 pub fn open_file(state: State<StorytellState>, file_id: BlobId) -> String {
     let mut inner_state = state.lock().unwrap();
     let compiler = inner_state.compiler.as_mut().unwrap();
-    let (compiled, diagnostics) = compiler.compile_file(file_id);
-    let file = compiler.host.files.get(&file_id).unwrap().borrow();
+    let (compiled, text, diagnostics) = compiler.compile_file(file_id);
     json!({
-        textContent: file.text_content.compile(),
+        textContent: text.compile(),
         parsedContent: compiled.compile(),
         diagnostics: diagnostics.compile()
     })

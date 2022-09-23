@@ -1,4 +1,4 @@
-use storytell_diagnostics::diagnostic::StorytellResult;
+use storytell_diagnostics::diagnostic::{StorytellResult, Diagnostic};
 use storytell_diagnostics::location::Range;
 use storytell_js_parser::JsParser;
 use storytell_js_parser::ast::Visitable;
@@ -106,7 +106,11 @@ impl JSONCompilable for ASTInline {
             ASTInlineKind::Javascript(text) => {
                 let (expressions, diagnostics, input) = JsParser::parse(text);
                 if !diagnostics.is_empty() {
-                    return Err(diagnostics)
+                    return Err(diagnostics.into_iter().map(|d| Diagnostic {
+                        msg: d.msg,
+                        variant: d.variant,
+                        range: Range::new(self.range.start + d.range.start + 1, self.range.start + d.range.end - 1)
+                    }).collect::<Vec<Diagnostic>>())
                 } else {
                     let mut magic_vars_collector = MagicVarCollector::new(input, Range::new(self.range.start + 1, self.range.end - 1), &mut ctx.magic_variables);
                     expressions.visit_each_child(&mut magic_vars_collector);

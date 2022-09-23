@@ -108,7 +108,8 @@ impl<'a> Tokenizer<'a> {
             match self.input.next() {
                 Some(character) if character == end_char => break,
                 None => {
-                    self.diagnostics.push(dia!(END_OF_STR, self.input.range(start)))
+                    self.diagnostics.push(dia!(END_OF_STR, self.input.range(start)));
+                    break;
                 },
                 _ => {}
             }

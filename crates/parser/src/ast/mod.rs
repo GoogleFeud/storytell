@@ -458,7 +458,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse(mut self) -> (Vec<ASTBlock>, ParsingContext) {
+    pub fn parse_full(mut self) -> (Vec<ASTBlock>, ParsingContext) {
         let mut res = vec![];
         while !self.input.is_eof() {
             if let Some(block) = self.parse_block(0) {
@@ -467,6 +467,12 @@ impl<'a> Parser<'a> {
         }
         (res, self.input.ctx)
     }
+
+    pub fn parse(content: &str, line_endings: usize) -> (Vec<ASTBlock>, Vec<Diagnostic>) {
+        let (content, ctx) = Parser::new(content, ParsingContext::new(line_endings)).parse_full();
+        (content, ctx.diagnostics)
+    }
+
 }
 
 #[cfg(test)]
@@ -493,7 +499,7 @@ Text...
 #### Fourth header
 ###### Wrong header!!!
 ## This is child of first
-        ", ParsingContext::new(1)).parse();
+        ", ParsingContext::new(1)).parse_full();
         assert_eq!(ctx.diagnostics[0].msg, "Path should be one (5) level deeper than it's parent.");
         let header = &input[0];
         if let ASTBlock::Header(block) = header {
@@ -525,7 +531,7 @@ Text...
         let (input, _) = Parser::new(
             "# This is some header!!!...\n```js\nThis is a code\nblock...\nyeah...```",
             ParsingContext::new(1),
-        ).parse();
+        ).parse_full();
         let header = get_header_children(&input);
         let code_block = &header[0];
         if let ASTBlock::CodeBlock(block) = code_block {
@@ -538,7 +544,7 @@ Text...
 
     #[test]
     fn parse_inline_bold() {
-        let (input, _) = Parser::new("# This is some header!!!...\nThis is **a** paragraph, pretty cool... **really** cool! Same paragraph...\nAlright this is a different one!!## Another heading", ParsingContext::new(1)).parse();
+        let (input, _) = Parser::new("# This is some header!!!...\nThis is **a** paragraph, pretty cool... **really** cool! Same paragraph...\nAlright this is a different one!!## Another heading", ParsingContext::new(1)).parse_full();
         let children = get_header_children(&input);
         if let ASTBlock::Paragraph(para) = &children[0] {
             assert_eq!(
@@ -555,7 +561,7 @@ Text...
         let (input, _) = Parser::new(
             "# This is some header!!!...\n**really** interesting *word*...\nAlright",
             ParsingContext::new(1),
-        ).parse();
+        ).parse_full();
         let children = get_header_children(&input);
         if let ASTBlock::Paragraph(para) = &children[0] {
             assert_eq!(
@@ -608,7 +614,7 @@ This is a **paragraph**...
 ",
 ParsingContext::new(1),
         )
-        .parse();
+        .parse_full();
         let children = get_header_children(&input);
         println!("{:?}", ctx.diagnostics);
         assert_eq!(ctx.diagnostics.len(), 2);
@@ -652,7 +658,7 @@ This is a paragraph with an attribute in it!
 
 #[SomeThing(123]
 Another paragraph...
-        ", ParsingContext::new(1)).parse();
+        ", ParsingContext::new(1)).parse_full();
         let children = get_header_children(&input);
         assert_eq!(ctx.diagnostics.len(), 1);
         if let ASTBlock::Paragraph(para) = &children[0] {
@@ -684,7 +690,7 @@ It's time to choose...
         You chose option C
     - #[SomeAttribute] Option D
         You chose option D
-        ", ParsingContext::new(1)).parse();
+        ", ParsingContext::new(1)).parse_full();
         println!("{:?}", input);
         let children = get_header_children(&input);
         if let ASTBlock::ChoiceGroup(para) = &children[1] {
@@ -711,7 +717,7 @@ It's time to choose...
 # Hello World!
 // A comment
 // # A second comment...
-## A sub-path", ParsingContext::new(1)).parse();
+## A sub-path", ParsingContext::new(1)).parse_full();
         let children = get_header_children(&input);
         assert!(matches!(input[0], ASTBlock::Header(_)));
         assert!(matches!(children[0], ASTBlock::Header(_)));

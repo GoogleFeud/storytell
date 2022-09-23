@@ -92,7 +92,7 @@ export const openDirectoryRecursive = (dir: number) => {
 export const openFile = async (fileId: number) => {
     const res = await JSON.parse(await invoke("open_file", {fileId})) as RawFileContacts;
     setState("contents", fileId, {
-        diagnostics: res.diagnostics,
+        diagnostics: res.diagnostics.length ? res.diagnostics : undefined,
         model: createModel(fileId, res)
     });
 };
@@ -100,6 +100,6 @@ export const openFile = async (fileId: number) => {
 export const recompileFile = async (fileId: number, content: string) : Promise<Diagnostic[]|undefined> => {
     saveData();
     const res = await JSON.parse(await invoke("recompile_file", {fileId, content})) as RawFileContacts;
-    setState("contents", fileId, "diagnostics", res.diagnostics);
+    setState("contents", fileId, "diagnostics", res.diagnostics.length ? res.diagnostics : undefined);
     return res.diagnostics;
 };
