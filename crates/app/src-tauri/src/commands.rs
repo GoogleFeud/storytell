@@ -60,14 +60,15 @@ pub fn create_blob(state: State<StorytellState>, name: String, parent: Option<Bl
 pub fn refresh_blobs(state: State<StorytellState>) -> String {
     let mut inner_state = state.lock().unwrap();
     let compiler = inner_state.compiler.as_mut().unwrap();
-    let global_files = compiler.host.refresh();
+    let (global_files, compiled_files) = compiler.reset();
     json!({
         blobs: format!("{{{}}}", compiler.host.dirs.iter()
             .map(|i| format!("\"{}\":{}", i.0, i.1.borrow().compile()))
             .chain(compiler.host.files.iter()
                 .map(|i| format!("\"{}\":{}", i.0, i.1.borrow().compile())))
             .collect::<Vec<String>>().join(",")),
-        global: global_files.compile()
+        global: global_files.compile(),
+        contents: compiled_files.compile()
     })
 }
 
@@ -124,7 +125,7 @@ pub fn init_compiler(state: State<StorytellState>, project_id: String) -> Option
     #[cfg(not(windows))]
     let line_endings = 1;
     let mut compiler = Compiler::<JSONCompilerProvider, SysFileHost>::new(project.files_directory.to_str().unwrap(), line_endings, SysFileHost::default(), JSONCompilerContext::default());
-    let global_files = compiler.host.load_cwd();
+    let (global_files, compiled_files) = compiler.init_fs();
     let json_str = json!({
         fileExplorer: json!({
             blobs: format!("{{{}}}", compiler.host.dirs.iter()
@@ -134,6 +135,7 @@ pub fn init_compiler(state: State<StorytellState>, project_id: String) -> Option
                 .collect::<Vec<String>>().join(",")),
             global: global_files.compile()
         }),
+        contents: compiled_files.compile(),
         openPanels: project.metadata.open_panels.compile(),
         openFolders: project.metadata.open_folders.compile(),
         pinnedPanels: project.metadata.pinned_panels.compile(),

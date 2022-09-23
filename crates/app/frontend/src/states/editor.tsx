@@ -1,4 +1,4 @@
-import { Diagnostic, RawFileContacts } from "@types";
+import { Diagnostic, RawFileContents } from "@types";
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 import { createSignal } from "solid-js";
 import { setState, state } from ".";
@@ -28,7 +28,7 @@ export const setEditorFile = async (fileId: number) => {
     }
 };
 
-export const createModel = (fileId: number, contents: RawFileContacts) => {
+export const createModel = (fileId: number, contents: RawFileContents) => {
     const model = monaco.editor.createModel(contents.textContent || "", "markdown");
     model.onDidChangeContent(async () => {
         const newDia = await recompileFile(fileId, model.getValue());

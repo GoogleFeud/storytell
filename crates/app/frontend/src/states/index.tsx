@@ -1,7 +1,8 @@
 import { invoke } from "@tauri-apps/api";
-import { Panel, Project, FileContents, FileDiagnostic, Pages, File } from "@types";
+import { Panel, Project, FileContents, FileDiagnostic, Pages, File, RawFileContents } from "@types";
 import { JSXElement } from "solid-js";
 import { createStore } from "solid-js/store";
+import { createModel } from "./editor";
 import { openFile } from "./file";
 
 export const [state, setState] = createStore<{
@@ -40,19 +41,26 @@ export const initCompiler = async (projectId: string) : Promise<number|undefined
             blobs: Record<string, File>,
             global: number[],
         },
+        contents: RawFileContents[],
         openFolders: number[],
         pinnedPanels: number[],
         openPanels: number[],
         lastOpen?: number
     };
-    for (const openFolder of result.openFolders) {
-        if (result.fileExplorer.blobs[openFolder]) result.fileExplorer.blobs[openFolder].isOpen = true;
-    }
+    for (const openFolder of result.openFolders) result.fileExplorer.blobs[openFolder].isOpen = true;
     setState("fileExplorer", result.fileExplorer);
+
+    const contents: Record<number, FileContents> = {};
+    for (const content of result.contents) {
+        contents[content.id] = {
+            model: createModel(content.id, content),
+            diagnostics: content.diagnostics.length ? content.diagnostics : undefined
+        };
+    }
+    setState("contents", contents);
+
     const openPanels = [];
     for (const fileId of result.openPanels) {
-        if (!result.fileExplorer.blobs[fileId]) continue;
-        await openFile(fileId);
         openPanels.push({
             name: result.fileExplorer.blobs[fileId].name,
             id: fileId.toString(),
@@ -61,7 +69,8 @@ export const initCompiler = async (projectId: string) : Promise<number|undefined
         });
     }
     setState("openPanels", openPanels);
-    if (result.lastOpen && result.fileExplorer.blobs[result.lastOpen]) {
+
+    if (result.lastOpen) {
         await openFile(result.lastOpen);
         return result.lastOpen;
     }

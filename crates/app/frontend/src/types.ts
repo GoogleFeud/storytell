@@ -35,7 +35,11 @@ export interface File {
     isCreating?: BlobType
 }
 
-export interface RawFileContacts {
+export interface RawFileContents {
+    /**
+     * Only present when provided by INIT_COMPILER command
+     */
+    id: number,
     textContent?: string,
     diagnostics: Diagnostic[]
 }
