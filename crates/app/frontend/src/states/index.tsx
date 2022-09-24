@@ -3,7 +3,6 @@ import { Panel, Project, FileContents, FileDiagnostic, Pages, File, RawFileConte
 import { JSXElement } from "solid-js";
 import { createStore } from "solid-js/store";
 import { createModel } from "./editor";
-import { openFile } from "./file";
 
 export const [state, setState] = createStore<{
     projects: Project[],
@@ -70,11 +69,7 @@ export const initCompiler = async (projectId: string) : Promise<number|undefined
     }
     setState("openPanels", openPanels);
 
-    if (result.lastOpen) {
-        await openFile(result.lastOpen);
-        return result.lastOpen;
-    }
-    return;
+    return result.lastOpen;
 };
 
 export const saveData = () => {

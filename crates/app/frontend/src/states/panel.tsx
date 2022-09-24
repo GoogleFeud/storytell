@@ -1,18 +1,19 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Panel } from "@types";
 import { state, setState } from ".";
-import { saveFileModelState, setEditorFile } from "./editor";
-import { openDirectoryRecursive } from "./file";
+import { openDirectoryRecursive, openFile, setCurrentFile } from "./file";
 
 
-export const setActivePanel = (id: string) => {
-    saveFileModelState(+(state.activePanel || -1));
+export const setActivePanel = (id: string|undefined) => {
     setState("activePanel", id);
-    const panel = state.openPanels.find(p => p.id === id)!;
-    if (panel.fileId) {
-        setState("currentFile", panel.fileId);
-        openDirectoryRecursive(panel.fileId);
-        setEditorFile(panel.fileId);
+};
+
+export const openPanel = (id: Panel | string) => {
+    const panel = typeof id === "string" ? state.openPanels.find(f => f.id === id) : id;
+    if (!panel) return;
+    if (panel.fileId) openFile(panel.fileId);
+    else {
+        setActivePanel(panel.id);
     }
 };
 
@@ -29,15 +30,15 @@ export const removePanel = (id: string) => {
     if (state.activePanel === id) {
         const selected = (state.openPanels[panelId] || state.openPanels[panelId - 1]);
         if (selected) {
-            setState("activePanel", selected.id);
             if (selected.fileId) {
-                setState("currentFile", selected.fileId);
+                openFile(selected.fileId);
                 openDirectoryRecursive(selected.fileId);
-                setEditorFile(selected.fileId);
+            } else {
+                setActivePanel(selected.id);
             }
         } else {
-            if (panel.fileId) setState("currentFile", undefined);
-            setState("activePanel", undefined);
+            if (panel.fileId) setCurrentFile(undefined);
+            setActivePanel(undefined);
         }
     }
 };

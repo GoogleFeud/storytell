@@ -2,28 +2,26 @@
 import { invoke } from "@tauri-apps/api";
 import { File, BlobType, Diagnostic, RawFileContents } from "@types";
 import { state, setState, saveData } from ".";
-import { createModel, saveFileModelState, setEditorFile } from "./editor";
+import { saveFileModelState, setEditorFile } from "./editor";
 import { createPanel, removePanel, setActivePanel } from "./panel";
 
 export const setCurrentFile = async (fileId?: number) => {
-    if (fileId !== undefined) {
-        const file = state.fileExplorer.blobs[fileId];
-        saveFileModelState(state.currentFile);
-        setState("currentFile", file.id);
-        if (!file.children) {
-            setEditorFile(file.id);
-            if (!state.openPanels.some(p => p.fileId === file.id)) createPanel({
-                name: file.name,
-                fileId: file.id,
-                id: file.id.toString()
-            });
-            else {
-                setActivePanel(file.id.toString());
-            }
-        }
-    } else {
-        setState("currentFile", undefined);
-    }
+    setState("currentFile", fileId);
+};
+
+export const openFile = (fileId: number) => {
+    // Save the previous open file's editor state
+    if (state.activePanel) saveFileModelState(state.currentFile);
+    setCurrentFile(fileId);
+    setEditorFile(fileId);
+    const file = state.fileExplorer.blobs[fileId];
+    // Create a panel for the file or open an existing one
+    if (!state.openPanels.some(p => p.fileId === fileId)) createPanel({
+        id: fileId.toString(),
+        name: file.name,
+        fileId
+    });
+    else setActivePanel(fileId.toString());
 };
 
 export const getCurrentFile = () => state.currentFile && state.fileExplorer.blobs[state.currentFile];
@@ -87,14 +85,6 @@ export const openDirectoryRecursive = (dir: number) => {
     const dirObj = state.fileExplorer.blobs[dir];
     if (dirObj.children) setState("fileExplorer", "blobs", dir, "isOpen", true);
     if (dirObj.parent) openDirectoryRecursive(dirObj.parent);
-};
-
-export const openFile = async (fileId: number) => {
-    const res = await JSON.parse(await invoke("open_file", {fileId})) as RawFileContents;
-    setState("contents", fileId, {
-        diagnostics: res.diagnostics.length ? res.diagnostics : undefined,
-        model: createModel(fileId, res)
-    });
 };
 
 export const recompileFile = async (fileId: number, content: string) : Promise<Diagnostic[]|undefined> => {

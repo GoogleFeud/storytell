@@ -1,5 +1,5 @@
 import { state } from "@state/index";
-import { removePanel, setActivePanel, setPanelPin } from "@state/panel";
+import { openPanel, removePanel, setPanelPin } from "@state/panel";
 import { Panel } from "@types";
 import { FileIcon } from "@icons/file";
 import { PinIcon } from "@icons/pin";
@@ -19,7 +19,7 @@ export const MinimizedPanel = (props: {
         }
     ]} />}>
         <div class={`flex justify-between items-center p-1 w-[142px] cursor-pointer ${state.activePanel === props.panel.id ? "border-b border-[#6d4c41]" : ""}`} onClick={() => {
-            setActivePanel(props.panel.id);
+            openPanel(props.panel);
         }}>
             <div class="flex gap-1 items-center">
                 {props.panel.icon || <FileIcon size="12px" />}

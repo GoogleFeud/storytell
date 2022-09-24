@@ -73,18 +73,6 @@ pub fn refresh_blobs(state: State<StorytellState>) -> String {
 }
 
 #[tauri::command]
-pub fn open_file(state: State<StorytellState>, file_id: BlobId) -> String {
-    let mut inner_state = state.lock().unwrap();
-    let compiler = inner_state.compiler.as_mut().unwrap();
-    let (compiled, text, diagnostics) = compiler.compile_file(file_id);
-    json!({
-        textContent: text.compile(),
-        parsedContent: compiled.compile(),
-        diagnostics: diagnostics.compile()
-    })
-}
-
-#[tauri::command]
 pub fn recompile_file(state: State<StorytellState>, file_id: BlobId, content: String) -> String {
     let mut inner_state = state.lock().unwrap();
     let compiler = inner_state.compiler.as_mut().unwrap();

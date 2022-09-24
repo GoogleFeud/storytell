@@ -1,6 +1,6 @@
 import { createMemo, createSignal, JSX } from "solid-js";
 import { sortFileList } from ".";
-import { renameBlob, deleteBlob, createBlob, setOpenDirectory, setCurrentFile, setCreatingChildInDirectory } from "@state/file";
+import { renameBlob, deleteBlob, createBlob, setOpenDirectory, setCreatingChildInDirectory, openFile, setCurrentFile } from "@state/file";
 import { File, BlobType } from "../../../../types";
 import { ArrowDownIcon } from "@icons/arrowDown";
 import { ArrowRightIcon } from "@icons/arrowRight";
@@ -90,7 +90,7 @@ export const FileManagerFile = (props: {
         }
     ]} />}>
         <div class={`flex gap-2 p-0.5 items-center cursor-pointer ${state.currentFile === props.item.id ? "w-full bg-[#6d4c41]" : ""}`} onClick={(ev) => {
-            setCurrentFile(props.item.id);
+            openFile(props.item.id);
             ev.stopPropagation();
         }}>
             <FileIcon size="12px" />
