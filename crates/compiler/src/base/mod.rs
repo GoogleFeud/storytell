@@ -1,11 +1,12 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, fs::DirEntry};
+use rustc_hash::FxHashSet;
 use storytell_diagnostics::{diagnostic::{StorytellResult, Diagnostic, DiagnosticMessage}, make_diagnostics};
 use storytell_parser::{ast::{model::{ASTHeader, ASTBlock}, Parser}};
 use storytell_fs::FileHost;
 pub mod files;
-use files::{CompilerFileHost};
+use files::CompilerFileHost;
 
-use self::files::BlobId;
+use self::files::{BlobId, Directory, File, CompiledFileData};
 
 make_diagnostics!(define [
     UNKNOWN_CHILD_PATH,
@@ -41,6 +42,58 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
             ctx,
             _provider: PhantomData::default()
         }
+    }
+
+    pub fn reset(&mut self) -> (FxHashSet<BlobId>, Vec<CompiledFileData<P::Output>>) {
+        self.host.counter = 1;
+        self.host.files.clear();
+        self.host.dirs.clear();
+        self.init_fs()
+    }
+
+    pub fn init_fs(&mut self) -> (FxHashSet<BlobId>, Vec<CompiledFileData<P::Output>>) {
+        let mut parsed_files: Vec<CompiledFileData<P::Output>> = vec![];
+        let line_endings = self.host.line_endings;
+        let cwd = self.host.cwd.clone();
+        let global = self.host.register_dir(cwd, vec![], &mut |entry, path, children, id| {
+            Directory {
+                name: entry.file_name().to_str().unwrap().to_string(),
+                path: path.clone(),
+                id,
+                parent: path.last().cloned(),
+                children
+            }
+        }, &mut |c: &CompilerFileHost<F>, entry: DirEntry, path: Vec<BlobId>, id: BlobId| {
+            let file_contents = c.raw.read_file(entry.path()).unwrap();
+            let (parsed_content, mut dias) = Parser::parse(&file_contents, line_endings);
+            if let Some(ASTBlock::Header(header))  = parsed_content.get(0) {
+                match P::compile_header(header, &mut self.ctx) {
+                    Ok(compiled) => parsed_files.push(CompiledFileData {
+                        id,
+                        compiled_content: Some(compiled),
+                        content: file_contents,
+                        diagnostics: dias
+                    }),
+                    Err(mut error) => {
+                        dias.append(&mut error);
+                        parsed_files.push(CompiledFileData { 
+                            id,
+                            compiled_content: None,
+                            content: file_contents, 
+                            diagnostics: dias 
+                        });
+                    }
+                }
+            }
+            File {
+                parsed_content,
+                name: entry.file_name().to_str().unwrap().to_string(),
+                path: path.clone(),
+                parent: path.last().cloned(),
+                id
+            }
+        });
+        (global, parsed_files)
     }
 
     pub fn compile_file(&mut self, file_id: BlobId) -> (Option<P::Output>, String, Vec<Diagnostic>) {

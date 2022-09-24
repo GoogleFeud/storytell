@@ -22,6 +22,13 @@ pub struct File {
     pub id: BlobId
 }
 
+pub struct CompiledFileData<P> {
+    pub id: BlobId,
+    pub compiled_content: Option<P>,
+    pub content: String,
+    pub diagnostics: Vec<Diagnostic>
+}
+
 pub struct Directory {
     pub name: String,
     pub path: Vec<BlobId>,
@@ -66,19 +73,6 @@ impl<H: FileHost> CompilerFileHost<H> {
         res
     }
 
-    pub fn load_cwd(&mut self) -> FxHashSet<BlobId> {
-        let cwd = self.cwd.clone();
-        self.load_dir(&cwd, vec![])
-    }
-
-    pub fn refresh(&mut self) -> FxHashSet<BlobId> {
-        self.counter = 1;
-        self.dirs.clear();
-        self.files.clear();
-        let cwd = self.cwd.clone();
-        self.load_dir(&cwd, vec![])
-    }
-
     pub fn parse_file(&self, file_id: BlobId) -> Option<(RefMut<File>, String, Vec<Diagnostic>)> {
         let mut file = self.files.get(&file_id)?.borrow_mut();
         let file_contents = self.raw.read_file(self.build_path(&file.path, &file.name))?;
@@ -87,7 +81,10 @@ impl<H: FileHost> CompilerFileHost<H> {
         Some((file, file_contents, dias))
     }
 
-    pub fn load_dir<P: AsRef<Path>>(&mut self, dir: P, path: Vec<BlobId>) -> FxHashSet<BlobId> {
+    pub fn register_dir<P: AsRef<Path>>(&mut self, dir: P, path: Vec<BlobId>,
+        hit_dir: &mut dyn FnMut(DirEntry, Vec<BlobId>, FxHashSet<BlobId>, BlobId) -> Directory,
+        hit_file: &mut dyn FnMut(&Self, DirEntry, Vec<BlobId>, BlobId) -> File
+    ) -> FxHashSet<BlobId> {
         let mut children: FxHashSet<BlobId> = FxHashSet::default();
         let mut vec_of_blobs = self.raw.get_entries_from_directory(dir).collect::<Vec<DirEntry>>();
         // Assures that the dir entries are always in the same order, so BlobIds awlays match
@@ -101,22 +98,10 @@ impl<H: FileHost> CompilerFileHost<H> {
             if entry.file_type().unwrap().is_dir() {
                 let mut new_path = path.clone();
                 new_path.push(blob_id);
-                let children = self.load_dir(entry.path(), new_path);
-                self.dirs.insert(blob_id,  RefCell::from(Directory {
-                    name: entry.file_name().to_str().unwrap().to_string(),
-                    path: path.clone(),
-                    id: blob_id,
-                    parent: path.last().cloned(),
-                    children
-                }));
+                let children = self.register_dir(entry.path(), new_path, hit_dir, hit_file);
+                self.dirs.insert(blob_id,  RefCell::from(hit_dir(entry, path.clone(), children, blob_id)));
             } else {
-                self.files.insert(blob_id, RefCell::from(File {
-                    parsed_content: vec![],
-                    name: entry.file_name().to_str().unwrap().to_string(),
-                    path: path.clone(),
-                    parent: path.last().cloned(),
-                    id: blob_id
-                }));
+                self.files.insert(blob_id, RefCell::from(hit_file(self, entry, path.clone(), blob_id)));
             }
         }
         children
