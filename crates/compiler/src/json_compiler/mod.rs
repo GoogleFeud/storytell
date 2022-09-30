@@ -1,8 +1,7 @@
 use storytell_diagnostics::diagnostic::StorytellResult;
 use storytell_parser::ast::model::ASTHeader;
-use crate::{base::*, visitors::MagicVariableCollectorContext};
+use crate::{base::*};
 use self::compile::JSONCompilable;
-
 pub mod compile;
 
 pub struct JSONCompilerProvider;
@@ -17,24 +16,12 @@ impl CompilerProvider for JSONCompilerProvider {
 }
 
 #[derive(Default)]
-pub struct JSONCompilerContext {
-    pub magic_variables: MagicVariableCollectorContext
-}
+pub struct JSONCompilerContext;
 
 impl CompilerContext for JSONCompilerContext {
 
     fn process_path(&mut self, _path: &ASTHeader) {
         // Not needed, for now the front-end handles this.
-    }
-
-}
-
-impl JSONCompilerContext {
-
-    pub fn new() -> Self {
-        Self { 
-            magic_variables: MagicVariableCollectorContext::new()
-        }
     }
 
 }
@@ -47,7 +34,7 @@ mod tests {
     #[test]
     fn compile() {
         let before = Instant::now();
-        let (result, diagnostics, ctx) = compile_str::<JSONCompilerProvider>("
+        let (result, diagnostics, _) = compile_str::<JSONCompilerProvider>("
 # Hello, World!
 How's it going on this {a += 1} {b += 5; c.push(123); c.pop(); v = d = 33}? `Test!`
 
@@ -73,9 +60,9 @@ Hello!
 {killed = c}
 {e.b.c.d += 1}
 {e.b.c.d}
-", JSONCompilerContext::new(), 1);
+", JSONCompilerContext::default(), 1);
         println!("Parsing took {} nanoseconds", before.elapsed().as_nanos());
-        println!("[{}] {:?} {:?}", result.join(","), diagnostics, ctx.magic_variables);
+        println!("[{}] {:?}", result.join(","), diagnostics);
     }
 
 }

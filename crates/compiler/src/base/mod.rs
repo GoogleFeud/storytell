@@ -25,7 +25,7 @@ pub trait CompilerContext {
 pub trait CompilerProvider {
     type Output;
     type Context: CompilerContext;
-    fn compile_header(file: &ASTHeader, ctx: &mut Self::Context) -> StorytellResult<Self::Output>;
+    fn compile_header<'a>(file: &ASTHeader, ctx: &mut Self::Context) -> StorytellResult<Self::Output>;
 }
 
 pub struct Compiler<P: CompilerProvider, F: FileHost> {

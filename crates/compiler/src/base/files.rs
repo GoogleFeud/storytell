@@ -90,7 +90,7 @@ impl<H: FileHost> CompilerFileHost<H> {
         // Assures that the dir entries are always in the same order, so BlobIds awlays match
         // even when a new file is created by something else other than the program
         // Is this cutting corners? Yes it is.
-        vec_of_blobs.sort_by(|a, b| a.metadata().unwrap().created().unwrap().cmp(&b.metadata().unwrap().created().unwrap()));
+        vec_of_blobs.sort_by_key(|a| a.metadata().unwrap().created().unwrap());
         for entry in vec_of_blobs {
             let blob_id = self.counter;
             children.insert(blob_id);

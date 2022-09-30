@@ -1,6 +1,6 @@
 
-pub mod magic_vars_collector;
+pub mod magic_vars;
 pub mod rebuilder;
 
-pub use magic_vars_collector::*;
+pub use magic_vars::*;
 pub use rebuilder::*;

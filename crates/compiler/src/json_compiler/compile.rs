@@ -1,13 +1,12 @@
 use storytell_diagnostics::diagnostic::{StorytellResult, Diagnostic};
 use storytell_diagnostics::location::Range;
 use storytell_js_parser::JsParser;
-use storytell_js_parser::ast::Visitable;
 use storytell_parser::ast::model::*;
 use std::{stringify, concat};
 
 use crate::json_compiler::JSONCompilerContext;
 use crate::path::Path;
-use crate::visitors::{MagicVarCollector, Rebuilder, transform_js};
+use crate::visitors::{Rebuilder, transform_js};
 
 #[macro_export]
 macro_rules! json {
@@ -63,11 +62,7 @@ impl JSONCompilable for ASTInline {
     /// `Inline` type
     /// {
     ///   "kind": InlineKind,
-    ///   "text"?: Text,
-    ///   "magicVariables"?: {
-    ///     "name": string,
-    ///     "kind": number
-    ///   }[]
+    ///   "text"?: Text
     /// }
     /// 
     /// `InlineKind` enum:
@@ -77,26 +72,26 @@ impl JSONCompilable for ASTInline {
     /// Code - 3
     /// Join - 4
     /// Javascript - 5
-    fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
+    fn compile(&self, info: &mut JSONCompilerContext) -> StorytellResult<String> {
         Ok(match &self.kind {
             ASTInlineKind::Bold(text) => json!({
                 kind: 0,
-                text: text.compile(ctx)?,
+                text: text.compile(info)?,
                 range: text.range.safe_compile()
             }),
             ASTInlineKind::Italics(text) => json!({
                 kind: 1,
-                text: text.compile(ctx)?,
+                text: text.compile(info)?,
                 range: text.range.safe_compile()
             }),
             ASTInlineKind::Underline(text) => json!({
                 kind: 2,
-                text: text.compile(ctx)?,
+                text: text.compile(info)?,
                 range: text.range.safe_compile()
             }),
             ASTInlineKind::Code(text) =>json!({
                 kind: 3,
-                text: text.compile(ctx)?,
+                text: text.compile(info)?,
                 range: text.range.safe_compile()
             }),
             ASTInlineKind::Join => json!({
@@ -112,23 +107,15 @@ impl JSONCompilable for ASTInline {
                         range: Range::new(self.range.start + d.range.start + 1, self.range.start + d.range.end - 1)
                     }).collect::<Vec<Diagnostic>>())
                 } else {
-                    let mut magic_vars_collector = MagicVarCollector::new(input, Range::new(self.range.start + 1, self.range.end - 1), &mut ctx.magic_variables);
-                    expressions.visit_each_child(&mut magic_vars_collector);
-                    if !magic_vars_collector.diagnostics.is_empty() {
-                        return Err(magic_vars_collector.diagnostics)
-                    } else {
-                        let gathered_variables = magic_vars_collector.collected.iter().map(|pair| json!({ name: pair.0.safe_compile(), kind: pair.1 })).collect::<Vec<String>>();
-                        let rebuilt_code = Rebuilder::run(magic_vars_collector.input, &expressions);
-                        json!({
-                            kind: 5,
-                            text: format!("\"{}\"", rebuilt_code),
-                            magicVariables: format!("[{}]", gathered_variables.join(",")),
-                            range: self.range.safe_compile()
-                        })
+                    let rebuilt_code = Rebuilder::run(input, None, &expressions);
+                    json!({
+                        kind: 5,
+                        text: format!("\"{}\"", rebuilt_code),
+                        range: self.range.safe_compile()
+                    })
                     }
                 }
-            }
-        })
+            })
     }
 }
 
@@ -268,7 +255,7 @@ impl JSONCompilable for ASTMatch {
         let mut choices: Vec<String> = vec![];
         for choice in &self.choices {
             choices.push(json!({ 
-                text: format!("\"{}\"", transform_js(&choice.text.parts[0].text.to_raw())?),
+                text: format!("\"{}\"", transform_js(&choice.text.parts[0].text.to_raw(), None)?),
                 children: choice.children.compile(ctx)?,
                 range: choice.range.safe_compile(),
                 attributes: choice.attributes.safe_compile()
@@ -276,7 +263,7 @@ impl JSONCompilable for ASTMatch {
         }
         Ok(json!({
             kind: 4,
-            condition: format!("\"{}\"", transform_js(&self.matched)?),
+            condition: format!("\"{}\"", transform_js(&self.matched, None)?),
             modifier: self.kind.safe_compile(),
             arms: format!("[{}]", choices.join(","))
         }))
