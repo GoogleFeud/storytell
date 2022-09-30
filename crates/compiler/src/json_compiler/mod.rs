@@ -18,7 +18,8 @@ impl CompilerProvider for JSONCompilerProvider {
 
 #[derive(Default)]
 pub struct JSONCompilerContext {
-    pub magic_variables: MagicVariableCollectorContext
+    pub magic_variables: MagicVariableCollectorContext,
+    pub prefix_js_idents: Option<String>
 }
 
 impl CompilerContext for JSONCompilerContext {
@@ -31,9 +32,10 @@ impl CompilerContext for JSONCompilerContext {
 
 impl JSONCompilerContext {
 
-    pub fn new() -> Self {
+    pub fn new(prefix_js_idents: Option<String>) -> Self {
         Self { 
-            magic_variables: MagicVariableCollectorContext::new()
+            magic_variables: MagicVariableCollectorContext::new(),
+            prefix_js_idents
         }
     }
 
@@ -73,7 +75,7 @@ Hello!
 {killed = c}
 {e.b.c.d += 1}
 {e.b.c.d}
-", JSONCompilerContext::new(), 1);
+", JSONCompilerContext::new(None), 1);
         println!("Parsing took {} nanoseconds", before.elapsed().as_nanos());
         println!("[{}] {:?} {:?}", result.join(","), diagnostics, ctx.magic_variables);
     }

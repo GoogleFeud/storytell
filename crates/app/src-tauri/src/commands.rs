@@ -112,7 +112,7 @@ pub fn init_compiler(state: State<StorytellState>, project_id: String) -> Option
     let line_endings = 2;
     #[cfg(not(windows))]
     let line_endings = 1;
-    let mut compiler = Compiler::<JSONCompilerProvider, SysFileHost>::new(project.files_directory.to_str().unwrap(), line_endings, SysFileHost::default(), JSONCompilerContext::default());
+    let mut compiler = Compiler::<JSONCompilerProvider, SysFileHost>::new(project.files_directory.to_str().unwrap(), line_endings, SysFileHost::default(), JSONCompilerContext::new(Some("this".to_string())));
     let (global_files, compiled_files) = compiler.init_fs();
     let json_str = json!({
         fileExplorer: json!({

@@ -1,5 +1,4 @@
 use storytell_diagnostics::{diagnostic::Diagnostic, location::*};
-
 use crate::ast::utils::ExtendedOption;
 
 pub struct ParsingContext {
@@ -32,8 +31,6 @@ impl<'a> InputConsumer<'a> {
     }
 
     pub fn slice(&self, len: usize) -> &str {
-        if (self.pos + len) > self.data.len() {
-        }
         unsafe { 
             std::str::from_utf8_unchecked(&self.data[if (self.pos + len) > self.data.len() {
                 self.pos..self.data.len()
@@ -119,21 +116,16 @@ impl<'a> InputConsumer<'a> {
 
     pub fn consume_until(&mut self, pattern: &str) -> Option<&str> {
         let start = self.pos;
-        while !self.is_eof() {
-            let mut matches = true;
-            for character in pattern.chars() {
-                if (self.data[self.pos] as char) != character {
-                    matches = false;
-                    self.pos += 1;
-                    break;
-                }
-                self.pos += 1;
-            }
-            if matches {
+        while (self.pos + pattern.len()) <= self.data.len() {
+            if unsafe {
+                std::str::from_utf8_unchecked(&self.data[self.pos..(self.pos + pattern.len())])
+            } == pattern {
+                self.pos += pattern.len();
                 return Some(unsafe {
                     std::str::from_utf8_unchecked(&self.data[start..(self.pos - pattern.len())])
                 });
             }
+            self.pos += 1;
         }
         None
     }

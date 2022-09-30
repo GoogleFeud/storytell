@@ -90,6 +90,8 @@ export const openDirectoryRecursive = (dir: number) => {
 export const recompileFile = async (fileId: number, content: string) : Promise<Diagnostic[]|undefined> => {
     saveData();
     const res = await JSON.parse(await invoke("recompile_file", {fileId, content})) as RawFileContents;
+    //@ts-expect-error wdwdwdwd
+    console.log(res.parsedContent);
     setState("contents", fileId, "diagnostics", res.diagnostics.length ? res.diagnostics : undefined);
     return res.diagnostics;
 };

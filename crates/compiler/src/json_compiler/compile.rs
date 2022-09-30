@@ -118,7 +118,7 @@ impl JSONCompilable for ASTInline {
                         return Err(magic_vars_collector.diagnostics)
                     } else {
                         let gathered_variables = magic_vars_collector.collected.iter().map(|pair| json!({ name: pair.0.safe_compile(), kind: pair.1 })).collect::<Vec<String>>();
-                        let rebuilt_code = Rebuilder::run(magic_vars_collector.input, &expressions);
+                        let rebuilt_code = Rebuilder::run(magic_vars_collector.input, &expressions, ctx.prefix_js_idents.clone());
                         json!({
                             kind: 5,
                             text: format!("\"{}\"", rebuilt_code),
@@ -268,7 +268,7 @@ impl JSONCompilable for ASTMatch {
         let mut choices: Vec<String> = vec![];
         for choice in &self.choices {
             choices.push(json!({ 
-                text: format!("\"{}\"", transform_js(&choice.text.parts[0].text.to_raw())?),
+                text: format!("\"{}\"", transform_js(&choice.text.parts[0].text.to_raw(), ctx.prefix_js_idents.clone())?),
                 children: choice.children.compile(ctx)?,
                 range: choice.range.safe_compile(),
                 attributes: choice.attributes.safe_compile()
@@ -276,7 +276,7 @@ impl JSONCompilable for ASTMatch {
         }
         Ok(json!({
             kind: 4,
-            condition: format!("\"{}\"", transform_js(&self.matched)?),
+            condition: format!("\"{}\"", transform_js(&self.matched, ctx.prefix_js_idents.clone())?),
             modifier: self.kind.safe_compile(),
             arms: format!("[{}]", choices.join(","))
         }))
@@ -338,7 +338,7 @@ impl JSONSafeCompilable for Range<usize> {
 
 impl JSONSafeCompilable for String {
     fn safe_compile(&self) -> String {
-        format!("\"{}\"", self.replace('"', "\\\"").replace('\n', "\\\\n"))
+        format!("\"{}\"", self.replace("\n", "\\n").replace("\r", "\\r").replace('"', "\\\""))
     }
 }
 
