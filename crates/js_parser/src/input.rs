@@ -111,7 +111,7 @@ impl<'a> InputConsumer<'a> {
     }
 
     pub fn is_next(&mut self, character: u8, step: usize) -> bool {
-        if self.pos >= self.data.length() {
+        if (self.pos + step) >= self.data.length() {
             false 
         } else {
             (self.data[self.pos + step]) == character 

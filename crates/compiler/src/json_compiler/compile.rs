@@ -215,8 +215,8 @@ impl JSONCompilable for ASTChoice {
             range: self.range.safe_compile(),
             attributes: self.attributes.safe_compile(),
             condition: self.condition.as_ref().map(|c| json!({
-                modifier: c.0,
-                text: c.1
+                modifier: c.0.safe_compile(),
+                text: c.1.safe_compile()
             })).safe_compile()
         }))
     }
