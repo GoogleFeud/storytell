@@ -21,7 +21,7 @@ pub trait CompilerContext {
 pub trait CompilerProvider {
     type Output;
     type Context: CompilerContext;
-    fn compile_header(file: &ASTHeader, ctx: &mut Self::Context) -> StorytellResult<Self::Output>;
+    fn compile_header(file: &ASTHeader, ctx: &mut Self::Context, blob_id: BlobId) -> StorytellResult<Self::Output>;
 }
 
 pub struct Compiler<P: CompilerProvider, F: FileHost> {
@@ -47,11 +47,11 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
         self.init_fs()
     }
 
-    pub fn compile_string(ctx: &mut P::Context, line_endings: usize, text: &str) -> (Option<P::Output>, Vec<ASTBlock>, Vec<Diagnostic>) {
+    pub fn compile_string(ctx: &mut P::Context, file_id: BlobId, line_endings: usize, text: &str) -> (Option<P::Output>, Vec<ASTBlock>, Vec<Diagnostic>) {
         let (parsed_content, mut dias) = Parser::parse(text, line_endings);
         match parsed_content.get(0) {
             Some(ASTBlock::Header(header)) if header.depth == 1 => {
-                match P::compile_header(header, ctx) {
+                match P::compile_header(header, ctx, file_id) {
                     Ok(compiled) => (Some(compiled), parsed_content, dias),
                     Err(mut error) => {
                         dias.append(&mut error);
@@ -80,7 +80,7 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
             }
         }, &mut |c: &CompilerFileHost<F>, entry: DirEntry, path: Vec<BlobId>, id: BlobId| {
             let file_contents = c.raw.read_file(entry.path()).unwrap();
-            let (compiled_content, parsed_content,  diagnostics) = Self::compile_string(&mut self.ctx, line_endings, &file_contents);
+            let (compiled_content, parsed_content,  diagnostics) = Self::compile_string(&mut self.ctx, id, line_endings, &file_contents);
             parsed_files.push(CompiledFileData {
                 id,
                 compiled_content,
@@ -101,13 +101,13 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
     pub fn compile_file(&mut self, file_id: BlobId) -> (Option<P::Output>, String, Vec<Diagnostic>) {
         let mut file = self.host.files.get(&file_id).unwrap().borrow_mut();
         let file_contents = self.host.raw.read_file(self.host.build_path(&file.path, &file.name)).unwrap();
-        let (output, parsed, diagnostics) = Self::compile_string(&mut self.ctx, self.host.line_endings, &file_contents);
+        let (output, parsed, diagnostics) = Self::compile_string(&mut self.ctx, file_id, self.host.line_endings, &file_contents);
         file.parsed_content = parsed;
         (output, file_contents, diagnostics)
     }
 
     pub fn compile_file_with_content(&mut self, file_id: BlobId, content: &str) -> (Option<P::Output>, Vec<Diagnostic>) {
-        let (compiled, parsed, diagnostics) = Self::compile_string(&mut self.ctx, self.host.line_endings, content);
+        let (compiled, parsed, diagnostics) = Self::compile_string(&mut self.ctx, file_id, self.host.line_endings, content);
         let mut file = self.host.files.get(&file_id).unwrap().borrow_mut();
         file.parsed_content = parsed;
         (compiled, diagnostics)
@@ -127,7 +127,7 @@ pub fn compile_str<P: CompilerProvider>(string: &str, mut ctx: P::Context, line_
         }
     }
     for header in headers {
-        match P::compile_header(&header, &mut ctx) {
+        match P::compile_header(&header, &mut ctx, 0) {
             Ok(compiled) => result.push(compiled),
             Err(mut err) => total_errors.append(&mut err)
         }
