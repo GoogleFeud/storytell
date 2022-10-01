@@ -22,14 +22,14 @@ pub fn format_diagnostic(diagnostic: &DiagnosticMessage, vars: Vec<&str>) -> Str
     new_str
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum DiagnosticVariants {
     Suggestion,
     Warning,
     Error
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Diagnostic {
     pub range: Range<usize>,
     pub msg: String,

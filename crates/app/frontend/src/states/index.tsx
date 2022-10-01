@@ -56,6 +56,7 @@ export const initCompiler = async (projectId: string) : Promise<number|undefined
             diagnostics: content.diagnostics.length ? content.diagnostics : undefined
         };
     }
+    console.log(result);
     setState("contents", contents);
 
     const openPanels = [];

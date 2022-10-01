@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, fs::DirEntry};
 use rustc_hash::FxHashSet;
-use storytell_diagnostics::{diagnostic::{StorytellResult, Diagnostic, DiagnosticMessage}, make_diagnostics};
+use storytell_diagnostics::{diagnostic::*, make_diagnostics, dia, location::Range};
 use storytell_parser::{ast::{model::{ASTHeader, ASTBlock}, Parser}};
 use storytell_fs::FileHost;
 pub mod files;
@@ -9,13 +9,9 @@ use files::CompilerFileHost;
 use self::files::{BlobId, Directory, File, CompiledFileData};
 
 make_diagnostics!(define [
-    UNKNOWN_CHILD_PATH,
+    MISSING_HEADER,
     C1001,
-    "\"$\" is not a sub-path of \"$\"."
-], [
-    UNKNOWN_PATH,
-    C1002,
-    "\"$\" is not a path."
+    "File must contain just one top-level (#) path."
 ]);
 
 pub trait CompilerContext {
@@ -51,6 +47,25 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
         self.init_fs()
     }
 
+    pub fn compile_string(ctx: &mut P::Context, line_endings: usize, text: &str) -> (Option<P::Output>, Vec<ASTBlock>, Vec<Diagnostic>) {
+        let (parsed_content, mut dias) = Parser::parse(text, line_endings);
+        match parsed_content.get(0) {
+            Some(ASTBlock::Header(header)) if header.depth == 1 => {
+                match P::compile_header(header, ctx) {
+                    Ok(compiled) => (Some(compiled), parsed_content, dias),
+                    Err(mut error) => {
+                        dias.append(&mut error);
+                        (None, parsed_content, dias)
+                    }
+                }
+            },
+            _ => {
+                dias.push(dia!(MISSING_HEADER, Range::new(0, text.len())));
+                (None, parsed_content, dias)
+            }
+        }
+    }
+
     pub fn init_fs(&mut self) -> (FxHashSet<BlobId>, Vec<CompiledFileData<P::Output>>) {
         let mut parsed_files: Vec<CompiledFileData<P::Output>> = vec![];
         let line_endings = self.host.line_endings;
@@ -65,26 +80,13 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
             }
         }, &mut |c: &CompilerFileHost<F>, entry: DirEntry, path: Vec<BlobId>, id: BlobId| {
             let file_contents = c.raw.read_file(entry.path()).unwrap();
-            let (parsed_content, mut dias) = Parser::parse(&file_contents, line_endings);
-            if let Some(ASTBlock::Header(header))  = parsed_content.get(0) {
-                match P::compile_header(header, &mut self.ctx) {
-                    Ok(compiled) => parsed_files.push(CompiledFileData {
-                        id,
-                        compiled_content: Some(compiled),
-                        content: file_contents,
-                        diagnostics: dias
-                    }),
-                    Err(mut error) => {
-                        dias.append(&mut error);
-                        parsed_files.push(CompiledFileData { 
-                            id,
-                            compiled_content: None,
-                            content: file_contents, 
-                            diagnostics: dias 
-                        });
-                    }
-                }
-            }
+            let (compiled_content, parsed_content,  diagnostics) = Self::compile_string(&mut self.ctx, line_endings, &file_contents);
+            parsed_files.push(CompiledFileData {
+                id,
+                compiled_content,
+                diagnostics,
+                content: file_contents,
+            });
             File {
                 parsed_content,
                 name: entry.file_name().to_str().unwrap().to_string(),
@@ -97,35 +99,18 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
     }
 
     pub fn compile_file(&mut self, file_id: BlobId) -> (Option<P::Output>, String, Vec<Diagnostic>) {
-        let (file, text, mut dia) = self.host.parse_file(file_id).unwrap();
-        if let Some(ASTBlock::Header(header))  = file.parsed_content.get(0) {
-            match P::compile_header(header, &mut self.ctx) {
-                Ok(compiled) => (Some(compiled), text, dia),
-                Err(mut error) => {
-                    dia.append(&mut error);
-                    (None, text, dia)
-                }
-            }
-        } else {
-            (None, text, dia)
-        }
+        let mut file = self.host.files.get(&file_id).unwrap().borrow_mut();
+        let file_contents = self.host.raw.read_file(self.host.build_path(&file.path, &file.name)).unwrap();
+        let (output, parsed, diagnostics) = Self::compile_string(&mut self.ctx, self.host.line_endings, &file_contents);
+        file.parsed_content = parsed;
+        (output, file_contents, diagnostics)
     }
 
     pub fn compile_file_with_content(&mut self, file_id: BlobId, content: &str) -> (Option<P::Output>, Vec<Diagnostic>) {
-        let (content, mut dia) = Parser::parse(content, self.host.line_endings);
+        let (compiled, parsed, diagnostics) = Self::compile_string(&mut self.ctx, self.host.line_endings, content);
         let mut file = self.host.files.get(&file_id).unwrap().borrow_mut();
-        file.parsed_content = content;
-        if let Some(ASTBlock::Header(header))  = file.parsed_content.get(0) {
-            match P::compile_header(header, &mut self.ctx) {
-                Ok(compiled) => (Some(compiled), dia),
-                Err(mut error) => {
-                    dia.append(&mut error);
-                    (None, dia)
-                }
-            }
-        } else {
-            (None, dia)
-        }
+        file.parsed_content = parsed;
+        (compiled, diagnostics)
     }
 
 

@@ -1,11 +1,10 @@
 use storytell_diagnostics::diagnostic::Diagnostic;
 use storytell_fs::FileHost;
 use rustc_hash::{FxHashMap, FxHashSet};
-use storytell_parser::ast::Parser;
 use storytell_parser::ast::{model::ASTBlock};
 use std::fs::DirEntry;
 use std::path::{PathBuf, Path};
-use std::cell::{RefCell, RefMut};
+use std::cell::RefCell;
 
 pub type BlobId = u16;
 
@@ -73,14 +72,6 @@ impl<H: FileHost> CompilerFileHost<H> {
         res
     }
 
-    pub fn parse_file(&self, file_id: BlobId) -> Option<(RefMut<File>, String, Vec<Diagnostic>)> {
-        let mut file = self.files.get(&file_id)?.borrow_mut();
-        let file_contents = self.raw.read_file(self.build_path(&file.path, &file.name))?;
-        let (content, dias) = Parser::parse(&file_contents, self.line_endings);
-        file.parsed_content = content;
-        Some((file, file_contents, dias))
-    }
-
     pub fn register_dir<P: AsRef<Path>>(&mut self, dir: P, path: Vec<BlobId>,
         hit_dir: &mut dyn FnMut(DirEntry, Vec<BlobId>, FxHashSet<BlobId>, BlobId) -> Directory,
         hit_file: &mut dyn FnMut(&Self, DirEntry, Vec<BlobId>, BlobId) -> File
@@ -90,7 +81,7 @@ impl<H: FileHost> CompilerFileHost<H> {
         // Assures that the dir entries are always in the same order, so BlobIds awlays match
         // even when a new file is created by something else other than the program
         // Is this cutting corners? Yes it is.
-        vec_of_blobs.sort_by(|a, b| a.metadata().unwrap().created().unwrap().cmp(&b.metadata().unwrap().created().unwrap()));
+        vec_of_blobs.sort_by_key(|a| a.metadata().unwrap().created().unwrap());
         for entry in vec_of_blobs {
             let blob_id = self.counter;
             children.insert(blob_id);

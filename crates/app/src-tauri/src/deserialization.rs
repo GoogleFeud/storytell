@@ -53,7 +53,7 @@ impl JSONSerializable for u16 {
 impl JSONSerializable for File {
     fn compile(&self) -> String {
         json!({
-            name: self.name.split(".").next().unwrap().compile(),
+            name: self.name.split('.').next().unwrap().compile(),
             parent: self.parent.compile(),
             id: self.id
         })

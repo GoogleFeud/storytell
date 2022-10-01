@@ -338,7 +338,7 @@ impl JSONSafeCompilable for Range<usize> {
 
 impl JSONSafeCompilable for String {
     fn safe_compile(&self) -> String {
-        format!("\"{}\"", self.replace("\n", "\\n").replace("\r", "\\r").replace('"', "\\\""))
+        format!("\"{}\"", self.replace('\n', "\\n").replace('\r', "\\r").replace('"', "\\\""))
     }
 }
 

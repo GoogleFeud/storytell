@@ -3,7 +3,7 @@ use std::cmp::PartialOrd;
 
 /// Both `col` and `line` start from 1. If the location doesn't exist, then
 /// both will be equal to 0.
-#[derive(PartialEq, Default, Debug, Clone, PartialOrd)]
+#[derive(PartialEq, Eq, Default, Debug, Clone, PartialOrd)]
 pub struct Location {
     pub col: usize,
     pub line: usize
@@ -41,7 +41,7 @@ impl Position for usize {
 }
 
 /// All Ranges should be **exclusive**.
-#[derive(PartialEq, Default, Debug, Clone, PartialOrd)]
+#[derive(PartialEq, Eq, Default, Debug, Clone, PartialOrd)]
 pub struct Range<T: Position> {
     pub start: T,
     pub end: T
