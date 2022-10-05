@@ -84,7 +84,7 @@ export interface ASTHeader extends Node {
     title: string,
     canonicalTitle: string,
     childPaths: ASTHeader[],
-    children: unknown[],
+    children: ASTBlock[],
 }
 
 export const enum ASTInlineTextKind {

@@ -10,6 +10,22 @@ export const setEditor = (editor: monaco.editor.IStandaloneCodeEditor) => {
     setEditorState(editor);
 };
 
+export const setEditorSelection = (start: number, end: number) => {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const editorInstance = editor()!;
+    const model = editorInstance.getModel();
+    if (!model) return;
+    const startLoc = model.getPositionAt(start);
+    const endLoc = model.getPositionAt(end);
+    editorInstance.setSelection({
+        startColumn: startLoc.column,
+        startLineNumber: startLoc.lineNumber,
+        endColumn: endLoc.column,
+        endLineNumber: endLoc.lineNumber
+    });
+    editorInstance.revealLineInCenter(startLoc.lineNumber);
+};
+
 export const setEditorFile = async (fileId: number) => {
     const content = state.contents[fileId];
     if (content && content.model) {
