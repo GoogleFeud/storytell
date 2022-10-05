@@ -49,7 +49,7 @@ pub struct Range<T: Position> {
 
 impl<T: Position> Range<T> {
     pub fn new(start: T, end: T) -> Self {
-        Range {
+        Self {
             start,
             end
         }

@@ -147,7 +147,14 @@ impl<'a> JsParser<'a> {
                 let exp = self.parse_full_expression()?;
                 self.tokens.expect(TokenKind::SquareBracketClosePunc, "]")?;
                 self.parse_suffix(ASTExpression::Access(Box::from(ASTAccess {
-                    accessor: ASTAccessContent::Expression(exp),
+                    accessor: if let ASTExpression::String(string) = exp {
+                        ASTAccessContent::Identifier(ASTIdentifier { 
+                            content: None, 
+                            range: string.get_text_content()
+                        })
+                    } else {
+                        ASTAccessContent::Expression(exp)
+                    },
                     expression: tok,
                     range: self.tokens.range(start)
                 })), start)

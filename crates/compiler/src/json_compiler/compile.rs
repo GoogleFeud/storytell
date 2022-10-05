@@ -1,13 +1,12 @@
 use storytell_diagnostics::diagnostic::{StorytellResult, Diagnostic};
 use storytell_diagnostics::location::Range;
 use storytell_js_parser::JsParser;
-use storytell_js_parser::ast::Visitable;
 use storytell_parser::ast::model::*;
 use std::{stringify, concat};
 
 use crate::json_compiler::JSONCompilerContext;
 use crate::path::Path;
-use crate::visitors::{MagicVarCollector, Rebuilder, transform_js};
+use crate::visitors::{variable_collector::VariableCollector, rebuilder::*};
 
 #[macro_export]
 macro_rules! json {
@@ -112,20 +111,14 @@ impl JSONCompilable for ASTInline {
                         range: Range::new(self.range.start + d.range.start + 1, self.range.start + d.range.end - 1)
                     }).collect::<Vec<Diagnostic>>())
                 } else {
-                    let mut magic_vars_collector = MagicVarCollector::new(input, Range::new(self.range.start + 1, self.range.end - 1), &mut ctx.magic_variables);
-                    expressions.visit_each_child(&mut magic_vars_collector);
-                    if !magic_vars_collector.diagnostics.is_empty() {
-                        return Err(magic_vars_collector.diagnostics)
-                    } else {
-                        let gathered_variables = magic_vars_collector.collected.iter().map(|pair| json!({ name: pair.0.safe_compile(), kind: pair.1 })).collect::<Vec<String>>();
-                        let rebuilt_code = Rebuilder::run(magic_vars_collector.input, &expressions, ctx.prefix_js_idents.clone());
-                        json!({
-                            kind: 5,
-                            text: format!("\"{}\"", rebuilt_code),
-                            magicVariables: format!("[{}]", gathered_variables.join(",")),
-                            range: self.range.safe_compile()
-                        })
-                    }
+                    let (collected, input) = VariableCollector::run(input, Range::new(self.range.start + 1, self.range.end - 1), &expressions);
+                    ctx.variables.append(collected);
+                    let rebuilt_code = Rebuilder::run(input, &expressions, ctx.prefix_js_idents.clone());
+                    json!({
+                        kind: 5,
+                        text: format!("\"{}\"", rebuilt_code),
+                        range: self.range.safe_compile()
+                    })
                 }
             }
         })

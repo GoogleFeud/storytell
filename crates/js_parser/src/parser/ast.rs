@@ -330,3 +330,11 @@ impl ASTExpression {
     }
 }
 
+impl ASTString {
+    pub fn get_text_content(&self) -> Range<usize> {
+        Range { 
+            start: self.range.start + 1, 
+            end: self.range.end - 1
+        }
+    }
+}

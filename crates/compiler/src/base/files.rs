@@ -21,13 +21,6 @@ pub struct File {
     pub id: BlobId
 }
 
-pub struct CompiledFileData<P> {
-    pub id: BlobId,
-    pub compiled_content: Option<P>,
-    pub content: String,
-    pub diagnostics: Vec<Diagnostic>
-}
-
 pub struct Directory {
     pub name: String,
     pub path: Vec<BlobId>,

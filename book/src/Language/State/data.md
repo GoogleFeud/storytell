@@ -13,6 +13,7 @@ Variables get initialized automatically depending on how you use them.
 | `variable += "Hello"` | `variable` is a string, and gets initialized as `""`.<br>`+=` - Appends a string to the variable. |
 | `variable.push(value)` | `variable` is a list (array) and gets initialized as `[]`.<br>`.push(value)` pushes the value to the list. The value can be anything. You can also provide multiple values - `.push("Hello", 123, true, [])` |
 | `variable.key = value` | `variable` is a table (object) and gets initialized as `{}`.<br>`.key = value` adds a new key-value pair to the table. For example, `variable.name = "Google"` is going to set the `name` key to `"Google"`. You can retrive the value inside the key with `variable.name`. |
+| `variable.set(key, value)` | `variable` is a map which can have dynamic keys.<br>`.set(key, value)` adds a new key-value pair to the map. For example, `variable.set("name", "Google")` is going to set the `name` key to `"Google"`. You can retrive the value inside the key with `variable.get("name")`. |
 
 Here's an example of using a list:
 

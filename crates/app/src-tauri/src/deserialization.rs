@@ -1,5 +1,5 @@
 use storytell_diagnostics::{diagnostic::Diagnostic, location::Range};
-use storytell_compiler::{base::files::{File, FileDiagnostic, Directory, CompiledFileData}, json};
+use storytell_compiler::{base::{CompiledFileData, files::{File, FileDiagnostic, Directory}}, json};
 use rustc_hash::FxHashSet;
 use serde_json::{json as serde_json};
 
@@ -71,7 +71,7 @@ impl JSONSerializable for Directory {
     }
 }
 
-impl JSONSerializable for CompiledFileData<String> {
+impl<C> JSONSerializable for CompiledFileData<String, C> {
     fn compile(&self) -> String {
         json!({
             id: self.id,

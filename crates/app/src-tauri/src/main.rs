@@ -5,6 +5,7 @@
 
 pub mod deserialization;
 pub mod projects;
+pub mod compiler;
 pub mod state;
 pub mod commands;
 

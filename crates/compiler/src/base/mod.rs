@@ -6,7 +6,7 @@ use storytell_fs::FileHost;
 pub mod files;
 use files::CompilerFileHost;
 
-use self::files::{BlobId, Directory, File, CompiledFileData};
+use self::files::{BlobId, Directory, File};
 
 make_diagnostics!(define [
     MISSING_HEADER,
@@ -14,8 +14,20 @@ make_diagnostics!(define [
     "File must contain just one top-level (#) path."
 ]);
 
+
+pub struct CompiledFileData<P, C> {
+    pub id: BlobId,
+    pub compiled_content: Option<P>,
+    pub content: String,
+    pub used_context: C,
+    pub diagnostics: Vec<Diagnostic>
+}
+
 pub trait CompilerContext {
     fn process_path(&mut self, path: &ASTHeader);
+    /// Creates a new context,
+    /// optionally with data filled from this one
+    fn recreate(&self) -> Self;
 }
 
 pub trait CompilerProvider {
@@ -26,25 +38,23 @@ pub trait CompilerProvider {
 
 pub struct Compiler<P: CompilerProvider, F: FileHost> {
     pub host: CompilerFileHost<F>,
-    pub ctx: P::Context,
     _provider: PhantomData<P>
 }
 
 impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
 
-    pub fn new(cwd: &str, line_endings: usize, host: F, ctx: P::Context) -> Self {
+    pub fn new(cwd: &str, line_endings: usize, host: F) -> Self {
         Self {
             host: CompilerFileHost::new(cwd, line_endings, host),
-            ctx,
             _provider: PhantomData::default()
         }
     }
 
-    pub fn reset(&mut self) -> (FxHashSet<BlobId>, Vec<CompiledFileData<P::Output>>) {
+    pub fn reset(&mut self, ctx: &mut P::Context) -> (FxHashSet<BlobId>, Vec<CompiledFileData<P::Output, P::Context>>) {
         self.host.counter = 1;
         self.host.files.clear();
         self.host.dirs.clear();
-        self.init_fs()
+        self.init_fs(ctx)
     }
 
     pub fn compile_string(ctx: &mut P::Context, line_endings: usize, text: &str) -> (Option<P::Output>, Vec<ASTBlock>, Vec<Diagnostic>) {
@@ -66,8 +76,8 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
         }
     }
 
-    pub fn init_fs(&mut self) -> (FxHashSet<BlobId>, Vec<CompiledFileData<P::Output>>) {
-        let mut parsed_files: Vec<CompiledFileData<P::Output>> = vec![];
+    pub fn init_fs(&mut self, ctx: &mut P::Context) -> (FxHashSet<BlobId>, Vec<CompiledFileData<P::Output, P::Context>>) {
+        let mut parsed_files: Vec<CompiledFileData<P::Output, P::Context>> = vec![];
         let line_endings = self.host.line_endings;
         let cwd = self.host.cwd.clone();
         let global = self.host.register_dir(cwd, vec![], &mut |entry, path, children, id| {
@@ -79,12 +89,14 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
                 children
             }
         }, &mut |c: &CompilerFileHost<F>, entry: DirEntry, path: Vec<BlobId>, id: BlobId| {
+            let mut file_ctx = ctx.recreate();
             let file_contents = c.raw.read_file(entry.path()).unwrap();
-            let (compiled_content, parsed_content,  diagnostics) = Self::compile_string(&mut self.ctx, line_endings, &file_contents);
+            let (compiled_content, parsed_content,  diagnostics) = Self::compile_string(&mut file_ctx, line_endings, &file_contents);
             parsed_files.push(CompiledFileData {
                 id,
                 compiled_content,
                 diagnostics,
+                used_context: file_ctx,
                 content: file_contents,
             });
             File {
@@ -98,16 +110,16 @@ impl<P: CompilerProvider, F: FileHost> Compiler<P, F> {
         (global, parsed_files)
     }
 
-    pub fn compile_file(&mut self, file_id: BlobId) -> (Option<P::Output>, String, Vec<Diagnostic>) {
+    pub fn compile_file(&mut self, file_id: BlobId, ctx: &mut P::Context) -> (Option<P::Output>, String, Vec<Diagnostic>) {
         let mut file = self.host.files.get(&file_id).unwrap().borrow_mut();
         let file_contents = self.host.raw.read_file(self.host.build_path(&file.path, &file.name)).unwrap();
-        let (output, parsed, diagnostics) = Self::compile_string(&mut self.ctx, self.host.line_endings, &file_contents);
+        let (output, parsed, diagnostics) = Self::compile_string(ctx, self.host.line_endings, &file_contents);
         file.parsed_content = parsed;
         (output, file_contents, diagnostics)
     }
 
-    pub fn compile_file_with_content(&mut self, file_id: BlobId, content: &str) -> (Option<P::Output>, Vec<Diagnostic>) {
-        let (compiled, parsed, diagnostics) = Self::compile_string(&mut self.ctx, self.host.line_endings, content);
+    pub fn compile_file_with_content(&mut self, file_id: BlobId, content: &str, ctx: &mut P::Context) -> (Option<P::Output>, Vec<Diagnostic>) {
+        let (compiled, parsed, diagnostics) = Self::compile_string(ctx, self.host.line_endings, content);
         let mut file = self.host.files.get(&file_id).unwrap().borrow_mut();
         file.parsed_content = parsed;
         (compiled, diagnostics)

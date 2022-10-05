@@ -1,6 +1,6 @@
 use storytell_diagnostics::diagnostic::StorytellResult;
 use storytell_parser::ast::model::ASTHeader;
-use crate::{base::*, visitors::MagicVariableCollectorContext};
+use crate::{base::*, visitors::variable_collector::variable::AssignmentStore};
 use self::compile::JSONCompilable;
 
 pub mod compile;
@@ -18,7 +18,7 @@ impl CompilerProvider for JSONCompilerProvider {
 
 #[derive(Default)]
 pub struct JSONCompilerContext {
-    pub magic_variables: MagicVariableCollectorContext,
+    pub variables: AssignmentStore,
     pub prefix_js_idents: Option<String>
 }
 
@@ -28,13 +28,20 @@ impl CompilerContext for JSONCompilerContext {
         // Not needed, for now the front-end handles this.
     }
 
+    fn recreate(&self) -> Self {
+        Self {
+            variables: AssignmentStore::default(),
+            prefix_js_idents: self.prefix_js_idents.clone()
+        }
+    }
+
 }
 
 impl JSONCompilerContext {
 
     pub fn new(prefix_js_idents: Option<String>) -> Self {
         Self { 
-            magic_variables: MagicVariableCollectorContext::new(),
+            variables: AssignmentStore::default(),
             prefix_js_idents
         }
     }
@@ -49,9 +56,9 @@ mod tests {
     #[test]
     fn compile() {
         let before = Instant::now();
-        let (result, diagnostics, ctx) = compile_str::<JSONCompilerProvider>("
+        let (_result, _diagnostics, ctx) = compile_str::<JSONCompilerProvider>("
 # Hello, World!
-How's it going on this {a += 1} {b += 5; c.push(123); c.pop(); v = d = 33}? `Test!`
+How's it going on this {a += 1} {b += 5; c.push(123); c.pop(); v = d = []}? `Test!`
 
 ```js
 console.log(`Some code ${123}`);
@@ -77,7 +84,8 @@ Hello!
 {e.b.c.d}
 ", JSONCompilerContext::new(None), 1);
         println!("Parsing took {} nanoseconds", before.elapsed().as_nanos());
-        println!("[{}] {:?} {:?}", result.join(","), diagnostics, ctx.magic_variables);
+        println!("{:?}", ctx.variables);
+        //panic!("Panik");
     }
 
 }
