@@ -42,14 +42,14 @@ export interface RawFileContents {
     id: number,
     textContent?: string,
     diagnostics: Diagnostic[],
-    compiledContent?: ASTHeader[]
+    compiledContent?: ASTHeader
 }
 
 export interface FileContents {
     model?: monaco.editor.ITextModel,
     diagnostics?: Diagnostic[],
     viewState?: monaco.editor.ICodeEditorViewState,
-    compiledContent?: ASTHeader[]
+    compiledContent?: ASTHeader
 }
 
 export interface Panel {

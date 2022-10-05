@@ -24,7 +24,7 @@ export const openFile = (fileId: number) => {
     else setActivePanel(fileId.toString());
 };
 
-export const getCurrentFile = () => state.currentFile && state.fileExplorer.blobs[state.currentFile];
+export const getCurrentFile = () => state.currentFile !== undefined && state.fileExplorer.blobs[state.currentFile];
 
 export const isCurrentFolder = () => state.currentFile && !!state.fileExplorer.blobs[state.currentFile].children;
 

@@ -80,7 +80,7 @@ pub fn recompile_file(state: State<StorytellState>, file_id: BlobId, content: St
     let file = compiler.host.files.get(&file_id).unwrap().borrow();
     compiler.host.raw.write_file(&compiler.host.build_path(&file.path, &file.name), &content).expect("Couldn't write to file.");
     json!({
-        parsedContent: compiled.compile(),
+        compiledContent: if let Some(compiled) = compiled { compiled } else { String::from("null") },
         diagnostics: diagnostics.compile()
     })
 }

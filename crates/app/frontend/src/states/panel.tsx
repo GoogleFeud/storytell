@@ -8,6 +8,8 @@ export const setActivePanel = (id: string|undefined) => {
     setState("activePanel", id);
 };
 
+export const getActivePanelContents = () => state.contents[state.openPanels.find(p => p.id === state.activePanel)?.fileId || -1];
+
 export const openPanel = (id: Panel | string) => {
     const panel = typeof id === "string" ? state.openPanels.find(f => f.id === id) : id;
     if (!panel) return;

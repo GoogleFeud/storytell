@@ -10,14 +10,6 @@ export const setEditor = (editor: monaco.editor.IStandaloneCodeEditor) => {
     setEditorState(editor);
 };
 
-export const setEditorText = (text: string) => {
-    const editorInstance = editor();
-    if (editorInstance) {
-        if (editorInstance.getValue() === text) return;
-        editor()?.setValue(text);
-    }
-};
-
 export const setEditorFile = async (fileId: number) => {
     const content = state.contents[fileId];
     if (content && content.model) {
