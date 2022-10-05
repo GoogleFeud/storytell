@@ -1,21 +1,11 @@
-import { createMemo, For, onCleanup, onMount } from "solid-js";
-import { saveData, state } from "@state/index";
+import { createMemo, For } from "solid-js";
+import { state } from "@state/index";
 import { ScrollBox } from "../../utils/Scrollbar";
 import { MonacoEditor } from "./monaco";
 import { MinimizedPanel } from "./panels/minimized";
 import { WelcomePanel } from "./panels/welcome";
 
 export const TextEditor = () => {
-    let X: NodeJS.Timer;
-
-    onMount(() => {
-        X = setInterval(() => {
-            saveData();
-        }, 30_000);
-    });
-
-    onCleanup(() => clearInterval(X));
-
     const monaco = createMemo(() => <MonacoEditor />);
     return <div class="h-full w-full flex flex-col">
         <div class="w-full flex border-b border-neutral-700">

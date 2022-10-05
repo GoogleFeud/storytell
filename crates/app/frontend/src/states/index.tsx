@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api";
+import { appWindow } from "@tauri-apps/api/window";
 import { Panel, Project, FileContents, FileDiagnostic, Pages, File, RawFileContents } from "@types";
 import { JSXElement } from "solid-js";
 import { createStore } from "solid-js/store";
@@ -28,6 +29,10 @@ export const [state, setState] = createStore<{
     contents: [],
     openPanels: [],
     currentPage: Pages.TitleScreen
+});
+
+appWindow.onCloseRequested(() => {
+    saveData();
 });
 
 export const setModal = (modal?: JSXElement) => {
