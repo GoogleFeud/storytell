@@ -58,6 +58,7 @@ export const initCompiler = async (projectId: string) : Promise<number|undefined
     for (const content of result.contents) {
         contents[content.id] = {
             model: createModel(content.id, content),
+            compiledContent: content.compiledContent,
             diagnostics: content.diagnostics.length ? content.diagnostics : undefined
         };
     }

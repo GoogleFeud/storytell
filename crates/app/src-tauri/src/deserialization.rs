@@ -76,7 +76,7 @@ impl JSONSerializable for CompiledFileData<String> {
         json!({
             id: self.id,
             textContent: self.content.compile(),
-            compiledContent: self.compiled_content.compile(),
+            compiledContent: if let Some(compiled_content) = &self.compiled_content { compiled_content } else { "null" },
             diagnostics: self.diagnostics.compile()
         })
     }

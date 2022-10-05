@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { invoke } from "@tauri-apps/api";
 import { File, BlobType, Diagnostic, RawFileContents } from "@types";
-import { state, setState, saveData } from ".";
+import { state, setState } from ".";
 import { saveFileModelState, setEditorFile } from "./editor";
 import { createPanel, removePanel, setActivePanel } from "./panel";
 
@@ -88,10 +88,8 @@ export const openDirectoryRecursive = (dir: number) => {
 };
 
 export const recompileFile = async (fileId: number, content: string) : Promise<Diagnostic[]|undefined> => {
-    saveData();
     const res = await JSON.parse(await invoke("recompile_file", {fileId, content})) as RawFileContents;
-    //@ts-expect-error wdwdwdwd
-    console.log(res.parsedContent);
     setState("contents", fileId, "diagnostics", res.diagnostics.length ? res.diagnostics : undefined);
+    setState("contents", fileId, "compiledContent", res.compiledContent);
     return res.diagnostics;
 };
