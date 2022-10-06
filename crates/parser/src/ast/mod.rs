@@ -115,7 +115,6 @@ impl<'a> Parser<'a> {
                 Some(ASTBlock::Match(ASTMatch {
                     matched: self.input.consume_until("}")?.to_string(),
                     attributes: self.collected_attributes.pop_vec(),
-                    range: self.input.range_here(start),
                     direct_children: if kind.is_some() {
                         self.input.skip_until_end_of_line();
                         self.parse_children(depth + 1)
@@ -124,6 +123,7 @@ impl<'a> Parser<'a> {
                         self.input.skip_until_end_of_line();
                         self.parse_choice_list(depth, true, false)?.choices
                     } else { vec![] },
+                    range: self.input.range_here(start),
                     kind
                 }))
             },

@@ -278,7 +278,9 @@ impl JSONCompilable for ASTMatch {
             kind: 4,
             condition: format!("\"{}\"", transform_js(&self.matched, ctx.prefix_js_idents.clone())?),
             modifier: self.kind.safe_compile(),
-            arms: format!("[{}]", choices.join(","))
+            arms: format!("[{}]", choices.join(",")),
+            range: self.range.safe_compile(),
+            attributes: self.attributes.safe_compile()
         }))
     }
 }
