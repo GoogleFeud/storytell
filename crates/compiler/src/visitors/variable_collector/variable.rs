@@ -49,7 +49,7 @@ pub struct VariableStore<O: Hash + Default + Eq> {
     pub variables: FxHashMap<u32, Variable<O>>,
     pub global: HashMap<String, u32>,
     pub objects: FxHashMap<u32, HashMap<String, u32>>,
-    pub by_origin: FxHashMap<O, u32>,
+    pub by_origin: FxHashMap<O, Vec<u32>>,
     pub obj_counter: u32
 }
 
@@ -70,31 +70,24 @@ impl<O: Hash + Default + Eq> VariableStore<O> {
         object_id
     }
 
-    pub fn insert_global(&mut self, origin: O, key: String, assignment: VariableAssignment<O>) {
-        match self.global.entry(key) {
-            Entry::Occupied(occupied) => {
-                let item = occupied.get();
-                self.variables.get_mut(item).unwrap().assignments.push(assignment);
-                self.by_origin.insert(origin, *item);
+    pub fn insert_by_origin(&mut self, origin: O, value: u32) {
+        match self.by_origin.entry(origin) {
+            Entry::Occupied(mut occupied) => {
+                let item = occupied.get_mut();
+                item.push(value);
             },
             Entry::Vacant(vacant) => {
-                let mut entry = Variable::default();
-                entry.assignments.push(assignment);
-                let item_id = self.obj_counter;
-                self.obj_counter += 1;
-                self.variables.insert(item_id, entry);
-                vacant.insert(item_id);
-                self.by_origin.insert(origin, item_id);
+                vacant.insert(vec![value]);
             }
         }
     }
 
-    pub fn insert_obj(&mut self, origin: O, key: String, obj_id: &u32, assignment: VariableAssignment<O>) {
-        match self.objects.get_mut(obj_id).unwrap().entry(key) {
+    pub fn insert_global(&mut self, origin: O, key: String, assignment: VariableAssignment<O>) {
+        let id = match self.global.entry(key) {
             Entry::Occupied(occupied) => {
                 let item = occupied.get();
                 self.variables.get_mut(item).unwrap().assignments.push(assignment);
-                self.by_origin.insert(origin, *item);
+                *item
             },
             Entry::Vacant(vacant) => {
                 let mut entry = Variable::default();
@@ -103,9 +96,30 @@ impl<O: Hash + Default + Eq> VariableStore<O> {
                 self.obj_counter += 1;
                 self.variables.insert(item_id, entry);
                 vacant.insert(item_id);
-                self.by_origin.insert(origin, item_id);
+                item_id
             }
-        }
+        };
+        self.insert_by_origin(origin, id);
+    }
+
+    pub fn insert_obj(&mut self, origin: O, key: String, obj_id: &u32, assignment: VariableAssignment<O>) {
+        let id = match self.objects.get_mut(obj_id).unwrap().entry(key) {
+            Entry::Occupied(occupied) => {
+                let item = occupied.get();
+                self.variables.get_mut(item).unwrap().assignments.push(assignment);
+                *item
+            },
+            Entry::Vacant(vacant) => {
+                let mut entry = Variable::default();
+                entry.assignments.push(assignment);
+                let item_id = self.obj_counter;
+                self.obj_counter += 1;
+                self.variables.insert(item_id, entry);
+                vacant.insert(item_id);
+                item_id
+            }
+        };
+        self.insert_by_origin(origin, id);
     }
 
 }

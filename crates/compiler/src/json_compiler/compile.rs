@@ -1,13 +1,13 @@
 use storytell_diagnostics::diagnostic::{StorytellResult, Diagnostic};
 use storytell_diagnostics::location::Range;
 use storytell_js_parser::JsParser;
-use storytell_js_parser::ast::Visitable;
 use storytell_parser::ast::model::*;
 use std::{stringify, concat};
 
+use crate::base::files::BlobId;
 use crate::json_compiler::JSONCompilerContext;
 use crate::path::Path;
-use crate::visitors::{MagicVarCollector, Rebuilder, transform_js};
+use crate::visitors::{VariableCollector, Rebuilder, transform_js};
 
 #[macro_export]
 macro_rules! json {
@@ -24,7 +24,7 @@ macro_rules! json {
 }
 
 pub trait JSONCompilable {
-    fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String>;
+    fn compile(&self, ctx: &mut JSONCompilerContext, file_id: BlobId) -> StorytellResult<String>;
 }
 
 pub trait JSONSafeCompilable {
@@ -39,12 +39,12 @@ impl JSONCompilable for ASTHeader {
     ///  "childPaths": Path[],
     ///  "children": []
     /// }
-    fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
+    fn compile(&self, ctx: &mut JSONCompilerContext, file_id: BlobId) -> StorytellResult<String> {
         let mut header_children: Vec<String> = vec![];
         let mut others: Vec<&ASTBlock> = vec![];
         for child in &self.children {
             if let ASTBlock::Header(header) = &child {
-                header_children.push(format!("\"{}\": {}", Path::canonicalize_name(&header.title.text), header.compile(ctx)?));
+                header_children.push(format!("\"{}\": {}", Path::canonicalize_name(&header.title.text), header.compile(ctx, file_id)?));
             } else {
                 others.push(child)
             }
@@ -54,7 +54,7 @@ impl JSONCompilable for ASTHeader {
             canonicalTitle: Path::canonicalize_name(&self.title.text).safe_compile(),
             childPaths: format!("{{{}}}", header_children.join(",")),
             range: self.range.safe_compile(),
-            children: others.compile(ctx)?
+            children: others.compile(ctx, file_id)?
         }))
     }
 }
@@ -77,26 +77,26 @@ impl JSONCompilable for ASTInline {
     /// Code - 3
     /// Join - 4
     /// Javascript - 5
-    fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
+    fn compile(&self, ctx: &mut JSONCompilerContext, file_id: BlobId) -> StorytellResult<String> {
         Ok(match &self.kind {
             ASTInlineKind::Bold(text) => json!({
                 kind: 0,
-                text: text.compile(ctx)?,
+                text: text.compile(ctx, file_id)?,
                 range: text.range.safe_compile()
             }),
             ASTInlineKind::Italics(text) => json!({
                 kind: 1,
-                text: text.compile(ctx)?,
+                text: text.compile(ctx, file_id)?,
                 range: text.range.safe_compile()
             }),
             ASTInlineKind::Underline(text) => json!({
                 kind: 2,
-                text: text.compile(ctx)?,
+                text: text.compile(ctx, file_id)?,
                 range: text.range.safe_compile()
             }),
             ASTInlineKind::Code(text) =>json!({
                 kind: 3,
-                text: text.compile(ctx)?,
+                text: text.compile(ctx, file_id)?,
                 range: text.range.safe_compile()
             }),
             ASTInlineKind::Join => json!({
@@ -112,20 +112,18 @@ impl JSONCompilable for ASTInline {
                         range: Range::new(self.range.start + d.range.start + 1, self.range.start + d.range.end - 1)
                     }).collect::<Vec<Diagnostic>>())
                 } else {
-                    let mut magic_vars_collector = MagicVarCollector::new(input, Range::new(self.range.start + 1, self.range.end - 1), &mut ctx.magic_variables);
-                    expressions.visit_each_child(&mut magic_vars_collector);
-                    if !magic_vars_collector.diagnostics.is_empty() {
-                        return Err(magic_vars_collector.diagnostics)
-                    } else {
-                        let gathered_variables = magic_vars_collector.collected.iter().map(|pair| json!({ name: pair.0.safe_compile(), kind: pair.1 })).collect::<Vec<String>>();
-                        let rebuilt_code = Rebuilder::run(magic_vars_collector.input, &expressions, ctx.prefix_js_idents.clone());
-                        json!({
-                            kind: 5,
-                            text: format!("\"{}\"", rebuilt_code),
-                            magicVariables: format!("[{}]", gathered_variables.join(",")),
-                            range: self.range.safe_compile()
-                        })
-                    }
+                    let input = VariableCollector {
+                        input,
+                        current_origin: file_id,
+                        store: &mut ctx.variables,
+                        start_pos: Range::new(self.range.start + 1, self.range.end - 1)
+                    }.run(&expressions);
+                    let rebuilt_code = Rebuilder::run(input, &expressions, ctx.prefix_js_idents.clone());
+                    json!({
+                        kind: 5,
+                        text: format!("\"{}\"", rebuilt_code),
+                        range: self.range.safe_compile()
+                    })
                 }
             }
         })
@@ -138,9 +136,9 @@ impl JSONCompilable for ASTText {
     ///     parts: TextPart[],
     ///     tail: string
     /// }
-    fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
+    fn compile(&self, ctx: &mut JSONCompilerContext, file_id: BlobId) -> StorytellResult<String> {
         Ok(json!({
-            parts: self.parts.compile(ctx)?,
+            parts: self.parts.compile(ctx, file_id)?,
             tail: self.tail.safe_compile(),
             range: self.range.safe_compile()
         }))
@@ -154,10 +152,10 @@ impl JSONCompilable for ASTParagraph {
     ///     parts: TextPart[],
     ///     tail: string
     /// }
-    fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
+    fn compile(&self, ctx: &mut JSONCompilerContext, file_id: BlobId) -> StorytellResult<String> {
         Ok(json!({
             kind: 0,
-            parts: self.parts.compile(ctx)?,
+            parts: self.parts.compile(ctx, file_id)?,
             tail: self.tail.safe_compile(),
             range: self.range.safe_compile(),
             attributes: self.attributes.safe_compile()
@@ -171,10 +169,10 @@ impl JSONCompilable for TextPart {
     ///     before: string,
     ///     text: Inline
     /// }
-    fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
+    fn compile(&self, ctx: &mut JSONCompilerContext, file_id: BlobId) -> StorytellResult<String> {
         Ok(json!({
             before: self.before.safe_compile(),
-            text: self.text.compile(ctx)?
+            text: self.text.compile(ctx, file_id)?
         }))
     }
 }
@@ -186,7 +184,7 @@ impl JSONCompilable for ASTCodeBlock {
     ///     code: string,
     ///     language: string
     /// }
-    fn compile(&self, _ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
+    fn compile(&self, _ctx: &mut JSONCompilerContext, _file_id: BlobId) -> StorytellResult<String> {
         Ok(json!({
             kind: 1,
             code: self.text.safe_compile(),
@@ -208,10 +206,10 @@ impl JSONCompilable for ASTChoice {
     ///     }
     /// }
     /// 
-    fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
+    fn compile(&self, ctx: &mut JSONCompilerContext, file_id: BlobId) -> StorytellResult<String> {
         Ok(json!({
-            text: self.text.compile(ctx)?,
-            children: self.children.compile(ctx)?,
+            text: self.text.compile(ctx, file_id)?,
+            children: self.children.compile(ctx, file_id)?,
             range: self.range.safe_compile(),
             attributes: self.attributes.safe_compile(),
             condition: self.condition.as_ref().map(|c| json!({
@@ -228,10 +226,10 @@ impl JSONCompilable for ASTChoiceGroup {
     ///     kind: 2,
     ///     choices: Choice[]
     /// }
-    fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
+    fn compile(&self, ctx: &mut JSONCompilerContext, file_id: BlobId) -> StorytellResult<String> {
         Ok(json!({
             kind: 2,
-            choices: self.choices.compile(ctx)?,
+            choices: self.choices.compile(ctx, file_id)?,
             range: self.range.safe_compile(),
             attributes: self.attributes.safe_compile()
         }))
@@ -245,7 +243,7 @@ impl JSONCompilable for ASTDivert {
     ///     path: string[]
     /// }
     /// 
-    fn compile(&self, _ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
+    fn compile(&self, _ctx: &mut JSONCompilerContext, _file_id: BlobId) -> StorytellResult<String> {
         Ok(json!({
             kind: 3,
             path: self.path.safe_compile(),
@@ -264,12 +262,12 @@ impl JSONCompilable for ASTMatch {
     ///     arms: Choice[],
     ///     children: Block[]
     /// }
-    fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
+    fn compile(&self, ctx: &mut JSONCompilerContext, file_id: BlobId) -> StorytellResult<String> {
         let mut choices: Vec<String> = vec![];
         for choice in &self.choices {
             choices.push(json!({ 
                 text: format!("\"{}\"", transform_js(&choice.text.parts[0].text.to_raw(), ctx.prefix_js_idents.clone())?),
-                children: choice.children.compile(ctx)?,
+                children: choice.children.compile(ctx, file_id)?,
                 range: choice.range.safe_compile(),
                 attributes: choice.attributes.safe_compile()
             }));
@@ -292,27 +290,27 @@ impl JSONCompilable for ASTBlock {
     /// ChoiceGroup - 2
     /// Divert - 3
     /// Match - 4
-    fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
+    fn compile(&self, ctx: &mut JSONCompilerContext, file_id: BlobId) -> StorytellResult<String> {
         match self {
-            Self::Header(header) => header.compile(ctx),
-            Self::Paragraph(paragraph) => paragraph.compile(ctx),
-            Self::CodeBlock(code) => code.compile(ctx),
-            Self::ChoiceGroup(group) => group.compile(ctx),
-            Self::Divert(divert) => divert.compile(ctx),
-            Self::Match(match_exp) => match_exp.compile(ctx)
+            Self::Header(header) => header.compile(ctx, file_id),
+            Self::Paragraph(paragraph) => paragraph.compile(ctx, file_id),
+            Self::CodeBlock(code) => code.compile(ctx, file_id),
+            Self::ChoiceGroup(group) => group.compile(ctx, file_id),
+            Self::Divert(divert) => divert.compile(ctx, file_id),
+            Self::Match(match_exp) => match_exp.compile(ctx, file_id)
         }
     }
 }
 
 impl JSONCompilable for &ASTBlock {
-    fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
+    fn compile(&self, ctx: &mut JSONCompilerContext, file_id: BlobId) -> StorytellResult<String> {
         match self {
-            ASTBlock::Header(header) => header.compile(ctx),
-            ASTBlock::Paragraph(paragraph) => paragraph.compile(ctx),
-            ASTBlock::CodeBlock(code) => code.compile(ctx),
-            ASTBlock::ChoiceGroup(group) => group.compile(ctx),
-            ASTBlock::Divert(divert) => divert.compile(ctx),
-            ASTBlock::Match(match_exp) => match_exp.compile(ctx)
+            ASTBlock::Header(header) => header.compile(ctx, file_id),
+            ASTBlock::Paragraph(paragraph) => paragraph.compile(ctx, file_id),
+            ASTBlock::CodeBlock(code) => code.compile(ctx, file_id),
+            ASTBlock::ChoiceGroup(group) => group.compile(ctx, file_id),
+            ASTBlock::Divert(divert) => divert.compile(ctx, file_id),
+            ASTBlock::Match(match_exp) => match_exp.compile(ctx, file_id)
         }
     }
 }
@@ -353,8 +351,8 @@ impl<T: JSONSafeCompilable> JSONSafeCompilable for Option<T> {
 }
 
 impl<T: JSONCompilable> JSONCompilable for Vec<T> {
-    fn compile(&self, ctx: &mut JSONCompilerContext) -> StorytellResult<String> {
-        Ok(format!("[{}]", self.iter().map(|i| i.compile(ctx)).collect::<StorytellResult<Vec<String>>>()?.join(",")))
+    fn compile(&self, ctx: &mut JSONCompilerContext, file_id: BlobId) -> StorytellResult<String> {
+        Ok(format!("[{}]", self.iter().map(|i| i.compile(ctx, file_id)).collect::<StorytellResult<Vec<String>>>()?.join(",")))
     }
 }
 
