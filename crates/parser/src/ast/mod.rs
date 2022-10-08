@@ -382,7 +382,24 @@ impl<'a> Parser<'a> {
                         } else {
                             result.push_str("**");
                         }
-                    }
+                    },
+                    // Underline
+                    '_'  => {
+                        let start = self.input.pos - 1;
+                        if let Some(text) = self.parse_text("_", false) {
+                            self.input.skip();
+                            parts.push(TextPart {
+                                before: result.clone(),
+                                text: ASTInline {
+                                    kind: ASTInlineKind::Underline(text),
+                                    range: self.input.range_here(start),
+                                },
+                            });
+                            result.clear()
+                        } else {
+                            result.push_str("_");
+                        }
+                    },
                     '+' if self.input.peek().is('+') => {
                         self.input.skip();
                         parts.push(TextPart { 

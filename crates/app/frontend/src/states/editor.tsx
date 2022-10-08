@@ -52,7 +52,6 @@ export const saveFileModelState = (fileId: number | undefined) => {
 
 export const setModelDiagnostics = (model: monaco.editor.ITextModel, dias: Diagnostic[]|undefined) => {
     monaco.editor.setModelMarkers(model, "owner", (dias || []).map(dia => {
-        console.log(dia);
         const start = model.getPositionAt(dia.range.start);
         const end = model.getPositionAt(dia.range.end);
         return {

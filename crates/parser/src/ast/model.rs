@@ -75,7 +75,7 @@ pub enum ASTInlineKind {
     Javascript(String),
     // *...*
     Italics(ASTText),
-    // __...__
+    // _..._
     Underline(ASTText),
     // `...`
     Code(ASTText),

@@ -106,12 +106,12 @@ export const enum ASTBlockKind {
 
 export interface ASTInlineText extends Node<false> {
     kind: ASTInlineTextKind,
-    text?: string
+    text?: ASTText
 }
 
 export interface ASTTextPart {
     before: string,
-    text: ASTInlineText
+    text?: ASTInlineText
 }
 
 export interface ASTText extends Node<false> {
@@ -146,11 +146,12 @@ export interface ASTChoiceGroup extends Node {
 }
 
 export interface ASTDivert extends Node {
-    kind: ASTBlockKind.Divert
+    kind: ASTBlockKind.Divert,
     path: string[]
 }
 
 export interface ASTMatch extends Node {
+    kind: ASTBlockKind.Match,
     condition: string,
     modifier?: string,
     arms: ASTChoice[],
