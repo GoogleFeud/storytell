@@ -91,5 +91,6 @@ export const recompileFile = async (fileId: number, content: string) : Promise<D
     const res = await JSON.parse(await invoke("recompile_file", {fileId, content})) as RawFileContents;
     setState("contents", fileId, "diagnostics", res.diagnostics.length ? res.diagnostics : undefined);
     setState("contents", fileId, "compiledContent", res.compiledContent);
+    console.log({...res.compiledContent});
     return res.diagnostics;
 };

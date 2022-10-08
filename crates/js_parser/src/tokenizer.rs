@@ -5,23 +5,18 @@ use crate::input::{InputConsumer, InputPresenter};
 
 make_diagnostics!(define [
     END_OF_STR,
-    JSP1001,
     "Unexpected end of string."
 ], [
     INVALID_DIGIT,
-    JSP1002,
     "Invalid digit '$'."
 ], [
     DECIMAL_POINT,
-    JSP1003,
     "Number already has a decimal point."
 ], [
     NUMERIC_SEPARATOR_AT_END,
-    JSP1004,
     "Numeric separators are not allowed at the end of numeric literals."
 ], [
     EXPECTED_TOKEN,
-    JSP1005,
     "Expected token '$'."
 ]);
 

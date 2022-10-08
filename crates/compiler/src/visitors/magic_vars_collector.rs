@@ -4,11 +4,9 @@ use std::{collections::HashMap, fmt::Display};
 
 make_diagnostics!(define [
     MUST_BE_OBJ,
-    C2001,
     "Variable '$' is a '$', not an object."
 ], [
     DIFFERENT_TYPE,
-    C2002,
     "Variable '$' is a '$', but '$' is being assigned to it."
 ]);
 
@@ -158,7 +156,7 @@ impl<'a> MagicVarCollector<'a> {
         let start = self.start_pos.start + other.start;
         Range { 
             start,
-            end: start + other.end
+            end: self.start_pos.start + other.end
         }
     }
 

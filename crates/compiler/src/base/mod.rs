@@ -10,7 +10,6 @@ use self::files::{BlobId, Directory, File, CompiledFileData};
 
 make_diagnostics!(define [
     MISSING_HEADER,
-    C1001,
     "File must contain just one top-level (#) path."
 ]);
 

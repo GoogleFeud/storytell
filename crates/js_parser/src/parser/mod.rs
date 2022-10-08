@@ -6,15 +6,12 @@ pub mod ast;
 
 make_diagnostics!(define [
     UNKNOWN_TOKEN,
-    JSP2001,
     "Unknown token $."
 ], [
     EXPECTED,
-    JSP2002,
     "Expected $."
 ], [
     END_OF_STRING_LITERAL,
-    JSP2003,
     "Expected end of string literal expression."
 ]);
 

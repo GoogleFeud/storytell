@@ -3,6 +3,7 @@ use storytell_fs::{SysFileHost, FileHost};
 use tauri::State;
 use crate::{state::StorytellState, projects::Project, deserialization::JSONSerializable};
 use serde_json::to_string;
+use std::env;
 
 #[tauri::command]
 pub fn list_projects(state: State<StorytellState>) -> String {
@@ -108,10 +109,10 @@ pub fn init_compiler(state: State<StorytellState>, project_id: String) -> Option
     let mut inner_state = state.lock().unwrap();
     inner_state.projects.open_project(&project_id);
     let project = inner_state.projects.projects.get(&project_id)?;
-    #[cfg(windows)]
-    let line_endings = 2;
-    #[cfg(not(windows))]
-    let line_endings = 1;
+    let line_endings = match env::consts::OS {
+        "windows" => 2,
+        _ => 1
+    };
     let mut compiler = Compiler::<JSONCompilerProvider, SysFileHost>::new(project.files_directory.to_str().unwrap(), line_endings, SysFileHost::default(), JSONCompilerContext::new(Some("this".to_string())));
     let (global_files, compiled_files) = compiler.init_fs();
     let json_str = json!({

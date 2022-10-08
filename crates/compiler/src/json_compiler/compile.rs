@@ -109,7 +109,7 @@ impl JSONCompilable for ASTInline {
                     return Err(diagnostics.into_iter().map(|d| Diagnostic {
                         msg: d.msg,
                         variant: d.variant,
-                        range: Range::new(self.range.start + d.range.start + 1, self.range.start + d.range.end - 1)
+                        range: Range::new(self.range.start + d.range.start + 1, self.range.start + d.range.end)
                     }).collect::<Vec<Diagnostic>>())
                 } else {
                     let mut magic_vars_collector = MagicVarCollector::new(input, Range::new(self.range.start + 1, self.range.end - 1), &mut ctx.magic_variables);

@@ -1,6 +1,5 @@
 pub mod model;
 pub mod utils;
-pub mod diff;
 
 use self::utils::*;
 use crate::input::*;
@@ -9,23 +8,18 @@ use storytell_diagnostics::{diagnostic::*, make_diagnostics, dia};
 
 make_diagnostics!(define [
     REQUIRED_JS,
-    P1001,
     "Match condition must be a javascript inline expression."
 ], [
     MISSING_CLOSING,
-    P1002,
     "Missing closing character '$'."
 ], [
     NESTED_HEADER,
-    P1003,
     "Path start cannot be inside options."
 ], [
     INCORRECT_HEADER_SIZE,
-    P1004,
     "Path should be one ($) level deeper than it's parent."
 ], [
     NO_CONDITION,
-    P1005,
     "Match options cannot have conditions."
 ]);
 
@@ -435,6 +429,7 @@ impl<'a> Parser<'a> {
                         }
                     },
                     '{' => {
+                        let start = self.input.pos - 1;
                         if let Some(text) = self.input.consume_until_of_eol("}") {
                             parts.push(TextPart {
                                 before: result.clone(),
