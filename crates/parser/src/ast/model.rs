@@ -1,4 +1,4 @@
-
+use std::cmp::PartialEq;
 use storytell_diagnostics::location::*;
 use std::fmt;
 
@@ -9,7 +9,7 @@ pub trait WithAttributes {
 macro_rules! create_nodes {
     ($($name: ident {$($field_name: ident: $field_type: ty),*})+) => {
         $(
-            #[derive(Clone)]
+            #[derive(Clone, Eq)]
             pub struct $name {
                 $(pub $field_name: $field_type,)*
                 pub attributes: Vec<ASTAttribute>,
@@ -21,6 +21,12 @@ macro_rules! create_nodes {
                     f.debug_struct(stringify!($name))
                      $(.field(stringify!($field_name), &self.$field_name))*
                      .finish()
+                }
+            }
+
+            impl PartialEq for $name {
+                fn eq(&self, other: &Self) -> bool {
+                    self.attributes == other.attributes && $(self.$field_name == other.$field_name)&&*
                 }
             }
 
@@ -38,10 +44,16 @@ macro_rules! create_nodes {
     };
     (NoAttribute $($name: ident {$($field_name: ident: $field_type: ty),*})+) => {
         $(
-            #[derive(Clone)]
+            #[derive(Clone, Eq)]
             pub struct $name {
                 $(pub $field_name: $field_type,)*
                 pub range: Range<usize>
+            }
+
+            impl PartialEq for $name {
+                fn eq(&self, other: &Self) -> bool {
+                    $(self.$field_name == other.$field_name)&&*
+                }
             }
 
             impl fmt::Debug for $name {
@@ -55,7 +67,7 @@ macro_rules! create_nodes {
     };
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,  PartialEq, Eq)]
 pub enum ASTInlineKind {
     // **...**
     Bold(ASTText),
@@ -70,10 +82,16 @@ pub enum ASTInlineKind {
     Join
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct TextPart {
     pub before: String,
     pub text: ASTInline
+}
+
+impl PartialEq for TextPart {
+    fn eq(&self, other: &Self) -> bool {
+        self.before == other.before && self.text == other.text
+    }
 }
 
 create_nodes!(NoAttribute
@@ -139,7 +157,7 @@ create_nodes!(
 
 );
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ASTBlock {
     Paragraph(ASTParagraph),
     CodeBlock(ASTCodeBlock),
