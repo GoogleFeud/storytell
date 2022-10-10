@@ -1,15 +1,16 @@
 import { ASTBlock, ASTBlockKind } from "@types";
 import { Navigatable } from "./navigatable";
-import { RenderText } from "./text";
+import { renderText } from "./text";
 
 
-export const RenderBlock = (props: {
-    block: ASTBlock
-}) => {
-    switch(props.block.kind) {
-    case ASTBlockKind.Paragraph:
-        return <RenderText item={props.block} navigatable></RenderText>;
+export const renderBlock = (block: ASTBlock) => {
+    switch(block.kind) {
+    case ASTBlockKind.Paragraph: {
+        const text = renderText(block);
+        if (!text) return;
+        return <Navigatable range={block.range}>{text}</Navigatable>;
+    }
     default:
-        return <Navigatable range={props.block.range}>Something</Navigatable>;
+        return <Navigatable range={block.range}>Something</Navigatable>;
     }
 };

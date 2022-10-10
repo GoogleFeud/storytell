@@ -18,7 +18,11 @@ export const [state, setState] = createStore<{
     activePanel?: string,
     contents: Record<number, FileContents>,
     diagnostics: FileDiagnostic[],
-    currentPage: Pages
+    currentPage: Pages,
+    renderer: {
+        currentIndex: number,
+        joinNext: boolean
+    }
 }>({
     projects: [],
     fileExplorer: {
@@ -28,7 +32,11 @@ export const [state, setState] = createStore<{
     diagnostics: [],
     contents: [],
     openPanels: [],
-    currentPage: Pages.TitleScreen
+    currentPage: Pages.TitleScreen,
+    renderer: {
+        currentIndex: 0,
+        joinNext: false
+    }
 });
 
 appWindow.onCloseRequested(() => {

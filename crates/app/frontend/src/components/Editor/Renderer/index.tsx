@@ -1,7 +1,10 @@
+
+import { state } from "@state/index";
 import { getActivePanelContents } from "@state/panel";
+import { incrementIndex, setJoinNext } from "@state/renderer";
 import { ASTHeader } from "@types";
-import { createEffect, createSignal, For } from "solid-js";
-import { RenderBlock } from "./rendered";
+import { createEffect, createSignal, For, untrack } from "solid-js";
+import { renderBlock } from "./rendered";
 
 export const Renderer = () => {
     const [activeAST, setActiveAST] = createSignal<ASTHeader | -1>();
@@ -11,11 +14,19 @@ export const Renderer = () => {
         if (active) setActiveAST(active.compiledContent || -1);
     });
 
-    return <div class="h-full">
-        {activeAST() === -1 ? "Fix the errors!" : activeAST() === undefined ? "Select a file!" : <div class="p-2 pl-6">
-            <p class="text-[24px] pb-4">{(activeAST() as ASTHeader).title}</p>
-            <div class="flex flex-col gap-2">
-                <For each={(activeAST() as ASTHeader).children}>{(block) => <RenderBlock block={block} />}</For>
+    return <div class="h-full"  onClick={() => incrementIndex()}>
+        {activeAST() === -1 ? "Fix the errors!" : activeAST() === undefined ? "Select a file!" : <div>
+            <p class="text-[24px] p-4 pl-5">{(activeAST() as ASTHeader).title}</p>
+            <div class="p-2 pl-8 text-[14px] select-none">
+                <For each={(activeAST() as ASTHeader).children.slice(0, state.renderer.currentIndex)}>{(block) => {
+                    const rendered = renderBlock(block);
+                    if (rendered) return <>
+                        {rendered}
+                        {untrack(() => state.renderer.joinNext === false ? <br /> : setJoinNext(false))}
+                    </>;
+                    else return undefined;
+                }
+                }</For>
             </div>
         </div>}
     </div>;

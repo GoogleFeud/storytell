@@ -1,40 +1,36 @@
+import { setJoinNext } from "@state/renderer";
 import { ASTInlineText, ASTInlineTextKind, ASTParagraph, ASTText, ASTTextPart } from "@types";
-import { For, JSXElement } from "solid-js";
-import { Navigatable } from "./navigatable";
+import { JSXElement } from "solid-js";
 
 export const renderInline = (inline: ASTInlineText) : JSXElement => {
     switch(inline.kind) {
     case ASTInlineTextKind.Bold:
-        return <b><RenderText item={inline.text as ASTText} /></b>;
+        return <b>{renderText(inline.text as ASTText)}</b>;
     case ASTInlineTextKind.Code:
-        return <code><RenderText item={inline.text as ASTText} /></code>;
+        return <code>{renderText(inline.text as ASTText)}</code>;
     case ASTInlineTextKind.Italics:
-        return <i><RenderText item={inline.text as ASTText} /></i>;
+        return <i>{renderText(inline.text as ASTText)}</i>;
     case ASTInlineTextKind.Underline:
-        return <u><RenderText item={inline.text as ASTText} /></u>;
+        return <u>{renderText(inline.text as ASTText)}</u>;
     case ASTInlineTextKind.JavaScript:
         return "<somejs>";
     case ASTInlineTextKind.Join:
-        return <></>;
+        setJoinNext(true);
+        return undefined;
     }
 };
 
 export const renderTextPart = (text: ASTTextPart) : JSXElement => {
-    return <span>{text.before}{text.text && renderInline(text.text)}</span>;
+    const rendered = text.text && renderInline(text.text);
+    if (!text.before && !rendered) return undefined;
+    return <span>{text.before}{rendered}</span>;
 };
 
-export const RenderText = (props: {
-    item: ASTText | ASTParagraph,
-    navigatable?: boolean
-}) => {
-    if (props.navigatable) return <Navigatable range={props.item.range}>
-        <For each={props.item.parts || []}>{(part) => {
-            return renderTextPart(part);
-        }}</For>{props.item.tail}
-    </Navigatable>;
-    else return <span>
-        <For each={props.item.parts || []}>{(part) => {
-            return renderTextPart(part);
-        }}</For>{props.item.tail}
+export const renderText = (item: ASTText | ASTParagraph) => {
+    const textParts = item.parts?.map(p => renderTextPart(p)).filter(p => p);
+    if (!textParts.length && !item.tail) return;
+    return <span>
+        {textParts}
+        <span>{item.tail}</span>
     </span>;
 };
