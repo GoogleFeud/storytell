@@ -21,7 +21,8 @@ export const [state, setState] = createStore<{
     currentPage: Pages,
     renderer: {
         currentIndex: number,
-        joinNext: boolean
+        joinNext: boolean,
+        selectedChoices: Record<number, number>
     }
 }>({
     projects: [],
@@ -35,7 +36,8 @@ export const [state, setState] = createStore<{
     currentPage: Pages.TitleScreen,
     renderer: {
         currentIndex: 0,
-        joinNext: false
+        joinNext: false,
+        selectedChoices: {}
     }
 });
 
