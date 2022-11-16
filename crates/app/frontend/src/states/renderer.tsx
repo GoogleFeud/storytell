@@ -17,9 +17,9 @@ export const activeHeader = () => {
     return state.contents[state.currentFile]?.compiledContent;
 };
 
-export const currentItem = () => {
+export const currentItem = (n = 0) => {
     const lastBlockInfo = state.renderer.blocks[state.renderer.blocks.length - 1];
-    return lastBlockInfo.children[lastBlockInfo.index];
+    return lastBlockInfo.children[lastBlockInfo.index + n];
 };
 
 export const activeBlockItems = () => {
@@ -27,10 +27,11 @@ export const activeBlockItems = () => {
     return lastBlockInfo.children.slice(0, lastBlockInfo.index);
 };
 
-export const increment = () => {
+export const increment = (i = 1) => {
     setState("renderer", "blocks", state.renderer.blocks.length - 1, (block) => {
+        console.log(block.index, block.children.length);
         if (block.index === block.children.length) return block;
-        else return {...block, index: block.index + 1};
+        else return {...block, index: block.index + i};
     });
 };
 
