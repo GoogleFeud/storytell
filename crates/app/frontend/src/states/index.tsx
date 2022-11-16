@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api";
 import { appWindow } from "@tauri-apps/api/window";
-import { Panel, Project, FileContents, FileDiagnostic, Pages, File, RawFileContents } from "@types";
+import { Panel, Project, FileContents, FileDiagnostic, Pages, File, RawFileContents, ASTBlock } from "@types";
 import { JSXElement } from "solid-js";
 import { createStore } from "solid-js/store";
 import { createModel } from "./editor";
@@ -20,9 +20,11 @@ export const [state, setState] = createStore<{
     diagnostics: FileDiagnostic[],
     currentPage: Pages,
     renderer: {
-        currentIndex: number,
-        joinNext: boolean,
-        selectedChoices: Record<number, number>
+        glueNext?: boolean,
+        blocks: {
+            children: ASTBlock[],
+            index: number
+        }[]
     }
 }>({
     projects: [],
@@ -35,9 +37,7 @@ export const [state, setState] = createStore<{
     openPanels: [],
     currentPage: Pages.TitleScreen,
     renderer: {
-        currentIndex: 0,
-        joinNext: false,
-        selectedChoices: {}
+        blocks: []
     }
 });
 

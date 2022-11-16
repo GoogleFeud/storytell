@@ -3,6 +3,7 @@ import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 import { createSignal } from "solid-js";
 import { setState, state } from ".";
 import { recompileFile } from "./file";
+import { setInitialBlock } from "./renderer";
 
 export const [editor, setEditorState] = createSignal<monaco.editor.IStandaloneCodeEditor>();
 
@@ -32,6 +33,7 @@ export const setEditorFile = async (fileId: number) => {
         const editorInstance = editor() as monaco.editor.IStandaloneCodeEditor;
         editorInstance.setModel(content.model);
         if (content.viewState) editorInstance.restoreViewState(content.viewState);
+        if (content.compiledContent) setInitialBlock(content.compiledContent.children);
     }
 };
 

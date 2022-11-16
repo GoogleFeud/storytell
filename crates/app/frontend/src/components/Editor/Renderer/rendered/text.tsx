@@ -1,4 +1,4 @@
-import { setJoinNext } from "@state/renderer";
+import { setGlue } from "@state/renderer";
 import { ASTInlineText, ASTInlineTextKind, ASTParagraph, ASTText, ASTTextPart } from "@types";
 import { JSXElement } from "solid-js";
 
@@ -15,7 +15,7 @@ export const renderInline = (inline: ASTInlineText) : JSXElement => {
     case ASTInlineTextKind.JavaScript:
         return "<somejs>";
     case ASTInlineTextKind.Join:
-        setJoinNext(true);
+        setGlue(true);
         return undefined;
     }
 };
