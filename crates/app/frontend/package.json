@@ -12,18 +12,18 @@
     "@typescript-eslint/eslint-plugin": "^5.30.6",
     "@typescript-eslint/parser": "^5.30.6",
     "autoprefixer": "^10.4.7",
-    "babel-preset-solid": "^1.4.6",
+    "babel-preset-solid": "^1.7.7",
     "eslint": "^8.19.0",
     "postcss": "^8.4.14",
-    "tailwindcss": "^3.1.4",
-    "typescript": "^4.5.4",
-    "vite": "^2.9.9",
-    "vite-plugin-solid": "^2.2.6"
+    "tailwindcss": "^3.3.3",
+    "typescript": "^5.1.6",
+    "vite": "^4.4.8",
+    "vite-plugin-solid": "^2.7.0"
   },
   "dependencies": {
     "@tauri-apps/api": "^1.0.2",
     "monaco-editor": "^0.34.0",
-    "solid-js": "^1.4.6",
+    "solid-js": "^1.7.8",
     "split.js": "^1.6.5"
   }
 }

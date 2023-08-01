@@ -4,6 +4,9 @@ import solidPlugin from "vite-plugin-solid";
 
 export default defineConfig({
     plugins: [solidPlugin()],
+    server: {
+        port: 3000
+    },
     resolve: {
         alias: {
             "@state": path.resolve(__dirname, "./src/states"),

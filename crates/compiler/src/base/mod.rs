@@ -1,7 +1,7 @@
 use std::{marker::PhantomData, fs::DirEntry};
 use rustc_hash::FxHashSet;
 use storytell_diagnostics::{diagnostic::*, make_diagnostics, dia, location::Range};
-use storytell_parser::{ast::{model::{ASTHeader, ASTBlock}, Parser}};
+use storytell_parser::ast::{model::{ASTHeader, ASTBlock}, Parser};
 use storytell_fs::FileHost;
 pub mod files;
 use files::CompilerFileHost;

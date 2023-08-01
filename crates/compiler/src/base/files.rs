@@ -1,7 +1,7 @@
 use storytell_diagnostics::diagnostic::Diagnostic;
 use storytell_fs::FileHost;
 use rustc_hash::{FxHashMap, FxHashSet};
-use storytell_parser::ast::{model::ASTBlock};
+use storytell_parser::ast::model::ASTBlock;
 use std::fs::DirEntry;
 use std::path::{PathBuf, Path};
 use std::cell::RefCell;

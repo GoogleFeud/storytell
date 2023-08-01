@@ -1,5 +1,5 @@
 use storytell_diagnostics::{diagnostic::*, make_diagnostics, location::Range, dia };
-use storytell_js_parser::{ast::*, tokenizer::{TokenKind}, input::InputPresenter};
+use storytell_js_parser::{ast::*, tokenizer::TokenKind, input::InputPresenter};
 use std::{collections::HashMap, fmt::Display};
 
 make_diagnostics!(define [
