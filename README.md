@@ -7,7 +7,7 @@ An application for writing interactive (choice-based) stories. This project is w
 **Backend:**
 - Rust with [tauri](https://tauri.app/)
 
-**Front-end:**
+**Frontend:**
 - [Typescript](https://www.typescriptlang.org/)
 - [Solid.js](https://www.solidjs.com/)
 - [Tailwindcss](https://tailwindcss.com/)
