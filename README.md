@@ -17,4 +17,4 @@ An application for writing interactive (choice-based) stories. This project is w
 ![gif1](https://github.com/GoogleFeud/storytell/blob/main/.github/assets/gif1.gif)
 
 
-![gif2](https://github.com/GoogleFeud/storytell/blob/main/.github/assets/gif1.gif)
+![gif2](https://github.com/GoogleFeud/storytell/blob/main/.github/assets/gif2.gif)
